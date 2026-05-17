@@ -1,0 +1,1 @@
+{"root":["./src/config.ts","./src/createpaymentprovider.ts","./src/global.d.ts","./src/index.ts","./src/contracts/payments.ts","./src/providers/mockpaymentprovider.ts","./src/providers/stripepaymentprovider.ts"],"version":"5.9.3"}

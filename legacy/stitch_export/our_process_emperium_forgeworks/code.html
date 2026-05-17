@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Process &amp; About | Emperium Forgeworks</title>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@600;700;800&amp;family=Inter:wght@400;500&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-highest": "#353534",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed": "#e5e2e1",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "primary-fixed-dim": "#ffb694",
+                    "outline-variant": "#5a4136",
+                    "on-surface-variant": "#e2bfb0",
+                    "on-background": "#e5e2e1",
+                    "inverse-surface": "#e5e2e1",
+                    "secondary-fixed-dim": "#e2b6ff",
+                    "surface-container-lowest": "#0e0e0e",
+                    "void-purple": "#2d1341",
+                    "background": "#131313",
+                    "secondary": "#e2b6ff",
+                    "surface-container": "#201f1f",
+                    "surface-variant": "#353534",
+                    "on-surface": "#e5e2e1",
+                    "on-error": "#690005",
+                    "inverse-on-surface": "#313030",
+                    "primary": "#ffb694",
+                    "on-secondary-fixed-variant": "#603182",
+                    "on-primary-container": "#571f00",
+                    "iron-gray": "#333333",
+                    "inverse-primary": "#a14000",
+                    "on-primary-fixed": "#351000",
+                    "surface-tint": "#ffb694",
+                    "surface-container-high": "#2a2a2a",
+                    "surface-container-low": "#1c1b1b",
+                    "plasma-glow": "#ff9d00",
+                    "tertiary-container": "#9a9898",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "secondary-container": "#623384",
+                    "surface-dim": "#131313",
+                    "on-error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#7b2f00",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "surface": "#131313",
+                    "blood-red": "#7a0000",
+                    "on-secondary-fixed": "#2f004d",
+                    "surface-bright": "#3a3939",
+                    "primary-fixed": "#ffdbcc",
+                    "on-tertiary": "#313030",
+                    "on-secondary": "#471769",
+                    "on-tertiary-container": "#313131",
+                    "error-container": "#93000a",
+                    "tertiary": "#c8c6c5",
+                    "on-primary": "#571f00",
+                    "outline": "#a98a7d",
+                    "primary-container": "#ff6a00",
+                    "secondary-fixed": "#f3daff",
+                    "on-secondary-container": "#d9a3fd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack-lg": "32px",
+                    "gutter": "24px",
+                    "container-max": "1440px",
+                    "margin-desktop": "64px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "margin-mobile": "16px",
+                    "section-gap": "80px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "display-lg": ["Epilogue"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Epilogue"],
+                    "headline-lg-mobile": ["Epilogue"],
+                    "label-md": ["JetBrains Mono"],
+                    "headline-lg": ["Epilogue"],
+                    "label-sm": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 20px rgba(255, 157, 0, 0.2);
+        }
+        .inner-bevel {
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+        .glass-void {
+            background: rgba(45, 19, 65, 0.1);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 w-full z-50 bg-background/90 backdrop-blur-md border-b border-outline-variant/20">
+<div class="flex justify-between items-center w-full px-margin-desktop py-4 max-w-container-max mx-auto">
+<div class="font-display-lg text-headline-md font-extrabold text-primary dark:text-primary tracking-tighter uppercase">
+                Emperium Forgeworks
+            </div>
+<div class="hidden md:flex items-center gap-stack-lg">
+<a class="text-on-surface-variant dark:text-on-surface-variant font-medium hover:text-plasma-glow transition-colors duration-300" href="#">Shop</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-medium hover:text-plasma-glow transition-colors duration-300" href="#">Gallery</a>
+<a class="text-primary dark:text-primary font-bold border-b-2 border-primary pb-1" href="#">Process</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-medium hover:text-plasma-glow transition-colors duration-300" href="#">About</a>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="p-2 text-primary hover:text-plasma-glow transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined">shopping_cart</span>
+</button>
+<button class="p-2 text-primary hover:text-plasma-glow transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</nav>
+<main class="pt-[88px]">
+<!-- Hero Section: The Forge Narrative -->
+<section class="relative h-[614px] flex items-center overflow-hidden border-b border-outline-variant/10">
+<div class="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10"></div>
+<img alt="Industrial Forge" class="absolute inset-0 w-full h-full object-cover grayscale opacity-40" data-alt="An atmospheric, high-fidelity scene inside a dark industrial 3D printing workshop. Multiple high-end resin printers glow with a soft ultraviolet radiance in a dimly lit, atmospheric room. The air is thick with a sense of meticulous craftsmanship, with deep shadows and metallic textures creating a gothic sci-fi aesthetic. Wisps of vapor rise from cleaning stations, illuminated by a warm orange molten glow from overhead task lamps." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKhL9czOdXEU8ZnYhkIX1lOLWY9Dgmu14yvog3NhGsKHYvGkNUnmkwa6uZZUz0ozI1VZLWh2SBo2Tofa8xwPf8JLOecuuenGHikWZNX5PdLzAUKyG_P3KtZSUD8AXdkONap1_jfD0DM4HrTXQQR1CgLhaVVy1_V-8oy-8PDQqVRJP4pENatx7LK-T147nCVrrOnFkL6fGeLf-5D1159p0k1KOFtudyLUVJV0d7KrTvSpvLdfOixqEl_GkWjugkGa8F-4qza8O4fhs"/>
+<div class="relative z-20 px-margin-desktop max-w-container-max mx-auto w-full">
+<div class="max-w-2xl space-y-stack-md">
+<div class="inline-block px-3 py-1 bg-void-purple/30 border border-secondary/20 rounded-sm">
+<span class="font-label-sm text-secondary tracking-widest uppercase">The Artifact Genesis</span>
+</div>
+<h1 class="font-display-lg text-display-lg text-primary tracking-tighter uppercase">Forged in Resin.<br/>Born in Shadow.</h1>
+<p class="font-body-lg text-on-surface-variant">Based in Miami, Florida, Emperium Forgeworks is more than a studio—it's a digital foundry dedicated to manifesting the dark and the divine through premium resin miniatures.</p>
+</div>
+</div>
+</section>
+<!-- The Process: Tactical HUD Layout -->
+<section class="py-section-gap px-margin-desktop max-w-container-max mx-auto">
+<div class="flex flex-col md:flex-row gap-stack-lg items-end mb-12">
+<h2 class="font-display-lg text-headline-lg uppercase text-primary border-l-4 border-primary pl-6">The Ritual of Fabrication</h2>
+<p class="font-label-md text-on-surface-variant/60 uppercase tracking-widest mb-2">Protocol 449-B: Quality Assurance</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<!-- Step 1 -->
+<div class="group relative bg-surface-container-low p-stack-lg border border-outline-variant/10 inner-bevel hover:border-primary/30 transition-all duration-500">
+<span class="font-label-sm text-plasma-glow mb-4 block">01 / INITIALIZATION</span>
+<h3 class="font-headline-md text-on-surface mb-stack-md">3D Printing</h3>
+<p class="font-body-md text-on-surface-variant mb-6">Utilizing high-density liquid resin and ultra-high-resolution monochromatic screens to capture every serrated edge and gothic detail.</p>
+<div class="aspect-square bg-iron-gray overflow-hidden">
+<img alt="3D Printing Process" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" data-alt="A close-up, high-detail shot of a high-end resin 3D printer in action. The build plate is slowly rising from a vat of dark, viscous gray resin. Intense ultraviolet light glows from beneath the vat, defining the sharp silhouette of a miniature's base. The lighting is moody and focused, with a cinematic dark fantasy atmosphere and metallic reflections on the printer's components." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC39K7UUJWvrpIyfmBqv4zT20eNc1Mh3gFWHUN6nrEa_0uRK9Hc7eCLlDNU1trQ66l2iN6_fvNNnigsVhJ14EmC6pvnr_vsr1wmum4RlDSM0ZuwQQlJU-QJbV_1OGGoaOU4Okl07GALBITinS5DK23Dw17zDNSMpYOlUIVAdCN12KC4q6itMYDH74MRLXoCWswAwBwNo3eQ1O2DMJgQq2Vr2JR97Qtf6K3HDOxgJa9OnMMq_MngWgEDnB3bL2kGItOS1-OXnaaRvSs"/>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="group relative bg-surface-container-low p-stack-lg border border-outline-variant/10 inner-bevel hover:border-primary/30 transition-all duration-500">
+<span class="font-label-sm text-plasma-glow mb-4 block">02 / PURIFICATION</span>
+<h3 class="font-headline-md text-on-surface mb-stack-md">Chemical Wash</h3>
+<p class="font-body-md text-on-surface-variant mb-6">Submerged in specialized chemical baths to remove excess resin, ensuring the intricate scuplts remain sharp and free of residue.</p>
+<div class="aspect-square bg-iron-gray overflow-hidden">
+<img alt="Washing Process" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" data-alt="A cinematic shot of a miniature being submerged in a clear chemical wash station. Bubbles and ripples catch the light from industrial LEDs. The background is a dark, sleek laboratory setting with high-contrast shadows. The focus is on the liquid dynamics and the emerging sharp details of the miniature's textured surface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGogbrL-iNCLx1OgZKnSZkTqWglLvNZ95DwMysJMEGR7Q-6dABqP8F0ToH2Uv04bbBXqCM1pAqFWFonIWOlyxvckFa3YDljSRKdBvEuV9N--HDkmTc6An1ulFe40jTalX0yxk_JqTlUi4RFuqpXihtH33v5rhquh45NcWgbDn4MwIclOP3Mwle71NFLMrALPyoE405PggH97oGzwncmJBMn-4x0St5991Ew3caYKkqDQ_1B3RBbE3JtNJdngfJp6qkQBSHEwzhjM8"/>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="group relative bg-surface-container-low p-stack-lg border border-outline-variant/10 inner-bevel hover:border-primary/30 transition-all duration-500">
+<span class="font-label-sm text-plasma-glow mb-4 block">03 / EXTRACTION</span>
+<h3 class="font-headline-md text-on-surface mb-stack-md">Support Removal</h3>
+<p class="font-body-md text-on-surface-variant mb-6">Meticulous removal of lattice structures. Each miniature is inspected under magnification for surgical precision.</p>
+<div class="aspect-square bg-iron-gray overflow-hidden">
+<img alt="Support Removal" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" data-alt="Macro photography of a person's hand using precise tactical snips to remove fine supports from a highly detailed dark fantasy miniature. The lighting is dramatic, casting long shadows across the workbench. The miniature features complex, jagged armor and organic textures. The overall aesthetic is industrial, focused, and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAA2Y5RN6k98kmN8rgYULmF_Fkx0WnqHyOckxx4OF3eDutsFVW2bDL-b0TtVQ9DUKBqRidd7bn0baxJNfZGt9Th6xhUiPZyeFzEmlz5Ym-GDDkxJ6rdbzgyGDjzmBGJ4LBFcl1y8iWgab3rWwRYvfCto78mKeilYvh1GRYd7DmRkzv-KOZC5tFv7j2e6KwRHuBSChAWzQdjqpAP5cOjhNlm5xmo4K9HqVw-WF3WPKrYhCqbrw0n2s8NrG2dYM5mM2FOr-Q8WrW38E"/>
+</div>
+</div>
+<!-- Step 4 -->
+<div class="group relative bg-surface-container-low p-stack-lg border border-outline-variant/10 inner-bevel hover:border-primary/30 transition-all duration-500">
+<span class="font-label-sm text-plasma-glow mb-4 block">04 / HARDENING</span>
+<h3 class="font-headline-md text-on-surface mb-stack-md">UV Curing</h3>
+<p class="font-body-md text-on-surface-variant mb-6">The final stage. Targeted UV radiation stabilizes the molecular structure, solidifying the resin into its permanent, rigid form.</p>
+<div class="aspect-square bg-iron-gray overflow-hidden">
+<img alt="UV Curing" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-80" data-alt="A miniature rotating on a mirrored platform inside a UV curing chamber. The scene is dominated by a vibrant, neon violet and purple glow. Refractions of light dance across the polished black interior of the machine. The miniature, a grimdark warrior, looks imposing and spectral under the intense ultraviolet illumination." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqd0GmMCQWD8QtsxGh-jIkJwBT4PXU9X5zgYXnTGWqSm1Yd4Di3sIRbYciZxjzgnfb8HDUKQG4C4U3TttD3bIJViFBStHH9L4qHab5LSDvI1tc_LcwOzSPPmzKYsocAO5AqBtyUUCTkgQNzFXkAxlBZ6yllg7tHONAIESLjyklDLjMOP8ujbnt4MhstUHVWv2k1BIPsO8QndjUHJiWbrbA-kiYKcYqn_ndHALnrEfcs4H2c_keIkwTCijmOSahOtQmFAwU0sYwVbY"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Production Partner: NSMiniatures Bento Grid -->
+<section class="py-section-gap bg-surface-container-lowest border-y border-outline-variant/10">
+<div class="px-margin-desktop max-w-container-max mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<div class="md:col-span-5 space-y-stack-lg">
+<span class="font-label-md text-secondary uppercase tracking-[0.2em]">Affiliated Forge</span>
+<h2 class="font-display-lg text-display-lg text-on-surface leading-none">NSMiniatures</h2>
+<div class="h-1 w-24 bg-secondary"></div>
+<p class="font-body-lg text-on-surface-variant leading-relaxed">
+                            The visionary studio behind <span class="text-secondary font-bold">The Petrified Choir Collection</span>. Based in Miami, NSMiniatures is dedicated to translating eldritch horrors and twisted cosmic entities into tangible nightmares.
+                        </p>
+<div class="flex gap-stack-md">
+<a class="inline-flex items-center gap-2 px-6 py-3 bg-secondary text-on-secondary font-label-md uppercase tracking-wider hover:bg-on-secondary-container transition-colors" href="#">
+                                View Collection
+                                <span class="material-symbols-outlined text-sm">open_in_new</span>
+</a>
+</div>
+</div>
+<div class="md:col-span-7 grid grid-cols-2 gap-stack-md">
+<div class="aspect-[4/5] bg-iron-gray overflow-hidden rounded-sm relative group">
+<div class="absolute inset-0 bg-void-purple/20 group-hover:bg-transparent transition-colors z-10"></div>
+<img alt="Eldritch Sculpture" class="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-500" data-alt="A breathtakingly detailed 3D render of an eldritch horror sculpture. The creature is a mass of tentacles, eyes, and shifting geometry, reminiscent of Lovecraftian mythology. The lighting is cold and atmospheric, with deep blues and purples. Every scale and skin fold is meticulously defined, showcasing the extreme resolution possible through the forge's process." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5PUdd5E0HsHeKtSpmVRj-ZR-P-tcJtAGTN-3GEQmTx-HgUFE7J-TNfmAr1GuwWjFvVb-PN1IPpsZr2hZw9lfjwzqkekSRw1r0ojlxZ3BFCTXxldBRw_Y8lluyDZiuJyihbfBv3NNc7-JfV6D4wFwFKMCZbkLiRBc3OGxaNH7G3uh_5IjIDnDrb8QmJ__MQtuX1dM49aYWRGp8K_xKaXvfs4rmqyDL1Ld3MmPcqx5z0InJIvF7ZexyOPDESKJbrRlPI4IxEKd26TI"/>
+</div>
+<div class="space-y-stack-md">
+<div class="aspect-square bg-iron-gray overflow-hidden rounded-sm relative group">
+<div class="absolute inset-0 bg-void-purple/20 group-hover:bg-transparent transition-colors z-10"></div>
+<img alt="Miniature Detail" class="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-500" data-alt="A close-up of a dark fantasy miniature featuring a 'Petrified Choir' member. The figure wears heavy, ornate robes and a faceless, cracked mask. The texture resembles ancient, weathered stone. The scene is set in a dark, vaulted gothic environment with subtle amber backlighting creating a dramatic rim light effect." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpTnftb-PYvn5OzeqMmY05EfrlDl39ILa8543RUd1hsCzzdauo_DM4L1Dj4yirwsQu9lxzUse1uabq6YX7veF4j2AADM1BkE07LXCKBlRBiMgyWm4FaXNyPOBuVGD2eYAgyEiarKFHYPNGc0ANd1vKDg3ceB6LM2x-v6GZKinDphft0NsyGuzFAcYIb6rvgzj5qbOrPdRAxQ7DgN64WSCyP6e_f21dZyYqxbboQ8GXGCfHkGdWGN0ejWA2T281bF3njvD8m5igkIs"/>
+</div>
+<div class="bg-surface-container p-stack-md border-l-2 border-secondary">
+<h4 class="font-label-md text-secondary uppercase mb-2">Creative Vision</h4>
+<p class="text-on-surface-variant text-body-md">"From twisted horrors to towering eldritch beings."</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- About the Forge: Dark Narrative -->
+<section class="py-section-gap px-margin-desktop max-w-container-max mx-auto overflow-hidden">
+<div class="relative bg-surface-container-high border border-outline-variant/20 p-stack-lg md:p-margin-desktop inner-bevel">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px]"></div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-margin-desktop items-center">
+<div class="order-2 md:order-1">
+<div class="space-y-stack-md relative z-10">
+<span class="font-label-md text-primary tracking-[0.3em] uppercase">Miami Protocol</span>
+<h2 class="font-display-lg text-display-lg text-on-surface tracking-tighter uppercase">Forge Story</h2>
+<div class="h-px w-full bg-gradient-to-r from-primary/50 to-transparent"></div>
+<p class="font-body-lg text-on-surface-variant leading-relaxed">
+                                Emperium Forgeworks emerged from a singular obsession: the pursuit of the perfect print. In the heart of Miami, we've established a sanctuary for wargamers and RPG enthusiasts who refuse to settle for the standard.
+                            </p>
+<p class="font-body-md text-on-surface-variant/80">
+                                Every artifact that leaves our studio has been personally vetted for structural integrity and aesthetic fidelity. We don't just sell plastic; we deliver the centerpieces of your next campaign—the legendary warriors and cosmic nightmares that define your tabletop legacy.
+                            </p>
+<div class="grid grid-cols-2 gap-gutter pt-stack-md">
+<div>
+<h5 class="font-headline-md text-primary">31+</h5>
+<p class="font-label-sm text-on-surface-variant uppercase">Successful Forgings</p>
+</div>
+<div>
+<h5 class="font-headline-md text-primary">5.0</h5>
+<p class="font-label-sm text-on-surface-variant uppercase">Quality Index</p>
+</div>
+</div>
+</div>
+</div>
+<div class="order-1 md:order-2 relative">
+<div class="absolute inset-0 border-2 border-primary/20 translate-x-4 translate-y-4 -z-10"></div>
+<img alt="Workshop Focus" class="w-full aspect-square object-cover shadow-2xl" data-alt="A focused, professional portrait of a creator in a dark Miami studio. The artisan is examining a gray resin miniature under a bright task lamp that casts a stark, warm orange glow against the deep shadows of the room. In the background, out-of-focus racks hold completed miniatures and containers of premium materials. The overall mood is one of dark, cinematic intensity and expert dedication." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwO7TfhwNtBMYlrR-JVbGVNBhgkLceNlJ7h4GgGYlJF7-l5QcjfUOn_cxqtp6KF1S8TR7UQxh1A749P5NBk5USvdy9oZTEZW38YEQObCP1PCDc8lTHYCAaHr3mG3ikMyjnfbEvCuvC-0EWvoGAzJEfL5pMeGylsqYdLq2riyVlkV_tu8oxnK7cYI0sHq1NHBkumVvoSn5RniKyhemXKjvvbD0Rfw4yWkMzykFv7oAz1AZgQg_So6nUgpdoIyVsNTRi1JjrfuH17MA"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-section-gap text-center px-margin-desktop">
+<div class="max-w-2xl mx-auto space-y-stack-md">
+<h2 class="font-display-lg text-headline-lg uppercase text-on-surface">Ready to Summon Your Fleet?</h2>
+<p class="font-body-lg text-on-surface-variant">Browse our latest licensed scuplts and original prints.</p>
+<div class="pt-stack-md">
+<button class="px-10 py-4 bg-primary text-on-primary font-display-lg text-headline-md uppercase tracking-widest hover:bg-primary-container transition-all hover:scale-105 active:scale-95 glow-hover">
+                        Enter the Shop
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest dark:bg-surface-container-lowest border-t border-outline-variant/30">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-margin-desktop py-stack-lg max-w-container-max mx-auto gap-stack-md">
+<div class="font-display-lg text-headline-md text-primary dark:text-primary tracking-tighter font-extrabold uppercase">
+                Emperium Forgeworks
+            </div>
+<div class="flex flex-wrap justify-center gap-stack-lg">
+<a class="text-on-surface-variant hover:text-on-surface font-body-md transition-colors hover:underline decoration-primary/50 underline-offset-4" href="#">Shipping &amp; Returns</a>
+<a class="text-on-surface-variant hover:text-on-surface font-body-md transition-colors hover:underline decoration-primary/50 underline-offset-4" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-on-surface font-body-md transition-colors hover:underline decoration-primary/50 underline-offset-4" href="#">Forge Terms</a>
+<a class="text-on-surface-variant hover:text-on-surface font-body-md transition-colors hover:underline decoration-primary/50 underline-offset-4" href="#">Contact Support</a>
+</div>
+<div class="text-on-surface-variant font-body-md text-center md:text-right opacity-60">
+                © 2024 Emperium Forgeworks. Forged in Resin. Born in Shadow.
+            </div>
+</div>
+</footer>
+</body></html>

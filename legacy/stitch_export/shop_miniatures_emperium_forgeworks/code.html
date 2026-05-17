@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shop | Emperium Forgeworks</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@600;700;800&amp;family=Inter:wght@400;500&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+        .molten-glow {
+            box-shadow: 0 0 15px 2px rgba(255, 157, 0, 0.4);
+        }
+        .plasma-glow-text {
+            text-shadow: 0 0 8px rgba(255, 157, 0, 0.6);
+        }
+        .iron-bevel {
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-highest": "#353534",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed": "#e5e2e1",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "primary-fixed-dim": "#ffb694",
+                    "outline-variant": "#5a4136",
+                    "on-surface-variant": "#e2bfb0",
+                    "on-background": "#e5e2e1",
+                    "inverse-surface": "#e5e2e1",
+                    "secondary-fixed-dim": "#e2b6ff",
+                    "surface-container-lowest": "#0e0e0e",
+                    "void-purple": "#2d1341",
+                    "background": "#131313",
+                    "secondary": "#e2b6ff",
+                    "surface-container": "#201f1f",
+                    "surface-variant": "#353534",
+                    "on-surface": "#e5e2e1",
+                    "on-error": "#690005",
+                    "inverse-on-surface": "#313030",
+                    "primary": "#ffb694",
+                    "on-secondary-fixed-variant": "#603182",
+                    "on-primary-container": "#571f00",
+                    "iron-gray": "#333333",
+                    "inverse-primary": "#a14000",
+                    "on-primary-fixed": "#351000",
+                    "surface-tint": "#ffb694",
+                    "surface-container-high": "#2a2a2a",
+                    "surface-container-low": "#1c1b1b",
+                    "plasma-glow": "#ff9d00",
+                    "tertiary-container": "#9a9898",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "secondary-container": "#623384",
+                    "surface-dim": "#131313",
+                    "on-error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#7b2f00",
+                    "on-tertiary-fixed": "#1c1b1b",
+                    "surface": "#131313",
+                    "blood-red": "#7a0000",
+                    "on-secondary-fixed": "#2f004d",
+                    "surface-bright": "#3a3939",
+                    "primary-fixed": "#ffdbcc",
+                    "on-tertiary": "#313030",
+                    "on-secondary": "#471769",
+                    "on-tertiary-container": "#313131",
+                    "error-container": "#93000a",
+                    "tertiary": "#c8c6c5",
+                    "on-primary": "#571f00",
+                    "outline": "#a98a7d",
+                    "primary-container": "#ff6a00",
+                    "secondary-fixed": "#f3daff",
+                    "on-secondary-container": "#d9a3fd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack-lg": "32px",
+                    "gutter": "24px",
+                    "container-max": "1440px",
+                    "margin-desktop": "64px",
+                    "stack-sm": "8px",
+                    "stack-md": "16px",
+                    "margin-mobile": "16px",
+                    "section-gap": "80px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "display-lg": ["Epilogue"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Epilogue"],
+                    "headline-lg-mobile": ["Epilogue"],
+                    "label-md": ["JetBrains Mono"],
+                    "headline-lg": ["Epilogue"],
+                    "label-sm": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-primary selection:text-on-primary">
+<header class="fixed top-0 z-50 w-full bg-background/90 backdrop-blur-md border-b border-outline-variant/20 flex justify-between items-center px-margin-desktop py-4 max-w-container-max mx-auto left-1/2 -translate-x-1/2">
+<div class="font-display-lg text-headline-md font-extrabold text-primary tracking-tighter uppercase">
+            Emperium Forgeworks
+        </div>
+<nav class="hidden md:flex items-center gap-stack-lg">
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-display-lg text-headline-md uppercase tracking-widest hover:text-plasma-glow transition-colors duration-300" href="#">Shop</a>
+<a class="text-on-surface-variant font-medium font-display-lg text-headline-md uppercase tracking-widest hover:text-plasma-glow transition-colors duration-300" href="#">Gallery</a>
+<a class="text-on-surface-variant font-medium font-display-lg text-headline-md uppercase tracking-widest hover:text-plasma-glow transition-colors duration-300" href="#">Process</a>
+<a class="text-on-surface-variant font-medium font-display-lg text-headline-md uppercase tracking-widest hover:text-plasma-glow transition-colors duration-300" href="#">About</a>
+</nav>
+<div class="flex items-center gap-stack-md">
+<div class="relative hidden sm:block">
+<input class="bg-surface-container-low border border-outline-variant/30 text-on-surface text-label-md px-4 py-2 w-64 focus:ring-1 focus:ring-primary focus:border-primary bg-opacity-50 backdrop-blur-sm transition-all duration-300" placeholder="Search the forge..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 active:scale-95 duration-150">
+<span class="material-symbols-outlined">shopping_cart</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 active:scale-95 duration-150">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</header>
+<main class="pt-32 pb-section-gap px-margin-desktop max-w-container-max mx-auto min-h-screen">
+<div class="mb-stack-lg flex flex-col md:flex-row md:items-end justify-between gap-stack-md">
+<div>
+<h1 class="font-display-lg text-display-lg text-primary uppercase tracking-tighter mb-2">The Vault</h1>
+<p class="text-on-surface-variant font-body-lg max-w-2xl">Forged in resin, born in shadow. Explore our collection of premium grimdark miniatures and tactical terrain sculps.</p>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="bg-primary text-on-primary px-4 py-2 font-label-md molten-glow hover:brightness-110 transition-all uppercase tracking-widest">All</button>
+<button class="bg-surface-container-high text-on-surface-variant px-4 py-2 font-label-md hover:text-primary border border-outline-variant/30 transition-all uppercase tracking-widest">Dark Fantasy</button>
+<button class="bg-surface-container-high text-on-surface-variant px-4 py-2 font-label-md hover:text-primary border border-outline-variant/30 transition-all uppercase tracking-widest">Horror</button>
+<button class="bg-surface-container-high text-on-surface-variant px-4 py-2 font-label-md hover:text-primary border border-outline-variant/30 transition-all uppercase tracking-widest">Sci-Fi</button>
+<button class="bg-surface-container-high text-on-surface-variant px-4 py-2 font-label-md hover:text-primary border border-outline-variant/30 transition-all uppercase tracking-widest">Terrain</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<div class="group bg-surface-container-low iron-bevel flex flex-col hover:bg-surface-container-high transition-all duration-300 relative overflow-hidden">
+<div class="aspect-[1.26] overflow-hidden bg-black">
+<img alt="Ghatanothoa Miniature Set" class="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" src="https://lh3.googleusercontent.com/aida/ADBb0uiCu0fMeqDDbDMabvO4dEa0cFx6tdmXn1S85jqegmhASVH100rAYf_jWCNA84fXEnLoHp_jc6DvE0evg8xqy-Nk4nO2ryLDZFNSldHlD89_smlmdXQp4a62NhB-6cGiKaoK2hYJjtjrjETRFWy6aOZuUsWLj-kMGA0Dm7w06aJDcZT2LCNuEbGjGn3DtcZSpJmXVstC84gqXj-ub6U2iCNNwrzT0mhNjtkK1tuxRmaigEJZGWSAiN1m4Q"/>
+</div>
+<div class="p-4 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm text-secondary font-label-sm tracking-widest uppercase bg-secondary-container/20 px-2 py-1">Horror</span>
+<span class="text-label-md text-primary font-bold">$4.99</span>
+</div>
+<h3 class="font-headline-md text-on-surface text-headline-md mb-stack-md line-clamp-2">Ghatanothoa Miniature Set – Cthulhu Mythos</h3>
+<div class="mt-auto flex gap-stack-sm">
+<button class="flex-grow bg-primary text-on-primary py-2 font-label-md hover:brightness-110 transition-all uppercase tracking-widest">Forge</button>
+<button class="aspect-square bg-surface-container-highest flex items-center justify-center p-2 text-on-surface-variant hover:text-plasma-glow transition-colors">
+<span class="material-symbols-outlined text-base">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-low iron-bevel flex flex-col hover:bg-surface-container-high transition-all duration-300 relative overflow-hidden">
+<div class="aspect-[1.26] overflow-hidden bg-black relative">
+<div class="absolute top-2 left-2 z-10 bg-blood-red text-white text-label-sm px-2 py-1 tracking-widest uppercase">Popular</div>
+<img alt="Female Samurai Miniature" class="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" src="https://lh3.googleusercontent.com/aida/ADBb0uhR61_EUExl9TKHrBTryQPzNu_kqgdGjCsRjyYwtNXwmLEgPPAM3qPhdT9bxzVCfPcl-xpQgz28hKdEszLpnkqiTThxJab_bXgoUouur8DO8mulXayU4kv-RVIwkA5LSTZjR8LuVo_aa5Hve6v8TihieqBNL1JS0D93PlDed7qahMhOkYmAvVJ-wKsskXTTmStjyDGJRlHYJO8-WAAmGC5yLe7WujGCVot-KsLzLvI2yD8KwoWdL8JoYo4"/>
+</div>
+<div class="p-4 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm text-secondary font-label-sm tracking-widest uppercase bg-secondary-container/20 px-2 py-1">SF &amp; Fantasy</span>
+<span class="text-label-md text-primary font-bold">$11.99</span>
+</div>
+<h3 class="font-headline-md text-on-surface text-headline-md mb-stack-md line-clamp-2">Female Samurai Miniature | Dual Katana Warrior</h3>
+<div class="mt-auto flex gap-stack-sm">
+<button class="flex-grow bg-primary text-on-primary py-2 font-label-md hover:brightness-110 transition-all uppercase tracking-widest">Forge</button>
+<button class="aspect-square bg-surface-container-highest flex items-center justify-center p-2 text-on-surface-variant hover:text-plasma-glow transition-colors">
+<span class="material-symbols-outlined text-base">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-low iron-bevel flex flex-col hover:bg-surface-container-high transition-all duration-300 relative overflow-hidden">
+<div class="aspect-[1.26] overflow-hidden bg-black">
+<img alt="Urban Rubble Bases" class="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" src="https://lh3.googleusercontent.com/aida/ADBb0uhZDjuh1FPho1TT504QYC-PNXrdILBAF3DYjs-xEwTPZA-SOzVLc3eCXztAaP2wKqlnXQ9pBy9z1ydmDybMY9KL25xUyawy9eNKLvsDThOTSBsAtosKt3T5DRejMLfoD8WRJEPnbCe7CnsBzmsmMm4-WRb8pdGi-1h4klaNZER-7Bjgd2ihQ4CqWKoscSYJDRsqElLicd6uXRpzmuPMmRbCXWtafyKCY3W_9ZVqJQzcGivrz8OIiKHIdPo"/>
+</div>
+<div class="p-4 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm text-secondary font-label-sm tracking-widest uppercase bg-secondary-container/20 px-2 py-1">Terrain</span>
+<span class="text-label-md text-primary font-bold">$8.00</span>
+</div>
+<h3 class="font-headline-md text-on-surface text-headline-md mb-stack-md line-clamp-2">32mm Wargame Bases | Urban Rubble Terrain</h3>
+<div class="mt-auto flex gap-stack-sm">
+<button class="flex-grow bg-primary text-on-primary py-2 font-label-md hover:brightness-110 transition-all uppercase tracking-widest">Forge</button>
+<button class="aspect-square bg-surface-container-highest flex items-center justify-center p-2 text-on-surface-variant hover:text-plasma-glow transition-colors">
+<span class="material-symbols-outlined text-base">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-low iron-bevel flex flex-col hover:bg-surface-container-high transition-all duration-300 relative overflow-hidden">
+<div class="aspect-[1.26] overflow-hidden bg-black">
+<img class="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" data-alt="A highly detailed 3D printed miniature of a dark fantasy necromancer skeleton figure standing over a pile of skulls. The miniature is unpainted light grey resin, showcasing intricate bone textures and tattered robes. The lighting is cinematic and focused, casting long dramatic shadows against a dark, smokey industrial forge background. The aesthetic is grimdark and high-fidelity with a sense of ancient dread." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6nmIf895QEH6SBkAicEKuTFL--TU-7rDyNCPnLwj8OktATx0wySsaa_k8wwWrmpkRRLQGEDZrXNgLSSAIlJavbMlGt-ErzLb2VLooYDtDdKNPHYJGkN38dSEg0rAb0m9RGWhpZG2XYHrKL6bVgqArZK-SH5C-cSjL-IxYs-AI50SxxR_cPKYPfkNbrA53ngvEoVxv6klVn5m_duldWfkMIraq_ETVRkGJYNrp4AroudeZ7qjMyHfUOm48IfmulHJsT5XpyzKLjDE"/>
+</div>
+<div class="p-4 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm text-secondary font-label-sm tracking-widest uppercase bg-secondary-container/20 px-2 py-1">Dark Fantasy</span>
+<span class="text-label-md text-primary font-bold">$9.00</span>
+</div>
+<h3 class="font-headline-md text-on-surface text-headline-md mb-stack-md line-clamp-2">Armored Skeletal Spearman | Undead Guard</h3>
+<div class="mt-auto flex gap-stack-sm">
+<button class="flex-grow bg-primary text-on-primary py-2 font-label-md hover:brightness-110 transition-all uppercase tracking-widest">Forge</button>
+<button class="aspect-square bg-surface-container-highest flex items-center justify-center p-2 text-on-surface-variant hover:text-plasma-glow transition-colors">
+<span class="material-symbols-outlined text-base">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-low iron-bevel flex flex-col hover:bg-surface-container-high transition-all duration-300 relative overflow-hidden">
+<div class="aspect-[1.26] overflow-hidden bg-black">
+<img class="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" data-alt="A collection of five 40mm round miniature bases with high-detail urban rubble and shattered concrete textures. The material is unpainted grey resin with sharp edges and realistic debris patterns like rebar and bricks. The studio shot has high-contrast lighting to accentuate the fine grit and cracks. The mood is industrial, dark, and tactical, suitable for a futuristic tabletop battlefield." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYtEOm5p2H_u11SgFYnMfcJavHQVG_Yy1mEggqoaL6wrlUrw5M1y6PpzrqkniU3bwHWoIvx5IP_OIO3kkutZ7xyEpMr5Whib0rSiySt6gumqHEFg-eqxDSrJlid5R2eZrTNtTuyPpMZXQilUpID5op03WA1A1EPltUB0-zNLEmBlei_nyPTIKIO7akDhbjSkCauXlI9Ol3y68L2torBIwXd-WBdxo4HFoCTo5vMUZXwVhtX0WCXvTqYVNaNJ4LdWSJlZ05gq7Ikko"/>
+</div>
+<div class="p-4 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm text-secondary font-label-sm tracking-widest uppercase bg-secondary-container/20 px-2 py-1">Terrain</span>
+<span class="text-label-md text-primary font-bold">$10.00</span>
+</div>
+<h3 class="font-headline-md text-on-surface text-headline-md mb-stack-md line-clamp-2">40mm Wargame Bases | Urban Rubble Pack</h3>
+<div class="mt-auto flex gap-stack-sm">
+<button class="flex-grow bg-primary text-on-primary py-2 font-label-md hover:brightness-110 transition-all uppercase tracking-widest">Forge</button>
+<button class="aspect-square bg-surface-container-highest flex items-center justify-center p-2 text-on-surface-variant hover:text-plasma-glow transition-colors">
+<span class="material-symbols-outlined text-base">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-low iron-bevel flex flex-col hover:bg-surface-container-high transition-all duration-300 relative overflow-hidden">
+<div class="aspect-[1.26] overflow-hidden bg-black relative">
+<div class="absolute top-2 left-2 z-10 bg-primary text-on-primary text-label-sm px-2 py-1 tracking-widest uppercase">75mm Scale</div>
+<img class="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" data-alt="A massive resin printed miniature of an Eldritch Dragon with numerous tentacles and multiple eyes. The dragon possesses a nightmarish, Lovecraftian aesthetic with textured scales and wet-look slime details. Shot in a professional hobby studio with moody dark lighting that highlights the grey resin surfaces. This imposing monster is intended for high-stakes dark fantasy gaming, emphasizing its cosmic horror origins." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-8dI-AG-TQwJIsqrSwTP1vYfWE90n7xZAOWCh3g-dlqxHDm5Fgnubp0tlwtjThW7FUSO9A2YMINmV5GT4bb_vXwfN2C0jInSYzDakWAiBllhsgoaORyGnTct9UTaDIlC7WZX4upzatwAqOsLLtN2bZOwdhZ7PiWXT6UFarIU2_YHthI2kuIXrA297u5CWArIqIvQthX9x-gCS5LH9gmcFHrn_Sx1U8xn8yIqPv1vIal04juiaxT_GAxYJ2ItJIE--7MopyzcYRGk"/>
+</div>
+<div class="p-4 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm text-secondary font-label-sm tracking-widest uppercase bg-secondary-container/20 px-2 py-1">Horror</span>
+<span class="text-label-md text-primary font-bold">$42.99</span>
+</div>
+<h3 class="font-headline-md text-on-surface text-headline-md mb-stack-md line-clamp-2">Eldritch Dragon – Tentacled Horror Model</h3>
+<div class="mt-auto flex gap-stack-sm">
+<button class="flex-grow bg-primary text-on-primary py-2 font-label-md hover:brightness-110 transition-all uppercase tracking-widest">Forge</button>
+<button class="aspect-square bg-surface-container-highest flex items-center justify-center p-2 text-on-surface-variant hover:text-plasma-glow transition-colors">
+<span class="material-symbols-outlined text-base">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-low iron-bevel flex flex-col hover:bg-surface-container-high transition-all duration-300 relative overflow-hidden">
+<div class="aspect-[1.26] overflow-hidden bg-black">
+<img class="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" data-alt="A detailed 3D printed model of a Sci-Fi Armored Executioner warrior miniature. The figure is clad in heavy power armor with visible wires, exhaust vents, and mechanical joints. It wields a massive power claw and a jagged energy sword. The lighting is harsh and directional, emphasizing the sharp futuristic lines and industrial textures of the grey resin print. Set against a deep black background for maximum contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuADvuGKG5u8vNdzeRaiWgIhC3w_ES4XwhVneHox2Z2yhgkMR7s2ZOrIfTxFzUOvKBb_S9WRfd7pURWkA8cqBqcm_F1Msu5vrfEiPIsOZEVetJzMRmy4y9kKWORVEXZ9h7DIeKkYLrEUxnbRZlRAijHQnoD3FXespjmTJnfY3oyuF6Qbjm95KwVTFgY0_4JVuuavkYZyOvtzvAdI1WnByDtUI8jAV1ZhnbKYBuHMhOkrpksVJTaBTQLYthdxxkfKy2uA1K83BOEeg0Y"/>
+</div>
+<div class="p-4 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm text-secondary font-label-sm tracking-widest uppercase bg-secondary-container/20 px-2 py-1">Sci-Fi</span>
+<span class="text-label-md text-primary font-bold">$10.99</span>
+</div>
+<h3 class="font-headline-md text-on-surface text-headline-md mb-stack-md line-clamp-2">Executioner | Elite Exterminator Armored Warrior</h3>
+<div class="mt-auto flex gap-stack-sm">
+<button class="flex-grow bg-primary text-on-primary py-2 font-label-md hover:brightness-110 transition-all uppercase tracking-widest">Forge</button>
+<button class="aspect-square bg-surface-container-highest flex items-center justify-center p-2 text-on-surface-variant hover:text-plasma-glow transition-colors">
+<span class="material-symbols-outlined text-base">favorite</span>
+</button>
+</div>
+</div>
+</div>
+<div class="group bg-surface-container-low iron-bevel flex flex-col hover:bg-surface-container-high transition-all duration-300 relative overflow-hidden">
+<div class="aspect-[1.26] overflow-hidden bg-black">
+<img class="w-full h-full object-cover grayscale brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" data-alt="A pack of seven distinct Sci-Fi Knight Paladin miniatures, each with unique power armor and heavy weaponry like plasma rifles and storm shields. These unpainted grey resin figures are positioned in dynamic tactical poses. The studio lighting is cold and atmospheric, creating a grimdark battlefield mood. The high-resolution resin capture ensures every bolt, vent, and armor plate is sharply defined against the shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChXL5DYyhoZsHBbyadOI0XeV6HjPQKwY_qByi9YrYO57X6M4DGrqGeDSlT_csv9v7M9yydMDZK-Ed6tYIHZd4tF8eqGvHapqWYykIhbfI-DRpW2vFHDYnlioaqs6QfVkZIMw2htRj6XxaMniDX1Wm1BMNKS8u8-a1OswttTazK6-5R3BVxxK7koLVRy52Q1lkIYrSmkSqDm-BVMvtojsQxsS3dpi1nLXJeGaf-rCf0pLWB_1lsMFRaLeISjDZTGyNh0Hb-kaEIDc4"/>
+</div>
+<div class="p-4 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<span class="text-label-sm text-secondary font-label-sm tracking-widest uppercase bg-secondary-container/20 px-2 py-1">Sci-Fi</span>
+<span class="text-label-md text-primary font-bold">$4.99</span>
+</div>
+<h3 class="font-headline-md text-on-surface text-headline-md mb-stack-md line-clamp-2">Voidbound Knight Paladins Set | 7-Pack Resin</h3>
+<div class="mt-auto flex gap-stack-sm">
+<button class="flex-grow bg-primary text-on-primary py-2 font-label-md hover:brightness-110 transition-all uppercase tracking-widest">Forge</button>
+<button class="aspect-square bg-surface-container-highest flex items-center justify-center p-2 text-on-surface-variant hover:text-plasma-glow transition-colors">
+<span class="material-symbols-outlined text-base">favorite</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-section-gap grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="md:col-span-2 bg-surface-container-low iron-bevel p-stack-lg border border-outline-variant/10 relative overflow-hidden group">
+<div class="absolute -right-16 -top-16 w-64 h-64 bg-primary/5 rounded-full blur-3xl transition-all group-hover:bg-primary/10"></div>
+<h2 class="font-display-lg text-headline-lg text-primary uppercase mb-4 tracking-tighter">Forge Announcement</h2>
+<div class="text-on-surface-variant space-y-4 font-body-lg">
+<p>Welcome to Emperium Forgeworks — your source for premium 3D printed collectibles, sci-fi miniatures, Voidbound Sentinels, and ancient terrors. Every item is made to order with high-quality resin and surgical precision.</p>
+<p>Latest activation: May 16, 2026. New sculpts from NSMiniatures have been added to the Dark Fantasy vault.</p>
+</div>
+<button class="mt-stack-lg text-primary font-label-md uppercase tracking-widest flex items-center gap-2 hover:translate-x-2 transition-transform duration-300">
+                    Read Transmission <span class="material-symbols-outlined">trending_flat</span>
+</button>
+</div>
+<div class="bg-void-purple/20 iron-bevel p-stack-lg border border-secondary/10 flex flex-col justify-center text-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-secondary text-5xl mb-4">verified</span>
+<h4 class="font-headline-md text-secondary mb-2">High Fidelity Prints</h4>
+<p class="text-on-surface-variant text-label-md px-4">"unbelievably clean prints! Will definitely be ordering some more from this shop!"</p>
+<div class="mt-4 font-label-sm text-primary uppercase tracking-widest">— Christian</div>
+</div>
+</div>
+</main>
+<footer class="bg-surface-container-lowest border-t border-outline-variant/30">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-margin-desktop py-stack-lg max-w-container-max mx-auto gap-stack-md">
+<div class="flex flex-col items-center md:items-start gap-4">
+<div class="font-display-lg text-headline-md text-primary uppercase tracking-tighter font-extrabold">Emperium Forgeworks</div>
+<p class="font-body-md text-on-surface-variant text-center md:text-left max-w-xs">© 2024 Emperium Forgeworks. Forged in Resin. Born in Shadow.</p>
+</div>
+<nav class="flex flex-wrap justify-center gap-stack-lg">
+<a class="text-on-surface-variant hover:text-on-surface hover:underline decoration-primary/50 underline-offset-4 transition-colors font-body-md" href="#">Shipping &amp; Returns</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:underline decoration-primary/50 underline-offset-4 transition-colors font-body-md" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:underline decoration-primary/50 underline-offset-4 transition-colors font-body-md" href="#">Forge Terms</a>
+<a class="text-on-surface-variant hover:text-on-surface hover:underline decoration-primary/50 underline-offset-4 transition-colors font-body-md" href="#">Contact Support</a>
+</nav>
+<div class="flex items-center gap-stack-md">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">share</span></a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">rss_feed</span></a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">alternate_email</span></a>
+</div>
+</div>
+<div class="w-full text-center py-4 border-t border-outline-variant/10 text-on-surface-variant text-label-sm bg-black/40">
+            Powered by 100% renewable electricity. Forged with intent.
+        </div>
+</footer>
+</body></html>

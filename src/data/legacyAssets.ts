@@ -1,0 +1,34 @@
+/** Image URLs extracted from legacy/stitch_export HTML mocks */
+
+export const LEGACY_IMAGES = {
+  home: {
+    /** Source: legacy/stitch_export/home_forged_in_shadow/ (Etsy shop banner) */
+    brandBanner: "/images/emperium-forgeworks-hero-banner.png",
+    voidboundSentinel:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuChXL5DYyhoZsHBbyadOI0XeV6HjPQKwY_qByi9YrYO57X6M4DGrqGeDSlT_csv9v7M9yydMDZK-Ed6tYIHZd4tF8eqGvHapqWYykIhbfI-DRpW2vFHDYnlioaqs6QfVkZIMw2htRj6XxaMniDX1Wm1BMNKS8u8-a1OswttTazK6-5R3BVxxK7koLVRy52Q1lkIYrSmkSqDm-BVMvtojsQxsS3dpi1nLXJeGaf-rCf0pLWB_1lsMFRaLeISjDZTGyNh0Hb-kaEIDc4",
+    darkFantasy:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuA6nmIf895QEH6SBkAicEKuTFL--TU-7rDyNCPnLwj8OktATx0wySsaa_k8wwWrmpkRRLQGEDZrXNgLSSAIlJavbMlGt-ErzLb2VLooYDtDdKNPHYJGkN38dSEg0rAb0m9RGWhpZG2XYHrKL6bVgqArZK-SH5C-cSjL-IxYs-AI50SxxR_cPKYPfkNbrA53ngvEoVxv6klVn5m_duldWfkMIraq_ETVRkGJYNrp4AroudeZ7qjMyHfUOm48IfmulHJsT5XpyzKLjDE",
+    eldritch:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuB5PUdd5E0HsHeKtSpmVRj-ZR-P-tcJtAGTN-3GEQmTx-HgUFE7J-TNfmAr1GuwWjFvVb-PN1IPpsZr2hZw9lfjwzqkekSRw1r0ojlxZ3BFCTXxldBRw_Y8lluyDZiuJyihbfBv3NNc7-JfV6D4wFwFKMCZbkLiRBc3OGxaNH7G3uh_5IjIDnDrb8QmJ__MQtuX1dM49aYWRGp8K_xKaXvfs4rmqyDL1Ld3MmPcqx5z0InJIvF7ZexyOPDESKJbrRlPI4IxEKd26TI",
+  },
+  process: {
+    hero: "https://lh3.googleusercontent.com/aida-public/AB6AXuBKhL9czOdXEU8ZnYhkIX1lOLWY9Dgmu14yvog3NhGsKHYvGkNUnmkwa6uZZUz0ozI1VZLWh2SBo2Tofa8xwPf8JLOecuuenGHikWZNX5PdLzAUKyG_P3KtZSUD8AXdkONap1_jfD0DM4HrTXQQR1CgLhaVVy1_V-8oy-8PDQqVRJP4pENatx7LK-T147nCVrrOnFkL6fGeLf-5D1159p0k1KOFtudyLUVJV0d7KrTvSpvLdfOixqEl_GkWjugkGa8F-4qza8O4fhs",
+    printing:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuC39K7UUJWvrpIyfmBqv4zT20eNc1Mh3gFWHUN6nrEa_0uRK9Hc7eCLlDNU1trQ66l2iN6_fvNNnigsVhJ14EmC6pvnr_vsr1wmum4RlDSM0ZuwQQlJU-QJbV_1OGGoaOU4Okl07GALBITinS5DK23Dw17zDNSMpYOlUIVAdCN12KC4q6itMYDH74MRLXoCWswAwBwNo3eQ1O2DMJgQq2Vr2JR97Qtf6K3HDOxgJa9OnMMq_MngWgEDnB3bL2kGItOS1-OXnaaRvSs",
+    wash: "https://lh3.googleusercontent.com/aida-public/AB6AXuAGogbrL-iNCLx1OgZKnSZkTqWglLvNZ95DwMysJMEGR7Q-6dABqP8F0ToH2Uv04bbBXqCM1pAqFWFonIWOlyxvckFa3YDljSRKdBvEuV9N--HDkmTc6An1ulFe40jTalX0yxk_JqTlUi4RFuqpXihtH33v5rhquh45NcWgbDn4MwIclOP3Mwle71NFLMrALPyoE405PggH97oGzwncmJBMn-4x0St5991Ew3caYKkqDQ_1B3RBbE3JtNJdngfJp6qkQBSHEwzhjM8",
+    supports:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuBAA2Y5RN6k98kmN8rgYULmF_Fkx0WnqHyOckxx4OF3eDutsFVW2bDL-b0TtVQ9DUKBqRidd7bn0baxJNfZGt9Th6xhUiPZyeFzEmlz5Ym-GDDkxJ6rdbzgyGDjzmBGJ4LBFcl1y8iWgab3rWwRYvfCto78mKeilYvh1GRYd7DmRkzv-KOZC5tFv7j2e6KwRHuBSChAWzQdjqpAP5cOjhNlm5xmo4K9HqVw-WF3WPKrYhCqbrw0n2s8NrG2dYM5mM2FOr-Q8WrW38E",
+    curing:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuAqd0GmMCQWD8QtsxGh-jIkJwBT4PXU9X5zgYXnTGWqSm1Yd4Di3sIRbYciZxjzgnfb8HDUKQG4C4U3TttD3bIJViFBStHH9L4qHab5LSDvI1tc_LcwOzSPPmzKYsocAO5AqBtyUUCTkgQNzFXkAxlBZ6yllg7tHONAIESLjyklDLjMOP8ujbnt4MhstUHVWv2k1BIPsO8QndjUHJiWbrbA-kiYKcYqn_ndHALnrEfcs4H2c_keIkwTCijmOSahOtQmFAwU0sYwVbY",
+    workshop:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuAwO7TfhwNtBMYlrR-JVbGVNBhgkLceNlJ7h4GgGYlJF7-l5QcjfUOn_cxqtp6KF1S8TR7UQxh1A749P5NBk5USvdy9oZTEZW38YEQObCP1PCDc8lTHYCAaHr3mG3ikMyjnfbEvCuvC-0EWvoGAzJEfL5pMeGylsqYdLq2riyVlkV_tu8oxnK7cYI0sHq1NHBkumVvoSn5RniKyhemXKjvvbD0Rfw4yWkMzykFv7oAz1AZgQg_So6nUgpdoIyVsNTRi1JjrfuH17MA",
+    nsMini1:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuB5PUdd5E0HsHeKtSpmVRj-ZR-P-tcJtAGTN-3GEQmTx-HgUFE7J-TNfmAr1GuwWjFvVb-PN1IPpsZr2hZw9lfjwzqkekSRw1r0ojlxZ3BFCTXxldBRw_Y8lluyDZiuJyihbfBv3NNc7-JfV6D4wFwFKMCZbkLiRBc3OGxaNH7G3uh_5IjIDnDrb8QmJ__MQtuX1dM49aYWRGp8K_xKaXvfs4rmqyDL1Ld3MmPcqx5z0InJIvF7ZexyOPDESKJbrRlPI4IxEKd26TI",
+    nsMini2:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuBpTnftb-PYvn5OzeqMmY05EfrlDl39ILa8543RUd1hsCzzdauo_DM4L1Dj4yirwsQu9lxzUse1uabq6YX7veF4j2AADM1BkE07LXCKBlRBiMgyWm4FaXNyPOBuVGD2eYAgyEiarKFHYPNGc0ANd1vKDg3ceB6LM2x-v6GZKinDphft0NsyGuzFAcYIb6rvgzj5qbOrPdRAxQ7DgN64WSCyP6e_f21dZyYqxbboQ8GXGCfHkGdWGN0ejWA2T281bF3njvD8m5igkIs",
+  },
+  pdp: {
+    eldritchDragon:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuDDVVAebJUHPOptpmr_bVAXmMeu-_gZFwCX0MoPzC-eIyP_oX2j-45jTIqMzrhNZ6AGg6HPpsjIP67N1M6sZ3ueC5CuBH0GZTMV_HUT-dyo94mezA9CZlNrDv8qC_RmMu0DMA0fU4zCHFrvl726DBDb6vDzmdCTvma_nfhpkJMlhDNpeAJlPl7YmWw9Qbi-vzCdO6mnQ67y84N-tfbbZ-ooILSY9bVWXaXhWk2R1jKz1j6ZppX_8Z9qIL_WG77sfDIL_d3LkIKfRDY",
+  },
+} as const;

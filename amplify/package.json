@@ -1,0 +1,10 @@
+{
+  "name": "emperium-amplify-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@aws-amplify/backend": "^1.14.0",
+    "@aws-amplify/backend-cli": "^1.4.0"
+  }
+}
