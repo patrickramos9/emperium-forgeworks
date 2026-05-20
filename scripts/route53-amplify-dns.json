@@ -1,0 +1,43 @@
+{
+  "Comment": "Point emperiumforgeworks.com to Amplify Hosting",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "_5ffb9677fbdb7faafbc3ad222ff888d6.emperiumforgeworks.com",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "_9c1ecbf0ed685e58c98a95274afbab47.jkddzztszm.acm-validations.aws."
+          }
+        ]
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "emperiumforgeworks.com",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "DNSName": "d3pwibyhitk2ab.cloudfront.net",
+          "EvaluateTargetHealth": false
+        }
+      }
+    },
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "www.emperiumforgeworks.com",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "d3pwibyhitk2ab.cloudfront.net"
+          }
+        ]
+      }
+    }
+  ]
+}

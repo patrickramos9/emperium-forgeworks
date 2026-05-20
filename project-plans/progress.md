@@ -2,7 +2,7 @@
 
 Living status log. Update this file when milestones move or deploys land.
 
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-20
 
 ---
 
@@ -18,7 +18,7 @@ Living status log. Update this file when milestones move or deploys land.
 | Amplify Hosting deploy | ✅ [https://main.d25csy1hf0rl22.amplifyapp.com/](https://main.d25csy1hf0rl22.amplifyapp.com/) |
 | AWS backend (sandbox/prod) | ⏳ Schema defined; `amplify_outputs.json` empty |
 | Stripe | ⏳ Stub only |
-| Custom domain | ⏳ Not connected |
+| Custom domain | 🟡 DNS + cert propagating → https://emperiumforgeworks.com |
 
 ---
 
@@ -55,16 +55,15 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 | Sales / PII | **Decision:** Prefer Stripe for payment + sales reporting; minimal `Order` fields in DynamoDB |
 | Gallery page | Deferred; nav shows disabled placeholder |
 | Payment provider | Mock for preview; Stripe when M3 starts |
-| `VITE_SITE_URL` | Set in Amplify env to preview URL if checkout redirects need it |
+| `VITE_SITE_URL` | ✅ Set to `https://emperiumforgeworks.com` (redeploy triggered) |
 
 ---
 
 ## Next actions (recommended order)
 
 1. **Smoke-test** preview URL: `/`, `/shop`, `/shop/eldritch-dragon`, `/process`, `/cart`  
-2. **Amplify env** — confirm `VITE_APP_ENV=local`, `VITE_SITE_DOMAIN=emperiumforgeworks.com`, `VITE_SITE_URL=https://main.d25csy1hf0rl22.amplifyapp.com` (redeploy if changed)  
-3. **Start M2** — `npm run sandbox`, seed DB, wire catalog + admin to DynamoDB/S3  
-4. Custom domain when ready (`emperiumforgeworks.com`)
+2. **Wait for domain** — https://emperiumforgeworks.com (5–30 min after DNS change); see `docs/connect-custom-domain.md`  
+3. **Start M2** — `npm run sandbox`, seed DB, wire catalog + admin to DynamoDB/S3
 
 ---
 
@@ -73,8 +72,9 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 | Environment | URL |
 |-------------|-----|
 | Local | http://localhost:5173 |
-| Amplify (main) | https://main.d25csy1hf0rl22.amplifyapp.com/ |
-| Production domain | https://emperiumforgeworks.com *(not wired yet)* |
+| Amplify (main) | https://main.d25csy1hf0rl22.amplifyapp.com/ *(redirects to custom domain)* |
+| Production domain | https://emperiumforgeworks.com |
+| Production (www) | https://www.emperiumforgeworks.com |
 
 ---
 
@@ -82,6 +82,7 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 
 | Date | Update |
 |------|--------|
+| 2026-05-20 | **Custom domain** — Route 53 → Amplify; `VITE_SITE_URL` updated; redeploy started |
 | 2026-05-19 | **M1 live** — Amplify preview deployed at `main.d25csy1hf0rl22.amplifyapp.com` |
 | 2026-05-17 | Initial `project-plans/` docs; M1 prep complete; storefront UI aligned with legacy designs |
 | 2026-05-17 | Repo pushed to GitHub; push protection resolved (transcript removed) |

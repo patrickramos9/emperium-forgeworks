@@ -69,6 +69,7 @@ What is **done** in the codebase today (storefront + backend definition). Does n
 ## Deployment
 
 - [x] **Amplify Hosting (Option A)** — https://main.d25csy1hf0rl22.amplifyapp.com/ (`main` branch)
+- [x] **Custom domain** — `emperiumforgeworks.com` + `www` → Amplify (Route 53 DNS, SSL in progress)
 
 ---
 
@@ -78,6 +79,5 @@ What is **done** in the codebase today (storefront + backend definition). Does n
 - Catalog served from DynamoDB in production
 - Admin CRUD + S3 uploads end-to-end in prod
 - Stripe live payments
-- Custom domain `emperiumforgeworks.com`
 - Runtime news/announcements model
 - Gallery page

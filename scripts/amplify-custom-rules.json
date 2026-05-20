@@ -1,0 +1,12 @@
+[
+  {
+    "source": "https://main.d25csy1hf0rl22.amplifyapp.com/<*>",
+    "target": "https://emperiumforgeworks.com/<*>",
+    "status": "302"
+  },
+  {
+    "source": "/<*>",
+    "target": "/index.html",
+    "status": "404-200"
+  }
+]

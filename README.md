@@ -52,9 +52,9 @@ git push main  →  Amplify auto-builds from amplify.yml  →  https://main.<id>
 
 ## Domain (emperiumforgeworks.com)
 
-1. In **Amplify Hosting**, connect this repo and use `amplify.yml`.
-2. In **Route 53**, point `emperiumforgeworks.com` to the Amplify app URL or add the CNAME Amplify provides.
-3. Set `VITE_SITE_URL=https://emperiumforgeworks.com` for production builds.
+Production URL: **https://emperiumforgeworks.com**
+
+Setup details: **[docs/connect-custom-domain.md](docs/connect-custom-domain.md)**
 
 ## Project plans
 

@@ -1,0 +1,8 @@
+{
+  "appId": "d25csy1hf0rl22",
+  "domainName": "emperiumforgeworks.com",
+  "subDomainSettings": [
+    { "prefix": "", "branchName": "main" },
+    { "prefix": "www", "branchName": "main" }
+  ]
+}

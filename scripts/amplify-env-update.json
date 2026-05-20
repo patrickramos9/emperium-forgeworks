@@ -1,0 +1,5 @@
+{
+  "VITE_APP_ENV": "local",
+  "VITE_SITE_DOMAIN": "emperiumforgeworks.com",
+  "VITE_SITE_URL": "https://emperiumforgeworks.com"
+}
