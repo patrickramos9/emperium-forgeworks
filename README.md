@@ -56,6 +56,15 @@ git push main  →  Amplify auto-builds from amplify.yml  →  https://main.<id>
 2. In **Route 53**, point `emperiumforgeworks.com` to the Amplify app URL or add the CNAME Amplify provides.
 3. Set `VITE_SITE_URL=https://emperiumforgeworks.com` for production builds.
 
+## Project plans
+
+Planning docs live in **[project-plans/](project-plans/)**:
+
+- [project-context.md](project-plans/project-context.md) — business goals, architecture, privacy
+- [completed.md](project-plans/completed.md) — what’s done
+- [milestones.md](project-plans/milestones.md) — roadmap
+- [progress.md](project-plans/progress.md) — current status (update as you ship)
+
 ## Project layout
 
 - `src/` — React app (shop, PDP, cart, admin)
