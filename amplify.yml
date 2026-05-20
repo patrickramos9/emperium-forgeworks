@@ -3,6 +3,7 @@ frontend:
   phases:
     preBuild:
       commands:
+        - nvm use 20
         - npm ci
     build:
       commands:
@@ -14,3 +15,8 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
+# SPA: direct links like /shop and /shop/eldritch-dragon must serve index.html
+customRedirects:
+  - source: "/<*>"
+    target: "/index.html"
+    status: "200"
