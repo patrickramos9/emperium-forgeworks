@@ -5,6 +5,11 @@
     "status": "302"
   },
   {
+    "source": "</^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp|html|xml|webmanifest)$)([^.]+$)/>",
+    "target": "/index.html",
+    "status": "200"
+  },
+  {
     "source": "/<*>",
     "target": "/index.html",
     "status": "404-200"

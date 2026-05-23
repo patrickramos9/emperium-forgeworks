@@ -1,1 +1,379 @@
-{}
+{
+  "auth": {
+    "user_pool_id": "us-east-1_lanIus9As",
+    "aws_region": "us-east-1",
+    "user_pool_client_id": "3inuhq1nvmqkfse33i8n4aslam",
+    "identity_pool_id": "us-east-1:fdd11da7-29dd-444b-8ec1-5350b1e8f845",
+    "mfa_methods": [],
+    "standard_required_attributes": [
+      "email"
+    ],
+    "username_attributes": [
+      "email"
+    ],
+    "user_verification_types": [
+      "email"
+    ],
+    "groups": [
+      {
+        "admin": {
+          "precedence": 0
+        }
+      }
+    ],
+    "mfa_configuration": "NONE",
+    "password_policy": {
+      "min_length": 8,
+      "require_lowercase": true,
+      "require_numbers": true,
+      "require_symbols": true,
+      "require_uppercase": true
+    },
+    "unauthenticated_identities_enabled": true
+  },
+  "data": {
+    "url": "https://njzj4tvwmvhdrcjgwg45uqu5ui.appsync-api.us-east-1.amazonaws.com/graphql",
+    "aws_region": "us-east-1",
+    "default_authorization_type": "AWS_IAM",
+    "authorization_types": [
+      "AMAZON_COGNITO_USER_POOLS"
+    ],
+    "model_introspection": {
+      "version": 1,
+      "models": {
+        "Product": {
+          "name": "Product",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "subtitle": {
+              "name": "subtitle",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "description": {
+              "name": "description",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lore": {
+              "name": "lore",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "category": {
+              "name": "category",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "priceCents": {
+              "name": "priceCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "badges": {
+              "name": "badges",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "images": {
+              "name": "images",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "detailImage": {
+              "name": "detailImage",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "variants": {
+              "name": "variants",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "specs": {
+              "name": "specs",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "inStock": {
+              "name": "inStock",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "featured": {
+              "name": "featured",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Products",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Order": {
+          "name": "Order",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "externalSessionId": {
+              "name": "externalSessionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "paymentProvider": {
+              "name": "paymentProvider",
+              "isArray": false,
+              "type": {
+                "enum": "OrderPaymentProvider"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "OrderStatus"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "totalCents": {
+              "name": "totalCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Orders",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "create",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        }
+      },
+      "enums": {
+        "OrderPaymentProvider": {
+          "name": "OrderPaymentProvider",
+          "values": [
+            "mock",
+            "stripe"
+          ]
+        },
+        "OrderStatus": {
+          "name": "OrderStatus",
+          "values": [
+            "pending",
+            "paid",
+            "failed"
+          ]
+        }
+      },
+      "nonModels": {}
+    }
+  },
+  "storage": {
+    "aws_region": "us-east-1",
+    "bucket_name": "amplify-d25csy1hf0rl22-ma-productimagesbucketf9909-b84mnfgiccm4",
+    "buckets": [
+      {
+        "name": "productImages",
+        "bucket_name": "amplify-d25csy1hf0rl22-ma-productimagesbucketf9909-b84mnfgiccm4",
+        "aws_region": "us-east-1",
+        "paths": {
+          "products/*": {
+            "guest": [
+              "get",
+              "list"
+            ],
+            "groupsadmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "version": "1.4"
+}

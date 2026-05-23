@@ -28,8 +28,11 @@ frontend:
     paths:
       - node_modules/**/*
       - .npm/**/*
-# SPA: direct links like /shop and /shop/eldritch-dragon must serve index.html
+# SPA: rewrite extensionless paths to index.html (200) before S3 trailing-slash 301
 customRedirects:
-  - source: "/<*>"
+  - source: "</^[^.]+$|\\.(?!(css|gif|ico|jpg|jpeg|js|png|txt|svg|woff|woff2|ttf|map|json|webp|html|xml|webmanifest)$)([^.]+$)/>"
     target: "/index.html"
     status: "200"
+  - source: "/<*>"
+    target: "/index.html"
+    status: "404-200"

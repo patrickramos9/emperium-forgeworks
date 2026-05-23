@@ -3,6 +3,7 @@
  * Usage: npx tsx scripts/seed-products.ts
  */
 import { SEED_PRODUCTS } from "../src/data/seedProducts";
+import { buildProductMutationPayload } from "../src/lib/productPayload";
 
 async function main() {
   let outputs: { default?: unknown };
@@ -27,7 +28,7 @@ async function main() {
       filter: { slug: { eq: product.slug } },
     });
 
-    const payload = {
+    const payload = buildProductMutationPayload({
       slug: product.slug,
       title: product.title,
       subtitle: product.subtitle,
@@ -43,7 +44,7 @@ async function main() {
       inStock: product.inStock,
       featured: product.featured,
       sortOrder: product.sortOrder,
-    };
+    });
 
     if (existing?.[0]) {
       await client.models.Product.update({

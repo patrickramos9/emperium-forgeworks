@@ -9,6 +9,7 @@ import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { mapAmplifyProduct } from "@/lib/mapAmplifyProduct";
 import { uploadProductImage } from "@/lib/productImageUpload";
+import { buildProductMutationPayload } from "@/lib/productPayload";
 
 const CATEGORIES: ProductCategory[] = [
   "Horror",
@@ -196,7 +197,7 @@ export function AdminProductEditPage() {
         ? parseJsonField<Product["specs"]>(specsJson, "specs")
         : undefined;
 
-      const payload = {
+      const payload = buildProductMutationPayload({
         slug: productSlug,
         title,
         subtitle: subtitle || undefined,
@@ -213,15 +214,22 @@ export function AdminProductEditPage() {
           .map((s) => s.trim())
           .filter(Boolean),
         images: textToImages(imagesText),
-        variants: variants ?? [],
-        specs: specs ?? undefined,
-      };
+        variants,
+        specs: specs ?? null,
+      });
 
-      if (isNew || !recordId) {
-        await client.models.Product.create(payload);
-      } else {
-        await client.models.Product.update({ id: recordId, ...payload });
+      const result =
+        isNew || !recordId
+          ? await client.models.Product.create(payload)
+          : await client.models.Product.update({ id: recordId, ...payload });
+
+      if (result.errors?.length) {
+        throw new Error(result.errors.map((e) => e.message).join("; "));
       }
+      if (!result.data) {
+        throw new Error("Save failed — no data returned from API.");
+      }
+
       navigate("/admin/products");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");

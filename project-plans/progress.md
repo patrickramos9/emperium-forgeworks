@@ -8,17 +8,17 @@ Living status log. Update this file when milestones move or deploys land.
 
 ## Current phase
 
-**M2 — Backend + admin (Option B / fullstack CI)** — **Ready to deploy** (code complete; first `pipeline-deploy` + seed pending).
+**M2 — Backend + admin (Option B / fullstack CI)** — **Deployed** (build #6 succeeded).
 
 | Area | Status |
 |------|--------|
 | Local development | ✅ Works (`npm install`, `npm run dev`) |
 | Production build | ✅ `npm run build` (after `npm install`) |
 | GitHub | ✅ `main` on `patrickramos9/emperium-forgeworks` |
-| Amplify fullstack CI | 🟡 `amplify.yml` backend + frontend phases; push to deploy |
-| AWS backend (prod) | ⏳ Awaiting first successful `pipeline-deploy` on `main` |
-| Catalog seed (prod) | ⏳ Run `npm run seed` after first backend deploy |
-| Admin user (prod) | ⏳ Create Cognito user + `admin` group (see deploy-option-b) |
+| Amplify fullstack CI | ✅ Job 6 SUCCEED; service role `AmplifyEmperiumForgeworksBackendRole` |
+| AWS backend (prod) | ✅ CDK bootstrapped; `pipeline-deploy` on `main` |
+| Catalog seed (prod) | ✅ 8 products seeded via `npm run seed` |
+| Admin user (prod) | ✅ `admin@emperiumforgeworks.com` in `admin` group (change temp password on first login) |
 | Stripe | ⏳ Stub only |
 | Custom domain | ✅ https://emperiumforgeworks.com |
 
@@ -29,7 +29,7 @@ Living status log. Update this file when milestones move or deploys land.
 | Milestone | Status | Notes |
 |-----------|--------|-------|
 | **M1** Public preview | ✅ Done | Hosted UI, seed fallback, mock checkout |
-| **M2** Backend + admin | 🟡 In progress | Fullstack CI, admin CRUD, S3 upload, `detailImage` schema |
+| **M2** Backend + admin | ✅ Done | Fullstack CI live; catalog seeded; admin user created |
 | **M3** Cart & Stripe | ⚪ Not started | Mock checkout works locally with backend |
 | **M4** Runtime news | ⚪ Not started | Announcements still hardcoded in React |
 | **M5** Polish / Gallery | ⚪ Not started | |
@@ -40,6 +40,7 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 
 ## Recent accomplishments
 
+- **M2 deployed** — IAM service role + CDK bootstrap fixed CI; build #6 succeeded; catalog seeded
 - **M2 implementation** — fullstack `amplify.yml`, `@aws-amplify/backend-cli` at root, `detailImage` on Product model
 - Admin: userPool client, load/save/delete from API, expanded form, S3 image upload
 - Storefront: `useProducts` via guest client + `mapAmplifyProduct`
@@ -52,7 +53,7 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 | Item | Status |
 |------|--------|
 | AWS IAM keys | Use **rotated** keys in `.env.local` only |
-| Amplify service role | Must allow CDK deploy for first backend build |
+| Amplify service role | ✅ `AmplifyEmperiumForgeworksBackendRole` with `AmplifyBackendDeployFullAccess` |
 | Sales / PII | Prefer Stripe for payment reporting; minimal `Order` in DynamoDB |
 | Gallery page | Deferred |
 | Payment provider | Mock until M3 |
@@ -62,10 +63,9 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 
 ## Next actions (recommended order)
 
-1. **Push `main`** → verify Amplify backend phase succeeds  
-2. **`npm run seed`** with production `amplify_outputs.json`  
-3. **Cognito admin user** → `admin` group → test `/admin/login`  
-4. **Smoke-test** edit product title → confirm shop updates without redeploy  
+1. **Sign in** at https://emperiumforgeworks.com/admin/login (`admin@emperiumforgeworks.com` — reset temp password in Cognito if needed)  
+2. **Smoke-test** edit a product title → confirm `/shop` updates without redeploy  
+3. **Commit** doc/script changes (`deploy-option-b.md`, `setup-amplify-backend-role.ps1`)  
 
 ---
 
@@ -84,6 +84,7 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 
 | Date | Update |
 |------|--------|
+| 2026-05-23 | **M2 live** — service role + CDK bootstrap; build #6; seed + admin user |
 | 2026-05-23 | **M2 code** — fullstack CI, admin CRUD + S3 upload, deploy-option-b |
 | 2026-05-20 | Custom domain — Route 53 → Amplify; `VITE_SITE_URL` updated |
 | 2026-05-19 | M1 live on Amplify Hosting |

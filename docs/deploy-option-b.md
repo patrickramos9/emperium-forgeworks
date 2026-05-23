@@ -15,7 +15,11 @@ Option A (frontend-only) is documented in [deploy-option-a.md](deploy-option-a.m
 
 1. [Amplify Console](https://console.aws.amazon.com/amplify/home) → your app → **App settings**.
 2. Confirm **Gen 2** fullstack: build spec includes a `backend:` section (see repo `amplify.yml`).
-3. **Service role**: the role Amplify uses for builds must allow CDK deployments (Cognito, AppSync/Data, DynamoDB, S3). If the backend phase fails with IAM errors, attach the expanded policy from [Amplify Gen 2 custom pipelines](https://docs.amplify.aws/react/deploy-and-host/fullstack-branching/custom-pipelines/) to the service role.
+3. **Service role** (required for backend deploy):
+   - Amplify Console → **App settings** → **General** → **Service role** must **not** be empty.
+   - Attach AWS managed policy **`AmplifyBackendDeployFullAccess`** (`arn:aws:iam::aws:policy/service-role/AmplifyBackendDeployFullAccess`).
+   - Optionally add **`AdministratorAccess-Amplify`** if the first deploy hits further permission errors.
+   - Or run the setup script (uses AWS CLI): see [scripts/setup-amplify-backend-role.ps1](../scripts/setup-amplify-backend-role.ps1).
 
 ## 2. Environment variables
 
@@ -86,12 +90,16 @@ npm run dev
 
 | Issue | Fix |
 |-------|-----|
-| Backend build: IAM / AccessDenied | Expand Amplify service role for CDK |
+| **`BootstrapDetectionError`** — `ssm:GetParameter` denied on `/cdk-bootstrap/hnb659fds/version` | App **service role** is missing or lacks `AmplifyBackendDeployFullAccess`. Assign a role (see §1 step 3) and redeploy. See [amplify-hosting#4038](https://github.com/aws/amplify/amplify-hosting/issues/4038). |
+| **CDKToolkit stack does not exist** | Bootstrap once: `npx aws-cdk@latest bootstrap aws://YOUR_ACCOUNT_ID/us-east-1` |
+| Backend build: other IAM / AccessDenied | Add `AdministratorAccess-Amplify` to the service role |
 | `ampx` not found | Root `package.json` includes `@aws-amplify/backend-cli` |
 | Admin save fails / not authorized | User must be in Cognito `admin` group; use `/admin/login` |
+| Admin save **400** / `variants` invalid | Leave variants as `[]` in the form — empty JSON arrays are sent as `null`. Redeploy after fix if the UI still sends `variants: []` |
 | Shop still shows seed only | Run `npm run seed`; confirm `Product.list()` returns rows in browser network tab |
 | Image upload fails | Sign in as admin; set slug before upload; check S3 path `products/{slug}/…` |
 | Empty `amplify_outputs.json` in prod | Backend phase must succeed before frontend build |
+| **`/admin/login` or `/shop` returns 404** | SPA rewrite missing or wrong type. Use **200 rewrite** (not only `404-200`). Apply [`scripts/amplify-custom-rules.json`](../scripts/amplify-custom-rules.json) via `aws amplify update-app --custom-rules file://scripts/amplify-custom-rules.json` |
 
 ## What Option B does not include yet
 
