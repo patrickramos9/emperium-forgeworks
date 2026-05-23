@@ -37,6 +37,7 @@ async function main() {
       priceCents: product.priceCents,
       badges: product.badges,
       images: product.images,
+      detailImage: product.detailImage,
       variants: product.variants,
       specs: product.specs,
       inStock: product.inStock,

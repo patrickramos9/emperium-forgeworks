@@ -17,7 +17,7 @@ export function AdminLoginPage() {
     const ok = await configureAmplify();
     if (!ok) {
       setError(
-        "Amplify is not configured. Run `npm run sandbox` and ensure amplify_outputs.json exists.",
+        "Amplify is not configured. Deploy the fullstack backend or run `npm run sandbox` locally.",
       );
       setLoading(false);
       return;

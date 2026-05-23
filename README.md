@@ -42,9 +42,14 @@ npm run seed
 | `local` (default) | Mock checkout — creates order when Amplify is connected, no Stripe |
 | `deployment` + `STRIPE_SECRET_KEY` | Real Stripe Checkout (implement webhook in Lambda when ready) |
 
-## Deploy preview (Option A — hosting only)
+## Deploy
 
-Frontend-only deploy on **Amplify Hosting** (seed catalog, no AWS backend yet). Step-by-step: **[docs/deploy-option-a.md](docs/deploy-option-a.md)**.
+| Mode | Guide |
+|------|--------|
+| **Option A** — hosting only (seed catalog) | [docs/deploy-option-a.md](docs/deploy-option-a.md) |
+| **Option B** — fullstack CI (DynamoDB + admin + S3) | [docs/deploy-option-b.md](docs/deploy-option-b.md) |
+
+Production uses **Option B**: `amplify.yml` deploys the Gen 2 backend on each `main` build, then the Vite frontend.
 
 ```text
 git push main  →  Amplify auto-builds from amplify.yml  →  https://main.<id>.amplifyapp.com

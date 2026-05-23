@@ -12,6 +12,7 @@ const schema = a.schema({
       priceCents: a.integer().required(),
       badges: a.string().array(),
       images: a.string().array(),
+      detailImage: a.string(),
       variants: a.json(),
       specs: a.json(),
       inStock: a.boolean().default(true),

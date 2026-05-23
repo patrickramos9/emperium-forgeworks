@@ -2,23 +2,25 @@
 
 Living status log. Update this file when milestones move or deploys land.
 
-**Last updated:** 2026-05-20
+**Last updated:** 2026-05-23
 
 ---
 
 ## Current phase
 
-**M1 — Public preview (Option A)** — **Live** on Amplify Hosting.
+**M2 — Backend + admin (Option B / fullstack CI)** — **Ready to deploy** (code complete; first `pipeline-deploy` + seed pending).
 
 | Area | Status |
 |------|--------|
-| Local development | ✅ Works (`npm install` on local disk, `npm run dev`) |
-| Production build | ✅ `npm run build` passes |
+| Local development | ✅ Works (`npm install`, `npm run dev`) |
+| Production build | ✅ `npm run build` (after `npm install`) |
 | GitHub | ✅ `main` on `patrickramos9/emperium-forgeworks` |
-| Amplify Hosting deploy | ✅ [https://main.d25csy1hf0rl22.amplifyapp.com/](https://main.d25csy1hf0rl22.amplifyapp.com/) |
-| AWS backend (sandbox/prod) | ⏳ Schema defined; `amplify_outputs.json` empty |
+| Amplify fullstack CI | 🟡 `amplify.yml` backend + frontend phases; push to deploy |
+| AWS backend (prod) | ⏳ Awaiting first successful `pipeline-deploy` on `main` |
+| Catalog seed (prod) | ⏳ Run `npm run seed` after first backend deploy |
+| Admin user (prod) | ⏳ Create Cognito user + `admin` group (see deploy-option-b) |
 | Stripe | ⏳ Stub only |
-| Custom domain | 🟡 DNS + cert propagating → https://emperiumforgeworks.com |
+| Custom domain | ✅ https://emperiumforgeworks.com |
 
 ---
 
@@ -26,8 +28,8 @@ Living status log. Update this file when milestones move or deploys land.
 
 | Milestone | Status | Notes |
 |-----------|--------|-------|
-| **M1** Public preview | ✅ Done | Amplify URL live; seed catalog, mock checkout UI |
-| **M2** Backend + admin | ⚪ Not started | Sandbox locally optional before CI backend |
+| **M1** Public preview | ✅ Done | Hosted UI, seed fallback, mock checkout |
+| **M2** Backend + admin | 🟡 In progress | Fullstack CI, admin CRUD, S3 upload, `detailImage` schema |
 | **M3** Cart & Stripe | ⚪ Not started | Mock checkout works locally with backend |
 | **M4** Runtime news | ⚪ Not started | Announcements still hardcoded in React |
 | **M5** Polish / Gallery | ⚪ Not started | |
@@ -38,12 +40,10 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 
 ## Recent accomplishments
 
-- **M1 deployed** — storefront accessible on Amplify (`main` branch)
-- Migrated project off Google Drive; clean `npm install` and dev server
-- Aligned UI with Stitch exports (home banner, shop, PDP, process)
-- Prepared Amplify Hosting (`amplify.yml`, SPA redirects, deploy guide)
-- Removed AWS credentials from git; redacted transcript
-- Added `project-plans/` documentation
+- **M2 implementation** — fullstack `amplify.yml`, `@aws-amplify/backend-cli` at root, `detailImage` on Product model
+- Admin: userPool client, load/save/delete from API, expanded form, S3 image upload
+- Storefront: `useProducts` via guest client + `mapAmplifyProduct`
+- Docs: [docs/deploy-option-b.md](../docs/deploy-option-b.md)
 
 ---
 
@@ -52,18 +52,20 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 | Item | Status |
 |------|--------|
 | AWS IAM keys | Use **rotated** keys in `.env.local` only |
-| Sales / PII | **Decision:** Prefer Stripe for payment + sales reporting; minimal `Order` fields in DynamoDB |
-| Gallery page | Deferred; nav shows disabled placeholder |
-| Payment provider | Mock for preview; Stripe when M3 starts |
-| `VITE_SITE_URL` | ✅ Set to `https://emperiumforgeworks.com` (redeploy triggered) |
+| Amplify service role | Must allow CDK deploy for first backend build |
+| Sales / PII | Prefer Stripe for payment reporting; minimal `Order` in DynamoDB |
+| Gallery page | Deferred |
+| Payment provider | Mock until M3 |
+| Mock orders in prod | `Order` requires authenticated user — persistence optional until M3 |
 
 ---
 
 ## Next actions (recommended order)
 
-1. **Smoke-test** preview URL: `/`, `/shop`, `/shop/eldritch-dragon`, `/process`, `/cart`  
-2. **Wait for domain** — https://emperiumforgeworks.com (5–30 min after DNS change); see `docs/connect-custom-domain.md`  
-3. **Start M2** — `npm run sandbox`, seed DB, wire catalog + admin to DynamoDB/S3
+1. **Push `main`** → verify Amplify backend phase succeeds  
+2. **`npm run seed`** with production `amplify_outputs.json`  
+3. **Cognito admin user** → `admin` group → test `/admin/login`  
+4. **Smoke-test** edit product title → confirm shop updates without redeploy  
 
 ---
 
@@ -72,7 +74,7 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 | Environment | URL |
 |-------------|-----|
 | Local | http://localhost:5173 |
-| Amplify (main) | https://main.d25csy1hf0rl22.amplifyapp.com/ *(redirects to custom domain)* |
+| Amplify (main) | https://main.d25csy1hf0rl22.amplifyapp.com/ |
 | Production domain | https://emperiumforgeworks.com |
 | Production (www) | https://www.emperiumforgeworks.com |
 
@@ -82,7 +84,7 @@ Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 
 | Date | Update |
 |------|--------|
-| 2026-05-20 | **Custom domain** — Route 53 → Amplify; `VITE_SITE_URL` updated; redeploy started |
-| 2026-05-19 | **M1 live** — Amplify preview deployed at `main.d25csy1hf0rl22.amplifyapp.com` |
-| 2026-05-17 | Initial `project-plans/` docs; M1 prep complete; storefront UI aligned with legacy designs |
-| 2026-05-17 | Repo pushed to GitHub; push protection resolved (transcript removed) |
+| 2026-05-23 | **M2 code** — fullstack CI, admin CRUD + S3 upload, deploy-option-b |
+| 2026-05-20 | Custom domain — Route 53 → Amplify; `VITE_SITE_URL` updated |
+| 2026-05-19 | M1 live on Amplify Hosting |
+| 2026-05-17 | Initial project-plans; storefront UI aligned with legacy designs |

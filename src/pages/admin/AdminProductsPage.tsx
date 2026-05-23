@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatPrice } from "@/data/seedProducts";
-import { SEED_PRODUCTS } from "@/data/seedProducts";
+import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 
 interface AdminProductRow {
@@ -17,39 +17,29 @@ export function AdminProductsPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<AdminProductRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [amplifyReady, setAmplifyReady] = useState(false);
 
   useEffect(() => {
     async function load() {
-      const ok = await configureAmplify();
-      if (!ok) {
-        setProducts(
-          SEED_PRODUCTS.map((p) => ({
-            id: p.id,
-            slug: p.slug,
-            title: p.title,
-            priceCents: p.priceCents,
-            inStock: p.inStock,
-            image: p.images[0],
-          })),
+      const configured = await configureAmplify();
+      setAmplifyReady(configured);
+      if (!configured) {
+        setError(
+          "Amplify is not configured. Deploy the backend or run `npm run sandbox`.",
         );
         setLoading(false);
         return;
       }
 
-      try {
-        const { getCurrentUser } = await import("aws-amplify/auth");
-        await getCurrentUser();
-      } catch {
-        navigate("/admin/login");
-        return;
-      }
+      const client = await requireAdminSession(navigate);
+      if (!client) return;
 
       try {
-        const { generateClient } = await import("aws-amplify/data");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const client = generateClient<any>();
-        const { data } = await client.models.Product.list({});
-        if (data?.length) {
+        const { data, errors } = await client.models.Product.list({});
+        if (errors?.length) {
+          setError(errors.map((e) => e.message).join("; "));
+        } else if (data?.length) {
           setProducts(
             data.map((row) => ({
               id: row.id,
@@ -61,24 +51,33 @@ export function AdminProductsPage() {
             })),
           );
         } else {
-          setProducts(
-            SEED_PRODUCTS.map((p) => ({
-              id: p.id,
-              slug: p.slug,
-              title: p.title,
-              priceCents: p.priceCents,
-              inStock: p.inStock,
-              image: p.images[0],
-            })),
-          );
+          setProducts([]);
         }
-      } catch {
-        navigate("/admin/login");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load products");
       }
       setLoading(false);
     }
     void load();
   }, [navigate]);
+
+  async function handleDelete(id: string, title: string) {
+    if (
+      !window.confirm(`Delete "${title}"? This cannot be undone.`)
+    ) {
+      return;
+    }
+
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+
+    try {
+      await client.models.Product.delete({ id });
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+    }
+  }
 
   return (
     <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-container-max">
@@ -95,6 +94,18 @@ export function AdminProductsPage() {
       </div>
       {loading ? (
         <p className="text-on-surface-variant">Loading...</p>
+      ) : error ? (
+        <p className="text-error">{error}</p>
+      ) : products.length === 0 ? (
+        <div className="border border-outline-variant/20 bg-surface-container-low p-6">
+          <p className="text-on-surface">No products in the catalog yet.</p>
+          {amplifyReady && (
+            <p className="mt-2 text-body-md text-on-surface-variant">
+              Run <code className="text-primary">npm run seed</code> after the
+              backend deploy, or add a product with the button above.
+            </p>
+          )}
+        </div>
       ) : (
         <div className="overflow-x-auto border border-outline-variant/20">
           <table className="w-full text-left text-body-md">
@@ -129,13 +140,20 @@ export function AdminProductsPage() {
                   <td className="p-3">
                     {p.inStock ? "In stock" : "Out"}
                   </td>
-                  <td className="p-3">
+                  <td className="p-3 space-x-3">
                     <Link
                       to={`/admin/products/${p.slug}`}
                       className="text-primary hover:underline"
                     >
                       Edit
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(p.id, p.title)}
+                      className="text-error hover:underline"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

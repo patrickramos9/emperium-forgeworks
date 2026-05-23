@@ -73,11 +73,20 @@ What is **done** in the codebase today (storefront + backend definition). Does n
 
 ---
 
+## M2 (code complete — deploy pending)
+
+- [x] Fullstack `amplify.yml` with `pipeline-deploy`
+- [x] `@aws-amplify/backend-cli` at repo root for CI
+- [x] `detailImage` on Product model
+- [x] `amplifyDataClient` (guest + userPool admin)
+- [x] Admin CRUD, delete, S3 image upload UI
+- [x] [docs/deploy-option-b.md](../docs/deploy-option-b.md)
+
 ## Not completed (see milestones)
 
-- Backend deployed to AWS (`sandbox` / pipeline)
-- Catalog served from DynamoDB in production
-- Admin CRUD + S3 uploads end-to-end in prod
+- Backend deployed to AWS via first successful CI build
+- Catalog served from DynamoDB in production (run `npm run seed` after deploy)
+- Admin CRUD verified end-to-end in prod
 - Stripe live payments
 - Runtime news/announcements model
 - Gallery page

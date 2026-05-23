@@ -1,10 +1,22 @@
 version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - nvm use 20
+        - npm ci --cache .npm --prefer-offline
+        - export CI=1
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+  cache:
+    paths:
+      - node_modules/**/*
+      - .npm/**/*
 frontend:
   phases:
     preBuild:
       commands:
         - nvm use 20
-        - npm ci
+        - npm ci --cache .npm --prefer-offline
     build:
       commands:
         - npm run build
@@ -15,6 +27,7 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
+      - .npm/**/*
 # SPA: direct links like /shop and /shop/eldritch-dragon must serve index.html
 customRedirects:
   - source: "/<*>"
