@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { ProductImage } from "@/components/ProductImage";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
 import type { ProductVariant } from "@/data/seedProducts";
+import { productPrimaryImage } from "@/lib/productImageUrls";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 
 export function ProductDetailPage() {
@@ -58,11 +60,12 @@ export function ProductDetailPage() {
 
         <div className="grid grid-cols-1 items-start gap-gutter lg:grid-cols-12">
           <div className="space-y-gutter lg:col-span-7">
-            <div className="group relative aspect-[4/5] overflow-hidden bg-surface-container-low iron-bevel">
-              <img
+            <div className="group relative iron-bevel">
+              <ProductImage
                 src={heroImage}
                 alt={product.title}
-                className="h-full w-full object-cover contrast-125 grayscale-[0.2] transition-transform duration-700 group-hover:scale-105"
+                className="aspect-[4/5] bg-surface-container-low"
+                imageClassName="contrast-125 grayscale-[0.2] transition-transform duration-700 group-hover:scale-105"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
             </div>
@@ -238,13 +241,12 @@ export function ProductDetailPage() {
             <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 lg:grid-cols-4">
               {related.map((p) => (
                 <Link key={p.id} to={`/shop/${p.slug}`} className="group">
-                  <div className="mb-stack-md aspect-[340/270] overflow-hidden bg-surface-container-low iron-bevel">
-                    <img
-                      src={p.images[0]}
-                      alt={p.title}
-                      className="h-full w-full object-cover opacity-80 transition-all duration-500 group-hover:scale-110 group-hover:opacity-100"
-                    />
-                  </div>
+                  <ProductImage
+                    src={productPrimaryImage(p)}
+                    alt={p.title}
+                    className="mb-stack-md aspect-[340/270] bg-surface-container-low iron-bevel"
+                    imageClassName="opacity-80 transition-all duration-500 group-hover:scale-110 group-hover:opacity-100"
+                  />
                   <h4 className="font-headline-md text-[18px] text-on-surface transition-colors group-hover:text-primary">
                     {p.title.split("–")[0]?.trim() ?? p.title}
                   </h4>

@@ -3,6 +3,7 @@ import { useCart } from "@/context/CartContext";
 import type { Product } from "@/data/seedProducts";
 import { formatPrice } from "@/data/seedProducts";
 import { productPrimaryImage } from "@/lib/productImageUrls";
+import { ProductImage } from "@/components/ProductImage";
 import { Icon } from "./Icon";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -13,7 +14,7 @@ export function ProductCard({ product }: { product: Product }) {
     <article className="group relative flex flex-col overflow-hidden bg-surface-container-low iron-bevel transition-all duration-300 hover:bg-surface-container-high">
       <Link
         to={`/shop/${product.slug}`}
-        className="relative aspect-[1.26] overflow-hidden bg-black"
+        className="relative block"
       >
         {product.badges.map((badge) => (
           <span
@@ -27,17 +28,12 @@ export function ProductCard({ product }: { product: Product }) {
             {badge}
           </span>
         ))}
-        {imageSrc ? (
-          <img
-            src={imageSrc}
-            alt={product.title}
-            className="h-full w-full object-cover grayscale brightness-90 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-surface-container-highest text-on-surface-variant">
-            <Icon name="image" className="text-4xl opacity-40" />
-          </div>
-        )}
+        <ProductImage
+          src={imageSrc}
+          alt={product.title}
+          className="aspect-[1.26]"
+          imageClassName="grayscale brightness-90 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
+        />
       </Link>
       <div className="flex flex-grow flex-col p-4">
         <div className="mb-2 flex items-start justify-between">
