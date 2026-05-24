@@ -224,27 +224,83 @@ export function buildSelectedVariant(
   groups: ProductOptionGroup[],
   selectedByGroupId: Record<string, string>,
 ): ProductVariant | undefined {
+  const variants = buildSelectedVariants(
+    groups,
+    Object.fromEntries(
+      Object.entries(selectedByGroupId).map(([groupId, optionId]) => [
+        groupId,
+        [optionId],
+      ]),
+    ),
+  );
+  return variants[0];
+}
+
+/** Empty multi-select state — shoppers choose which options to include. */
+export function initialVariantMultiSelection(
+  groups: ProductOptionGroup[],
+): Record<string, string[]> {
+  const selection: Record<string, string[]> = {};
+  for (const group of groups) {
+    if (group.options.length > 0) {
+      selection[group.id] = [];
+    }
+  }
+  return selection;
+}
+
+export function toggleVariantMultiSelection(
+  selection: Record<string, string[]>,
+  groupId: string,
+  optionId: string,
+): Record<string, string[]> {
+  const current = selection[groupId] ?? [];
+  const next = current.includes(optionId)
+    ? current.filter((id) => id !== optionId)
+    : [...current, optionId];
+  return { ...selection, [groupId]: next };
+}
+
+/** Build cart variants from multi-select (cartesian product across groups). */
+export function buildSelectedVariants(
+  groups: ProductOptionGroup[],
+  selectedByGroupId: Record<string, string[]>,
+): ProductVariant[] {
   const normalized = groups
     .map(normalizeGroup)
+    .map((group) => ({
+      ...group,
+      options: group.options.filter((option) =>
+        (selectedByGroupId[group.id] ?? []).includes(option.id),
+      ),
+    }))
     .filter((group) => group.options.length > 0);
-  if (normalized.length === 0) return undefined;
 
-  const chosen = normalized.map((group) => {
-    const selectedId = selectedByGroupId[group.id] ?? group.options[0]?.id;
-    return group.options.find((option) => option.id === selectedId);
-  });
+  if (normalized.length === 0) return [];
 
-  if (chosen.some((option) => !option)) return undefined;
+  let combos: ProductVariant[] = [{ id: "base", label: "", priceDeltaCents: 0 }];
 
-  const options = chosen as ProductVariantOption[];
-  return {
-    id: options.map((option) => option.id).join("--"),
-    label: options.map((option) => option.label).join(" / "),
-    priceDeltaCents: options.reduce(
-      (sum, option) => sum + option.priceDeltaCents,
-      0,
-    ),
-  };
+  for (const group of normalized) {
+    const next: ProductVariant[] = [];
+    for (const combo of combos) {
+      for (const option of group.options) {
+        const id =
+          combo.id === "base" ? option.id : `${combo.id}--${option.id}`;
+        const label =
+          combo.label === ""
+            ? option.label
+            : `${combo.label} / ${option.label}`;
+        next.push({
+          id,
+          label,
+          priceDeltaCents: combo.priceDeltaCents + option.priceDeltaCents,
+        });
+      }
+    }
+    combos = next;
+  }
+
+  return combos;
 }
 
 export function initialVariantSelection(
@@ -292,15 +348,24 @@ export function stripInvalidVariantImageRefs(
   }));
 }
 
-/** First linked photo among currently selected options (group order). */
+/** Linked photo for multi-select — prefers the most recently toggled option. */
 export function selectedVariantImageRef(
   groups: ProductOptionGroup[],
-  selectedByGroupId: Record<string, string>,
+  selectedByGroupId: Record<string, string[]>,
+  preferOptionId?: string,
 ): string | undefined {
+  if (preferOptionId) {
+    for (const group of groups) {
+      const option = group.options.find((item) => item.id === preferOptionId);
+      if (option?.imageRef) return normalizeImageRef(option.imageRef);
+    }
+  }
+
   for (const group of groups) {
-    const selectedId = selectedByGroupId[group.id];
-    const option = group.options.find((item) => item.id === selectedId);
-    if (option?.imageRef) return normalizeImageRef(option.imageRef);
+    for (const selectedId of selectedByGroupId[group.id] ?? []) {
+      const option = group.options.find((item) => item.id === selectedId);
+      if (option?.imageRef) return normalizeImageRef(option.imageRef);
+    }
   }
   return undefined;
 }

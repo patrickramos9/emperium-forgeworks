@@ -3,16 +3,17 @@ import { Link, useParams } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { ProductImage } from "@/components/ProductImage";
+import { VariantPicker } from "@/components/VariantPicker";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
 import { productDisplayImages } from "@/lib/productDisplayImages";
 import { productPrimaryImage } from "@/lib/productImageUrls";
 import {
-  buildSelectedVariant,
+  buildSelectedVariants,
   findGalleryIndexForImageRef,
-  groupDisplayName,
-  initialVariantSelection,
+  initialVariantMultiSelection,
   selectedVariantImageRef,
+  toggleVariantMultiSelection,
 } from "@/lib/productVariants";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 
@@ -22,13 +23,17 @@ export function ProductDetailPage() {
   const { products } = useProducts();
   const { addItem } = useCart();
   const [variantSelection, setVariantSelection] = useState<
-    Record<string, string>
+    Record<string, string[]>
   >({});
+  const [lastToggledOptionId, setLastToggledOptionId] = useState<
+    string | undefined
+  >();
   const [galleryIndex, setGalleryIndex] = useState(0);
 
   useEffect(() => {
     if (product) {
-      setVariantSelection(initialVariantSelection(product.variantGroups));
+      setVariantSelection(initialVariantMultiSelection(product.variantGroups));
+      setLastToggledOptionId(undefined);
       setGalleryIndex(0);
     }
   }, [product?.slug, product?.variantGroups]);
@@ -39,10 +44,11 @@ export function ProductDetailPage() {
     const imageRef = selectedVariantImageRef(
       product.variantGroups,
       variantSelection,
+      lastToggledOptionId,
     );
     const index = findGalleryIndexForImageRef(refs, imageRef);
     if (index >= 0) setGalleryIndex(index);
-  }, [product, variantSelection]);
+  }, [product, variantSelection, lastToggledOptionId]);
 
   const activeGroups = useMemo(
     () =>
@@ -50,10 +56,20 @@ export function ProductDetailPage() {
     [product?.variantGroups],
   );
 
-  const selectedVariant = useMemo(() => {
-    if (!product) return undefined;
-    return buildSelectedVariant(product.variantGroups, variantSelection);
+  const selectedVariants = useMemo(() => {
+    if (!product) return [];
+    return buildSelectedVariants(product.variantGroups, variantSelection);
   }, [product, variantSelection]);
+
+  const priceLabel = useMemo(() => {
+    if (!product) return "";
+    if (selectedVariants.length === 0) return formatPrice(product.priceCents);
+    const totalCents = selectedVariants.reduce(
+      (sum, variant) => sum + product.priceCents + variant.priceDeltaCents,
+      0,
+    );
+    return formatPrice(totalCents);
+  }, [product, selectedVariants]);
 
   if (loading) {
     return (
@@ -74,10 +90,11 @@ export function ProductDetailPage() {
     );
   }
 
-  const priceCents =
-    product.priceCents + (selectedVariant?.priceDeltaCents ?? 0);
-  const galleryImages = productDisplayImages(product);
+  const hasVariations = activeGroups.length > 0;
+  const canAddToCart =
+    product.inStock && (!hasVariations || selectedVariants.length > 0);
   const displayTitle = product.title.split("–")[0]?.trim() ?? product.title;
+  const galleryImages = productDisplayImages(product);
   const related = products
     .filter((p) => p.slug !== product.slug)
     .slice(0, 4);
@@ -166,53 +183,41 @@ export function ProductDetailPage() {
             </div>
 
             <p className="font-headline-lg text-headline-lg text-on-surface">
-              {formatPrice(priceCents)}
+              {priceLabel}
             </p>
 
             {activeGroups.length > 0 && (
-              <div className="space-y-stack-lg">
-                {activeGroups.map((group) => (
-                  <label key={group.id} className="block space-y-stack-sm">
-                    <span className="font-label-md text-[12px] uppercase text-on-surface-variant">
-                      {groupDisplayName(group)}
-                    </span>
-                    <select
-                      value={variantSelection[group.id] ?? group.options[0]?.id ?? ""}
-                      onChange={(e) =>
-                        setVariantSelection((current) => ({
-                          ...current,
-                          [group.id]: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-outline-variant/30 bg-surface-container px-4 py-3 font-label-md text-on-surface transition-colors hover:border-primary/50 focus:border-primary focus:outline-none"
-                    >
-                      {group.options.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                          {option.priceDeltaCents > 0
-                            ? ` (+${formatPrice(option.priceDeltaCents)})`
-                            : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ))}
-              </div>
+              <VariantPicker
+                groups={activeGroups}
+                selection={variantSelection}
+                resetKey={product.slug}
+                onToggle={(groupId, optionId) => {
+                  setLastToggledOptionId(optionId);
+                  setVariantSelection((current) =>
+                    toggleVariantMultiSelection(current, groupId, optionId),
+                  );
+                }}
+              />
             )}
             <div className="space-y-stack-sm">
               <button
                 type="button"
-                disabled={!product.inStock}
-                onClick={() =>
-                  addItem(product, {
-                    variant: selectedVariant,
-                    quantity: 1,
-                  })
-                }
+                disabled={!canAddToCart}
+                onClick={() => {
+                  if (!hasVariations) {
+                    addItem(product, { quantity: 1 });
+                    return;
+                  }
+                  for (const variant of selectedVariants) {
+                    addItem(product, { variant, quantity: 1 });
+                  }
+                }}
                 className="molten-glow flex w-full items-center justify-center gap-3 bg-primary py-5 font-headline-md uppercase tracking-wider text-on-primary transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
               >
                 <Icon name="add_shopping_cart" />
-                Add to Cart
+                {selectedVariants.length > 1
+                  ? `Add ${selectedVariants.length} to Cart`
+                  : "Add to Cart"}
               </button>
               <p className="text-center font-label-sm text-[10px] text-on-surface-variant/60">
                 FORGED IN RESIN. SHIPS WITHIN 3-5 BUSINESS DAYS.
