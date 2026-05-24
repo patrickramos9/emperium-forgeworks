@@ -95,7 +95,7 @@ npm run dev
 | Backend build: other IAM / AccessDenied | Add `AdministratorAccess-Amplify` to the service role |
 | `ampx` not found | Root `package.json` includes `@aws-amplify/backend-cli` |
 | Admin save fails / not authorized | User must be in Cognito `admin` group; use `/admin/login` |
-| Admin save **400** / `variants` invalid | Leave variants as `[]` in the form — empty JSON arrays are sent as `null`. Redeploy after fix if the UI still sends `variants: []` |
+| Admin save **400** / `variants` or `specs` invalid | AppSync **AWSJSON** fields must be sent as JSON **strings**, not raw objects/arrays. Empty arrays → `null`. See `toJsonField()` in `src/lib/productPayload.ts`. Redeploy frontend after fix. |
 | Shop still shows seed only | Run `npm run seed`; confirm `Product.list()` returns rows in browser network tab |
 | Image upload fails | Sign in as admin; set slug before upload; check S3 path `products/{slug}/…` |
 | Empty `amplify_outputs.json` in prod | Backend phase must succeed before frontend build |
@@ -103,8 +103,12 @@ npm run dev
 
 ## What Option B does not include yet
 
-- Stripe live checkout (M3)
-- Runtime announcements (M4)
-- Gallery page (M5)
+- Stripe live checkout (**M3**)
+- Customer accounts (**M4**)
+- Admin dashboard + stats (**M5**)
+- Promo codes (**M6**)
+- Hidden Vault (**M7**)
+- Runtime announcements (**M8**)
+- Gallery page (**M9**)
 
 See [project-plans/milestones.md](../project-plans/milestones.md).
