@@ -8,6 +8,7 @@ import {
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { mapAmplifyProduct } from "@/lib/mapAmplifyProduct";
+import { normalizeImageRef } from "@/lib/productImageRefs";
 import { uploadProductImage } from "@/lib/productImageUpload";
 import { buildProductMutationPayload } from "@/lib/productPayload";
 import {
@@ -91,8 +92,10 @@ export function AdminProductEditPage() {
     setFeatured(p.featured);
     setSortOrder(p.sortOrder);
     setLore(p.lore ?? "");
-    setDetailImage(p.detailImage ?? "");
-    setImagesText(imagesToText(p.images));
+    setDetailImage(p.detailImage ? normalizeImageRef(p.detailImage) : "");
+    setImagesText(
+      imagesToText(p.images.map((img) => normalizeImageRef(img))),
+    );
     setBadgesText(p.badges.join(", "));
     setVariantsJson(JSON.stringify(p.variants ?? [], null, 2));
     setSpecsJson(p.specs ? JSON.stringify(p.specs, null, 2) : "");
@@ -155,12 +158,16 @@ export function AdminProductEditPage() {
     setUploading(true);
     setError(null);
     try {
-      const url = await uploadProductImage(productSlug, file);
+      const path = await uploadProductImage(productSlug, file);
       if (target === "detail") {
-        setDetailImage(url);
+        setDetailImage(path);
+        const current = textToImages(imagesText);
+        if (current.length === 0) {
+          setImagesText(imagesToText([path]));
+        }
       } else {
         const current = textToImages(imagesText);
-        setImagesText(imagesToText([...current, url]));
+        setImagesText(imagesToText([...current, path]));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -395,7 +402,7 @@ export function AdminProductEditPage() {
         </label>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
-            Detail image URL (PDP hero)
+            Detail image path (PDP hero)
           </span>
           <input
             value={detailImage}
@@ -416,7 +423,7 @@ export function AdminProductEditPage() {
         </label>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
-            Gallery image URLs (one per line)
+            Gallery image paths (one per line)
           </span>
           <textarea
             value={imagesText}

@@ -5,6 +5,7 @@ import { adminSignOut } from "@/lib/adminAuth";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { listAllProducts } from "@/lib/listAllProducts";
+import { resolveImageUrl } from "@/lib/productImageUrls";
 
 interface AdminProductRow {
   id: string;
@@ -46,16 +47,19 @@ export function AdminProductsPage() {
 
     try {
       const rows = await listAllProducts(client);
-      setProducts(
-        rows.map((row) => ({
+      const mapped = await Promise.all(
+        rows.map(async (row) => ({
           id: row.id,
           slug: row.slug,
           title: row.title,
           priceCents: row.priceCents,
           inStock: row.inStock ?? true,
-          image: row.images?.[0] ?? undefined,
+          image:
+            (await resolveImageUrl(row.images?.[0] ?? row.detailImage ?? undefined)) ??
+            undefined,
         })),
       );
+      setProducts(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load products");
     } finally {

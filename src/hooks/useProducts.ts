@@ -3,6 +3,7 @@ import { SEED_PRODUCTS, type Product } from "@/data/seedProducts";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { listAllProducts } from "@/lib/listAllProducts";
 import { mapAmplifyProduct } from "@/lib/mapAmplifyProduct";
+import { resolveProductImages } from "@/lib/productImageUrls";
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -29,8 +30,10 @@ export function useProducts() {
 
       try {
         const rows = await listAllProducts(client);
+        const mapped = rows.map(mapAmplifyProduct);
+        const resolved = await Promise.all(mapped.map(resolveProductImages));
         if (!cancelled) {
-          setProducts(rows.map(mapAmplifyProduct));
+          setProducts(resolved);
           setSource("amplify");
         }
       } catch (err) {

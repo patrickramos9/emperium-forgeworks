@@ -2,10 +2,12 @@ import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import type { Product } from "@/data/seedProducts";
 import { formatPrice } from "@/data/seedProducts";
+import { productPrimaryImage } from "@/lib/productImageUrls";
 import { Icon } from "./Icon";
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const imageSrc = productPrimaryImage(product);
 
   return (
     <article className="group relative flex flex-col overflow-hidden bg-surface-container-low iron-bevel transition-all duration-300 hover:bg-surface-container-high">
@@ -25,11 +27,17 @@ export function ProductCard({ product }: { product: Product }) {
             {badge}
           </span>
         ))}
-        <img
-          src={product.images[0]}
-          alt={product.title}
-          className="h-full w-full object-cover grayscale brightness-90 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
-        />
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={product.title}
+            className="h-full w-full object-cover grayscale brightness-90 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-surface-container-highest text-on-surface-variant">
+            <Icon name="image" className="text-4xl opacity-40" />
+          </div>
+        )}
       </Link>
       <div className="flex flex-grow flex-col p-4">
         <div className="mb-2 flex items-start justify-between">

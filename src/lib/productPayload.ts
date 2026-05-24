@@ -1,4 +1,5 @@
 import type { Product } from "@/data/seedProducts";
+import { normalizeImageRef, normalizeImageRefs } from "@/lib/productImageRefs";
 
 /** AppSync AWSJSON fields reject empty arrays; use null when empty. */
 export function normalizeVariants(
@@ -36,6 +37,13 @@ export function buildProductMutationPayload(input: {
   variants: Product["variants"] | null;
   specs?: Product["specs"] | null;
 }) {
+  const detailImage = input.detailImage
+    ? normalizeImageRef(input.detailImage)
+    : undefined;
+  const gallery = normalizeImageRefs(input.images);
+  const images =
+    gallery.length > 0 ? gallery : detailImage ? [detailImage] : [];
+
   return {
     slug: input.slug,
     title: input.title,
@@ -47,9 +55,9 @@ export function buildProductMutationPayload(input: {
     ...(input.subtitle ? { subtitle: input.subtitle } : {}),
     ...(input.description ? { description: input.description } : {}),
     ...(input.lore ? { lore: input.lore } : {}),
-    ...(input.detailImage ? { detailImage: input.detailImage } : {}),
+    ...(detailImage ? { detailImage } : {}),
     badges: normalizeStringArray(input.badges),
-    images: normalizeStringArray(input.images),
+    images: normalizeStringArray(images),
     variants: normalizeVariants(input.variants),
     specs: normalizeSpecs(input.specs),
   };

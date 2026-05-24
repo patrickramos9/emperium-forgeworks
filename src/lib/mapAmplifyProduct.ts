@@ -19,18 +19,23 @@ export function mapAmplifyProduct(row: {
   featured?: boolean | null;
   sortOrder?: number | null;
 }): Product {
+  const gallery = (row.images ?? []).filter(Boolean) as string[];
+  const detailImage = row.detailImage ?? undefined;
+  const images =
+    gallery.length > 0 ? gallery : detailImage ? [detailImage] : [];
+
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
-    detailImage: row.detailImage ?? undefined,
+    detailImage,
     subtitle: row.subtitle ?? undefined,
     description: row.description ?? undefined,
     lore: row.lore ?? undefined,
     category: row.category as ProductCategory,
     priceCents: row.priceCents,
     badges: (row.badges ?? []).filter(Boolean) as string[],
-    images: (row.images ?? []).filter(Boolean) as string[],
+    images,
     variants: (row.variants ?? []) as Product["variants"],
     specs: row.specs as Product["specs"],
     inStock: row.inStock ?? true,

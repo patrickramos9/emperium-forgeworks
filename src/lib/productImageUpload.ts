@@ -1,10 +1,10 @@
-import { getUrl, uploadData } from "aws-amplify/storage";
+import { uploadData } from "aws-amplify/storage";
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9.-]/g, "_");
 }
 
-/** Uploads to S3 `products/{slug}/…` and returns a signed GET URL for display. */
+/** Uploads to S3 `products/{slug}/…` and returns the storage path for persistence. */
 export async function uploadProductImage(
   slug: string,
   file: File,
@@ -19,6 +19,5 @@ export async function uploadProductImage(
     },
   }).result;
 
-  const { url } = await getUrl({ path });
-  return url.toString();
+  return path;
 }
