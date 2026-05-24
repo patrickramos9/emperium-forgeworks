@@ -44,7 +44,7 @@ Roadmap in priority order. Each milestone should be shippable independently wher
 - AWSJSON save fix (`variants` / `specs` as JSON strings)
 - Description + Lore as separate PDP sections
 
-**M2 closure (ops):** After each deploy, smoke-test admin save, `/shop` catalog, PDP variants/images/description.
+**M2 closure (ops):** ~~After each deploy, smoke-test admin save, `/shop` catalog, PDP variants/images/description.~~ **Complete** — production smoke-test passed 2026-05-23.
 
 ---
 
