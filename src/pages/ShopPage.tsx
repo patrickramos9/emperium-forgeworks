@@ -6,7 +6,7 @@ import { CATEGORY_FILTERS } from "@/data/seedProducts";
 import { useProducts } from "@/hooks/useProducts";
 
 export function ShopPage() {
-  const { products, loading } = useProducts();
+  const { products, loading, source, loadError } = useProducts();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") ?? "All";
   const initialQuery = searchParams.get("q") ?? "";
@@ -74,6 +74,19 @@ export function ShopPage() {
           ))}
         </div>
       </div>
+
+      {loadError && !loading && (
+        <p className="mb-4 border border-error/40 bg-error/10 px-4 py-3 text-body-sm text-error">
+          Catalog could not load from the database ({loadError}). Try refreshing, or sign out of admin and reload.
+        </p>
+      )}
+
+      {import.meta.env.DEV && !loading && (
+        <p className="mb-4 text-body-sm text-on-surface-variant">
+          Dev: catalog from <strong>{source}</strong> ({products.length} items)
+          {loadError ? ` — ${loadError}` : ""}
+        </p>
+      )}
 
       {loading ? (
         <p className="text-on-surface-variant">Loading the vault...</p>

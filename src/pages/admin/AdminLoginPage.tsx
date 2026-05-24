@@ -1,5 +1,10 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  adminSignOut,
+  hasAdminSession,
+  isAlreadySignedInError,
+} from "@/lib/adminAuth";
 import { configureAmplify } from "@/lib/amplify";
 
 type LoginMode = "signIn" | "newPassword";
@@ -13,6 +18,17 @@ export function AdminLoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    async function redirectIfSignedIn() {
+      if (await hasAdminSession()) {
+        navigate("/admin/products", { replace: true });
+      }
+      setCheckingSession(false);
+    }
+    void redirectIfSignedIn();
+  }, [navigate]);
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
@@ -50,6 +66,10 @@ export function AdminLoginPage() {
         `Sign-in requires another step: ${result.nextStep.signInStep}. Contact support if this persists.`,
       );
     } catch (err) {
+      if (isAlreadySignedInError(err)) {
+        navigate("/admin/products", { replace: true });
+        return;
+      }
       setError(err instanceof Error ? err.message : "Sign in failed");
     } finally {
       setLoading(false);
@@ -87,6 +107,26 @@ export function AdminLoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleClearSession() {
+    setLoading(true);
+    setError(null);
+    try {
+      await adminSignOut();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clear session");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (checkingSession) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4">
+        <p className="text-on-surface-variant">Checking session...</p>
+      </main>
+    );
   }
 
   if (mode === "newPassword") {
@@ -195,6 +235,14 @@ export function AdminLoginPage() {
           className="molten-glow w-full bg-primary py-3 font-label-md uppercase text-on-primary disabled:opacity-50"
         >
           {loading ? "Signing in..." : "Enter"}
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void handleClearSession()}
+          className="mt-3 w-full py-2 font-label-sm uppercase text-on-surface-variant hover:text-primary"
+        >
+          Clear saved session
         </button>
       </form>
     </main>

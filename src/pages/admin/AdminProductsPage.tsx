@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { formatPrice } from "@/data/seedProducts";
+import { adminSignOut } from "@/lib/adminAuth";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
+import { listAllProducts } from "@/lib/listAllProducts";
 
 interface AdminProductRow {
   id: string;
@@ -15,56 +17,66 @@ interface AdminProductRow {
 
 export function AdminProductsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState<AdminProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [amplifyReady, setAmplifyReady] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const configured = await configureAmplify();
-      setAmplifyReady(configured);
-      if (!configured) {
-        setError(
-          "Amplify is not configured. Deploy the backend or run `npm run sandbox`.",
-        );
-        setLoading(false);
-        return;
-      }
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      const client = await requireAdminSession(navigate);
-      if (!client) return;
+    const configured = await configureAmplify();
+    setAmplifyReady(configured);
+    if (!configured) {
+      setError(
+        "Amplify is not configured. Deploy the backend or run `npm run sandbox`.",
+      );
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const { data, errors } = await client.models.Product.list({});
-        if (errors?.length) {
-          setError(errors.map((e) => e.message).join("; "));
-        } else if (data?.length) {
-          setProducts(
-            data.map((row) => ({
-              id: row.id,
-              slug: row.slug,
-              title: row.title,
-              priceCents: row.priceCents,
-              inStock: row.inStock ?? true,
-              image: row.images?.[0] ?? undefined,
-            })),
-          );
-        } else {
-          setProducts([]);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load products");
-      }
+    const client = await requireAdminSession(navigate);
+    if (!client) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const rows = await listAllProducts(client);
+      setProducts(
+        rows.map((row) => ({
+          id: row.id,
+          slug: row.slug,
+          title: row.title,
+          priceCents: row.priceCents,
+          inStock: row.inStock ?? true,
+          image: row.images?.[0] ?? undefined,
+        })),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load products");
+    } finally {
       setLoading(false);
     }
-    void load();
   }, [navigate]);
 
+  useEffect(() => {
+    void loadProducts();
+  }, [loadProducts, location.key]);
+
+  useEffect(() => {
+    function onFocus() {
+      void loadProducts();
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadProducts]);
+
   async function handleDelete(id: string, title: string) {
-    if (
-      !window.confirm(`Delete "${title}"? This cannot be undone.`)
-    ) {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) {
       return;
     }
 
@@ -72,25 +84,57 @@ export function AdminProductsPage() {
     if (!client) return;
 
     try {
-      await client.models.Product.delete({ id });
+      const result = await client.models.Product.delete({ id });
+      if (result.errors?.length) {
+        throw new Error(result.errors.map((e) => e.message).join("; "));
+      }
       setProducts((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
   }
 
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await adminSignOut();
+      navigate("/admin/login");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign out failed");
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
   return (
     <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-container-max">
       <div className="mb-stack-lg flex items-center justify-between">
-        <h1 className="font-display-lg text-headline-lg uppercase text-primary">
-          Products
-        </h1>
-        <Link
-          to="/admin/products/new"
-          className="bg-primary px-4 py-2 font-label-md uppercase text-on-primary"
-        >
-          Add Product
-        </Link>
+        <div>
+          <h1 className="font-display-lg text-headline-lg uppercase text-primary">
+            Products
+          </h1>
+          {!loading && !error && (
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              {products.length} in catalog (live database)
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            disabled={signingOut}
+            className="font-label-sm uppercase text-on-surface-variant hover:text-primary disabled:opacity-50"
+          >
+            {signingOut ? "Signing out..." : "Sign out"}
+          </button>
+          <Link
+            to="/admin/products/new"
+            className="bg-primary px-4 py-2 font-label-md uppercase text-on-primary"
+          >
+            Add Product
+          </Link>
+        </div>
       </div>
       {loading ? (
         <p className="text-on-surface-variant">Loading...</p>

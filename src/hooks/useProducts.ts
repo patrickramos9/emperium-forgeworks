@@ -1,31 +1,47 @@
 import { useEffect, useState } from "react";
 import { SEED_PRODUCTS, type Product } from "@/data/seedProducts";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
+import { listAllProducts } from "@/lib/listAllProducts";
 import { mapAmplifyProduct } from "@/lib/mapAmplifyProduct";
 
 export function useProducts() {
-  const [products, setProducts] = useState<Product[]>(SEED_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState<"seed" | "amplify">("seed");
+  const [source, setSource] = useState<"seed" | "amplify">("amplify");
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      setLoadError(null);
       const client = await getGuestDataClient();
-      if (!client || cancelled) {
-        setLoading(false);
+
+      if (!client) {
+        if (!cancelled) {
+          setProducts(SEED_PRODUCTS);
+          setSource("seed");
+          setLoadError("Amplify not configured — showing seed catalog.");
+          setLoading(false);
+        }
         return;
       }
 
       try {
-        const { data, errors } = await client.models.Product.list({});
-        if (!cancelled && data?.length && !errors?.length) {
-          setProducts(data.map(mapAmplifyProduct));
+        const rows = await listAllProducts(client);
+        if (!cancelled) {
+          setProducts(rows.map(mapAmplifyProduct));
           setSource("amplify");
         }
-      } catch {
-        /* fallback to seed */
+      } catch (err) {
+        if (!cancelled) {
+          console.error("[useProducts] API load failed", err);
+          setProducts([]);
+          setSource("amplify");
+          setLoadError(
+            err instanceof Error ? err.message : "Could not load catalog from API",
+          );
+        }
       }
 
       if (!cancelled) setLoading(false);
@@ -37,7 +53,7 @@ export function useProducts() {
     };
   }, []);
 
-  return { products, loading, source };
+  return { products, loading, source, loadError };
 }
 
 export function useProduct(slug: string | undefined) {

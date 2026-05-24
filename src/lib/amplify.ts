@@ -1,4 +1,5 @@
 import { Amplify } from "aws-amplify";
+import outputs from "../../amplify_outputs.json";
 
 let configured = false;
 
@@ -6,8 +7,7 @@ export async function configureAmplify(): Promise<boolean> {
   if (configured) return true;
 
   try {
-    const outputs = await import("../../amplify_outputs.json");
-    Amplify.configure(outputs.default ?? outputs);
+    Amplify.configure(outputs);
     configured = true;
     return true;
   } catch {

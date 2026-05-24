@@ -4,10 +4,13 @@ import App from "./App";
 import "./index.css";
 import { configureAmplify } from "./lib/amplify";
 
-void configureAmplify();
+async function bootstrap() {
+  await configureAmplify();
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+void bootstrap();
