@@ -1,7 +1,8 @@
 import { defineFunction } from "@aws-amplify/backend";
 
-export const postConfirmation = defineFunction({
-  name: "post-confirmation",
+export const addCustomerToGroup = defineFunction({
+  name: "addCustomerToGroup",
+  entry: "./handler.ts",
   environment: {
     GROUP_NAME: "customer",
   },

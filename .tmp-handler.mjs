@@ -1,0 +1,1 @@
+import{AdminAddUserToGroupCommand as n,CognitoIdentityProviderClient as e}from"@aws-sdk/client-cognito-identity-provider";import{env as m}from"$amplify/env/post-confirmation";const t=new e,d=async o=>{const r=new n({GroupName:m.GROUP_NAME,Username:o.userName,UserPoolId:o.userPoolId});return await t.send(r),o};export{d as handler};
