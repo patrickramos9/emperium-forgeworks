@@ -189,6 +189,7 @@ export function ProductDetailPage() {
             {activeGroups.length > 0 && (
               <VariantPicker
                 groups={activeGroups}
+                basePriceCents={product.priceCents}
                 selection={variantSelection}
                 resetKey={product.slug}
                 onToggle={(groupId, optionId) => {

@@ -8,6 +8,7 @@ import {
 
 interface VariantPickerProps {
   groups: ProductOptionGroup[];
+  basePriceCents: number;
   selection: Record<string, string[]>;
   onToggle: (groupId: string, optionId: string) => void;
   /** Reset open panels when the product changes. */
@@ -28,6 +29,7 @@ function selectionSummary(
 
 export function VariantPicker({
   groups,
+  basePriceCents,
   selection,
   onToggle,
   resetKey,
@@ -130,11 +132,9 @@ export function VariantPicker({
                         >
                           {option.label}
                         </span>
-                        {option.priceDeltaCents > 0 && (
-                          <span className="font-label-sm text-on-surface-variant">
-                            +{formatPrice(option.priceDeltaCents)}
-                          </span>
-                        )}
+                        <span className="font-label-sm text-on-surface-variant">
+                          {formatPrice(basePriceCents + option.priceDeltaCents)}
+                        </span>
                       </button>
                     </li>
                   );
