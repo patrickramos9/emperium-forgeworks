@@ -158,6 +158,17 @@ export function ProductDetailPage() {
                 )}
               </div>
             )}
+
+            {product.description && (
+              <div className="border border-outline-variant/10 bg-surface-container-high p-6 iron-bevel">
+                <h2 className="font-headline-md text-[18px] text-on-surface">
+                  Description
+                </h2>
+                <p className="mt-stack-md font-body-md leading-relaxed text-on-surface-variant">
+                  {product.description}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-stack-lg lg:sticky lg:top-32 lg:col-span-5">
@@ -225,13 +236,13 @@ export function ProductDetailPage() {
               </p>
             </div>
 
-            {(product.lore || product.description) && (
+            {product.lore && (
               <div className="border-t border-outline-variant/20 pt-stack-lg">
                 <h3 className="font-headline-md text-[18px] text-on-surface">
                   The Lore
                 </h3>
                 <p className="mt-stack-md font-body-md leading-relaxed text-on-surface-variant">
-                  {product.lore ?? product.description}
+                  {product.lore}
                 </p>
               </div>
             )}
