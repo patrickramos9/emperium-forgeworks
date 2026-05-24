@@ -5,11 +5,14 @@ import {
   type ProductCategory,
   getProductBySlug,
 } from "@/data/seedProducts";
+import { AdminProductGalleryEditor } from "@/components/admin/AdminProductGalleryEditor";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { mapAmplifyProduct } from "@/lib/mapAmplifyProduct";
-import { normalizeImageRef } from "@/lib/productImageRefs";
-import { uploadProductImage } from "@/lib/productImageUpload";
+import {
+  galleryToProductImages,
+  productToGalleryImages,
+} from "@/lib/productGallery";
 import { buildProductMutationPayload } from "@/lib/productPayload";
 import {
   formatCentsForInput,
@@ -23,17 +26,6 @@ const CATEGORIES: ProductCategory[] = [
   "Terrain",
   "SF & Fantasy",
 ];
-
-function imagesToText(images: string[]): string {
-  return images.join("\n");
-}
-
-function textToImages(text: string): string[] {
-  return text
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 function parseJsonField<T>(raw: string, label: string): T | null {
   const trimmed = raw.trim();
@@ -70,8 +62,7 @@ export function AdminProductEditPage() {
   const [featured, setFeatured] = useState(false);
   const [sortOrder, setSortOrder] = useState(99);
   const [lore, setLore] = useState("");
-  const [detailImage, setDetailImage] = useState("");
-  const [imagesText, setImagesText] = useState("");
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [badgesText, setBadgesText] = useState("");
   const [variantsJson, setVariantsJson] = useState("[]");
   const [specsJson, setSpecsJson] = useState("");
@@ -92,10 +83,7 @@ export function AdminProductEditPage() {
     setFeatured(p.featured);
     setSortOrder(p.sortOrder);
     setLore(p.lore ?? "");
-    setDetailImage(p.detailImage ? normalizeImageRef(p.detailImage) : "");
-    setImagesText(
-      imagesToText(p.images.map((img) => normalizeImageRef(img))),
-    );
+    setGalleryImages(productToGalleryImages(p));
     setBadgesText(p.badges.join(", "));
     setVariantsJson(JSON.stringify(p.variants ?? [], null, 2));
     setSpecsJson(p.specs ? JSON.stringify(p.specs, null, 2) : "");
@@ -147,35 +135,6 @@ export function AdminProductEditPage() {
     void load();
   }, [isNew, slug, seedFallback, navigate]);
 
-  async function handleImageUpload(
-    file: File,
-    target: "gallery" | "detail",
-  ) {
-    if (!productSlug.trim()) {
-      setError("Set a slug before uploading images.");
-      return;
-    }
-    setUploading(true);
-    setError(null);
-    try {
-      const path = await uploadProductImage(productSlug, file);
-      if (target === "detail") {
-        setDetailImage(path);
-        const current = textToImages(imagesText);
-        if (current.length === 0) {
-          setImagesText(imagesToText([path]));
-        }
-      } else {
-        const current = textToImages(imagesText);
-        setImagesText(imagesToText([...current, path]));
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -197,6 +156,8 @@ export function AdminProductEditPage() {
         ? parseJsonField<Product["specs"]>(specsJson, "specs")
         : undefined;
 
+      const { images, detailImage } = galleryToProductImages(galleryImages);
+
       const payload = buildProductMutationPayload({
         slug: productSlug,
         title,
@@ -208,12 +169,12 @@ export function AdminProductEditPage() {
         inStock,
         featured,
         sortOrder,
-        detailImage: detailImage || undefined,
+        detailImage,
         badges: badgesText
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
-        images: textToImages(imagesText),
+        images,
         variants,
         specs: specs ?? null,
       });
@@ -257,14 +218,14 @@ export function AdminProductEditPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-2xl">
+      <main className="mx-auto min-h-screen max-w-3xl px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
         <p className="text-on-surface-variant">Loading...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-2xl">
+    <main className="mx-auto min-h-screen max-w-3xl px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
       <Link to="/admin/products" className="text-primary hover:underline">
         ← Products
       </Link>
@@ -298,6 +259,14 @@ export function AdminProductEditPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2 disabled:opacity-60"
           />
         </label>
+        <AdminProductGalleryEditor
+          images={galleryImages}
+          onChange={setGalleryImages}
+          productSlug={productSlug}
+          disabled={saving}
+          onUploadingChange={setUploading}
+          onError={setError}
+        />
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
             Subtitle
@@ -398,49 +367,6 @@ export function AdminProductEditPage() {
             value={badgesText}
             onChange={(e) => setBadgesText(e.target.value)}
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
-          />
-        </label>
-        <label className="block">
-          <span className="font-label-sm uppercase text-on-surface-variant">
-            Detail image path (PDP hero)
-          </span>
-          <input
-            value={detailImage}
-            onChange={(e) => setDetailImage(e.target.value)}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
-          />
-          <input
-            type="file"
-            accept="image/*"
-            className="mt-2 text-body-sm"
-            disabled={uploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void handleImageUpload(file, "detail");
-              e.target.value = "";
-            }}
-          />
-        </label>
-        <label className="block">
-          <span className="font-label-sm uppercase text-on-surface-variant">
-            Gallery image paths (one per line)
-          </span>
-          <textarea
-            value={imagesText}
-            onChange={(e) => setImagesText(e.target.value)}
-            rows={4}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2 font-mono text-body-sm"
-          />
-          <input
-            type="file"
-            accept="image/*"
-            className="mt-2 text-body-sm"
-            disabled={uploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void handleImageUpload(file, "gallery");
-              e.target.value = "";
-            }}
           />
         </label>
         <label className="block">

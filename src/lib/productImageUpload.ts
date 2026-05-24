@@ -21,3 +21,15 @@ export async function uploadProductImage(
 
   return path;
 }
+
+/** Upload many files; returns storage paths in upload order. */
+export async function uploadProductImages(
+  slug: string,
+  files: File[],
+): Promise<string[]> {
+  const paths: string[] = [];
+  for (const file of files) {
+    paths.push(await uploadProductImage(slug, file));
+  }
+  return paths;
+}
