@@ -7,14 +7,33 @@ interface ProductImageGalleryProps {
   alt: string;
   /** Resets carousel when the product changes. */
   resetKey?: string;
+  activeIndex?: number;
+  onActiveIndexChange?: (index: number) => void;
 }
 
 export function ProductImageGallery({
   images,
   alt,
   resetKey,
+  activeIndex: controlledIndex,
+  onActiveIndexChange,
 }: ProductImageGalleryProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [internalIndex, setInternalIndex] = useState(0);
+  const isControlled = controlledIndex !== undefined;
+  const activeIndex = isControlled ? controlledIndex : internalIndex;
+
+  function setActiveIndex(next: number | ((current: number) => number)) {
+    const value =
+      typeof next === "function"
+        ? next(isControlled ? (controlledIndex ?? 0) : internalIndex)
+        : next;
+    if (isControlled) {
+      onActiveIndexChange?.(value);
+    } else {
+      setInternalIndex(value);
+    }
+  }
+
   const hasMultiple = images.length > 1;
   const activeImage = images[activeIndex];
 

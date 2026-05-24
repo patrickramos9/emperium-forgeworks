@@ -1,4 +1,5 @@
 import { Icon } from "@/components/Icon";
+import { VariantPhotoPicker } from "@/components/admin/VariantPhotoPicker";
 import {
   createVariantGroup,
   createVariantOption,
@@ -14,6 +15,7 @@ import {
 
 interface AdminProductVariantsEditorProps {
   groups: ProductOptionGroup[];
+  galleryImages: string[];
   onChange: (groups: ProductOptionGroup[]) => void;
   disabled?: boolean;
 }
@@ -54,6 +56,7 @@ function updateOption(
 
 export function AdminProductVariantsEditor({
   groups,
+  galleryImages,
   onChange,
   disabled = false,
 }: AdminProductVariantsEditorProps) {
@@ -94,8 +97,8 @@ export function AdminProductVariantsEditor({
             Variations
           </p>
           <p className="mt-1 text-body-sm text-on-surface-variant">
-            Offer size, type, or custom options — shoppers pick one value per
-            variation on the product page.
+            Offer size, type, or custom options — link a gallery photo to each
+            option so shoppers see the matching image.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -167,64 +170,78 @@ export function AdminProductVariantsEditor({
                   No options yet.
                 </p>
               ) : (
-                <div className="mb-3 space-y-2">
-                  <div className="hidden gap-2 font-label-sm uppercase text-on-surface-variant sm:grid sm:grid-cols-[1fr_120px_40px]">
-                    <span>Option</span>
-                    <span>Price +</span>
-                    <span />
-                  </div>
+                <div className="mb-3 space-y-3">
                   {group.options.map((option) => (
                     <div
                       key={option.id}
-                      className="grid gap-2 sm:grid-cols-[1fr_120px_40px]"
+                      className="space-y-2 border border-outline-variant/10 p-3"
                     >
-                      <input
-                        value={option.label}
-                        disabled={disabled}
-                        onChange={(e) =>
-                          onChange(
-                            updateOption(groups, group.id, option.id, {
-                              label: e.target.value,
-                            }),
-                          )
-                        }
-                        placeholder={
-                          group.kind === "size" ? "75mm" : "Option name"
-                        }
-                        className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
-                      />
-                      <input
-                        defaultValue={formatAdjustmentForInput(option.priceDeltaCents)}
-                        key={`${option.id}-${option.priceDeltaCents}`}
-                        disabled={disabled}
-                        onBlur={(e) => {
-                          try {
-                            const priceDeltaCents = parsePriceAdjustmentToCents(
-                              e.target.value,
-                            );
+                      <div className="grid gap-2 sm:grid-cols-[1fr_120px_40px]">
+                        <input
+                          value={option.label}
+                          disabled={disabled}
+                          onChange={(e) =>
                             onChange(
                               updateOption(groups, group.id, option.id, {
-                                priceDeltaCents,
+                                label: e.target.value,
                               }),
-                            );
-                          } catch {
-                            e.target.value = formatAdjustmentForInput(
-                              option.priceDeltaCents,
-                            );
+                            )
                           }
-                        }}
-                        placeholder="0.00"
-                        className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
-                      />
-                      <button
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => removeOption(group.id, option.id)}
-                        className="flex h-10 w-10 items-center justify-center text-error hover:bg-error/10 disabled:opacity-50"
-                        aria-label="Remove option"
-                      >
-                        <Icon name="close" className="text-base" />
-                      </button>
+                          placeholder={
+                            group.kind === "size" ? "75mm" : "Option name"
+                          }
+                          className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
+                        />
+                        <input
+                          defaultValue={formatAdjustmentForInput(option.priceDeltaCents)}
+                          key={`${option.id}-${option.priceDeltaCents}`}
+                          disabled={disabled}
+                          onBlur={(e) => {
+                            try {
+                              const priceDeltaCents = parsePriceAdjustmentToCents(
+                                e.target.value,
+                              );
+                              onChange(
+                                updateOption(groups, group.id, option.id, {
+                                  priceDeltaCents,
+                                }),
+                              );
+                            } catch {
+                              e.target.value = formatAdjustmentForInput(
+                                option.priceDeltaCents,
+                              );
+                            }
+                          }}
+                          placeholder="0.00"
+                          className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
+                        />
+                        <button
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => removeOption(group.id, option.id)}
+                          className="flex h-10 w-10 items-center justify-center text-error hover:bg-error/10 disabled:opacity-50"
+                          aria-label="Remove option"
+                        >
+                          <Icon name="close" className="text-base" />
+                        </button>
+                      </div>
+                      <div>
+                        <p className="mb-1 font-label-sm uppercase text-on-surface-variant">
+                          Linked photo
+                        </p>
+                        <VariantPhotoPicker
+                          galleryImages={galleryImages}
+                          value={option.imageRef}
+                          disabled={disabled}
+                          onChange={(imageRef) =>
+                            onChange(
+                              updateOption(groups, group.id, option.id, {
+                                imageRef,
+                              }),
+                            )
+                          }
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>

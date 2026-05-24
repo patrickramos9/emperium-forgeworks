@@ -32,6 +32,8 @@ export interface Product {
   priceCents: number;
   badges: string[];
   images: string[];
+  /** Storage paths parallel to resolved `images` (for variant photo matching). */
+  imageRefs?: string[];
   variantGroups: import("@/lib/productVariants").ProductOptionGroup[];
   variants: ProductVariant[];
   specs?: ProductSpecs;

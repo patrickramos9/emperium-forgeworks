@@ -16,7 +16,10 @@ import {
 } from "@/lib/productGallery";
 import { buildProductMutationPayload } from "@/lib/productPayload";
 import type { ProductOptionGroup } from "@/lib/productVariants";
-import { validateVariantGroups } from "@/lib/productVariants";
+import {
+  stripInvalidVariantImageRefs,
+  validateVariantGroups,
+} from "@/lib/productVariants";
 import {
   formatCentsForInput,
   parseDollarInputToCents,
@@ -179,7 +182,7 @@ export function AdminProductEditPage() {
           .map((s) => s.trim())
           .filter(Boolean),
         images,
-        variantGroups,
+        variantGroups: stripInvalidVariantImageRefs(variantGroups, galleryImages),
         specs: specs ?? null,
       });
 
@@ -265,11 +268,22 @@ export function AdminProductEditPage() {
         </label>
         <AdminProductGalleryEditor
           images={galleryImages}
-          onChange={setGalleryImages}
+          onChange={(images) => {
+            setGalleryImages(images);
+            setVariantGroups((current) =>
+              stripInvalidVariantImageRefs(current, images),
+            );
+          }}
           productSlug={productSlug}
           disabled={saving}
           onUploadingChange={setUploading}
           onError={setError}
+        />
+        <AdminProductVariantsEditor
+          groups={variantGroups}
+          galleryImages={galleryImages}
+          onChange={setVariantGroups}
+          disabled={saving || uploading}
         />
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
@@ -373,11 +387,6 @@ export function AdminProductEditPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
         </label>
-        <AdminProductVariantsEditor
-          groups={variantGroups}
-          onChange={setVariantGroups}
-          disabled={saving || uploading}
-        />
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
             Specs (JSON object, optional)

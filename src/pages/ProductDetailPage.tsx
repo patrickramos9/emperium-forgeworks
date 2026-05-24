@@ -9,8 +9,10 @@ import { productDisplayImages } from "@/lib/productDisplayImages";
 import { productPrimaryImage } from "@/lib/productImageUrls";
 import {
   buildSelectedVariant,
+  findGalleryIndexForImageRef,
   groupDisplayName,
   initialVariantSelection,
+  selectedVariantImageRef,
 } from "@/lib/productVariants";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 
@@ -22,12 +24,25 @@ export function ProductDetailPage() {
   const [variantSelection, setVariantSelection] = useState<
     Record<string, string>
   >({});
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
   useEffect(() => {
     if (product) {
       setVariantSelection(initialVariantSelection(product.variantGroups));
+      setGalleryIndex(0);
     }
   }, [product?.slug, product?.variantGroups]);
+
+  useEffect(() => {
+    if (!product) return;
+    const refs = product.imageRefs ?? product.images;
+    const imageRef = selectedVariantImageRef(
+      product.variantGroups,
+      variantSelection,
+    );
+    const index = findGalleryIndexForImageRef(refs, imageRef);
+    if (index >= 0) setGalleryIndex(index);
+  }, [product, variantSelection]);
 
   const activeGroups = useMemo(
     () =>
@@ -88,6 +103,8 @@ export function ProductDetailPage() {
               images={galleryImages}
               alt={product.title}
               resetKey={product.slug}
+              activeIndex={galleryIndex}
+              onActiveIndexChange={setGalleryIndex}
             />
 
             {product.specs && (
@@ -155,43 +172,30 @@ export function ProductDetailPage() {
             {activeGroups.length > 0 && (
               <div className="space-y-stack-lg">
                 {activeGroups.map((group) => (
-                  <div key={group.id} className="space-y-stack-md">
-                    <label className="font-label-md text-[12px] uppercase text-on-surface-variant">
+                  <label key={group.id} className="block space-y-stack-sm">
+                    <span className="font-label-md text-[12px] uppercase text-on-surface-variant">
                       {groupDisplayName(group)}
-                    </label>
-                    <div className="grid grid-cols-2 gap-stack-sm">
-                      {group.options.map((option) => {
-                        const selected =
-                          variantSelection[group.id] === option.id;
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() =>
-                              setVariantSelection((current) => ({
-                                ...current,
-                                [group.id]: option.id,
-                              }))
-                            }
-                            className={
-                              selected
-                                ? "molten-glow flex items-center justify-between border-2 border-primary bg-surface-container-highest px-4 py-3 font-label-md text-primary transition-all"
-                                : "flex items-center justify-between border border-outline-variant/30 bg-surface-container px-4 py-3 font-label-md text-on-surface-variant transition-all hover:border-primary/50"
-                            }
-                          >
-                            <span>{option.label}</span>
-                            {selected ? (
-                              <Icon name="check_circle" className="text-sm" />
-                            ) : option.priceDeltaCents > 0 ? (
-                              <span className="text-[10px]">
-                                +{formatPrice(option.priceDeltaCents)}
-                              </span>
-                            ) : null}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                    </span>
+                    <select
+                      value={variantSelection[group.id] ?? group.options[0]?.id ?? ""}
+                      onChange={(e) =>
+                        setVariantSelection((current) => ({
+                          ...current,
+                          [group.id]: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-outline-variant/30 bg-surface-container px-4 py-3 font-label-md text-on-surface transition-colors hover:border-primary/50 focus:border-primary focus:outline-none"
+                    >
+                      {group.options.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                          {option.priceDeltaCents > 0
+                            ? ` (+${formatPrice(option.priceDeltaCents)})`
+                            : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 ))}
               </div>
             )}

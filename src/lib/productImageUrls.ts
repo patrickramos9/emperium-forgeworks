@@ -1,7 +1,7 @@
 import { getUrl } from "aws-amplify/storage";
 import type { Product } from "@/data/seedProducts";
 import { configureAmplify } from "@/lib/amplify";
-import { isStoragePath, normalizeImageRef } from "@/lib/productImageRefs";
+import { isStoragePath, normalizeImageRef, normalizeImageRefs } from "@/lib/productImageRefs";
 
 /** Resolve a stored path or legacy URL to a browser-loadable image URL. */
 export async function resolveImageUrl(
@@ -18,16 +18,28 @@ export async function resolveImageUrl(
 }
 
 export async function resolveProductImages(product: Product): Promise<Product> {
-  const detailImage = product.detailImage
-    ? await resolveImageUrl(product.detailImage)
+  const refs = normalizeImageRefs(product.images);
+  const detailRef = product.detailImage
+    ? normalizeImageRef(product.detailImage)
+    : undefined;
+  const detailImage = detailRef
+    ? await resolveImageUrl(detailRef)
     : undefined;
   const images = (
-    await Promise.all(product.images.map((img) => resolveImageUrl(img)))
+    await Promise.all(refs.map((img) => resolveImageUrl(img)))
   ).filter(Boolean) as string[];
+
+  const imageRefs =
+    refs.length > 0
+      ? refs
+      : detailRef
+        ? [detailRef]
+        : product.images.filter(Boolean);
 
   return {
     ...product,
     detailImage,
+    imageRefs,
     images: images.length ? images : detailImage ? [detailImage] : [],
   };
 }

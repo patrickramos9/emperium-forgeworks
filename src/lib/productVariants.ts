@@ -1,4 +1,5 @@
 import type { ProductVariant } from "@/data/seedProducts";
+import { normalizeImageRef } from "@/lib/productImageRefs";
 
 export type VariationKind = "size" | "type" | "custom";
 
@@ -6,6 +7,8 @@ export interface ProductVariantOption {
   id: string;
   label: string;
   priceDeltaCents: number;
+  /** S3 path matching an entry in the product gallery (e.g. products/slug/photo.jpg). */
+  imageRef?: string;
 }
 
 export interface ProductOptionGroup {
@@ -136,16 +139,22 @@ export function parseVariantGroups(raw: unknown): ProductOptionGroup[] {
   return [];
 }
 
+function normalizeOption(option: ProductVariantOption): ProductVariantOption {
+  const imageRef = option.imageRef?.trim();
+  return {
+    id: option.id || createVariantOption(option.label).id,
+    label: option.label ?? "",
+    priceDeltaCents: option.priceDeltaCents ?? 0,
+    ...(imageRef ? { imageRef: normalizeImageRef(imageRef) } : {}),
+  };
+}
+
 function normalizeGroup(group: ProductOptionGroup): ProductOptionGroup {
   return {
     id: group.id || newId("group"),
     kind: group.kind ?? "custom",
     name: group.name ?? "",
-    options: (group.options ?? []).map((option) => ({
-      id: option.id || createVariantOption(option.label).id,
-      label: option.label ?? "",
-      priceDeltaCents: option.priceDeltaCents ?? 0,
-    })),
+    options: (group.options ?? []).map(normalizeOption),
   };
 }
 
@@ -265,4 +274,42 @@ export function validateVariantGroups(groups: ProductOptionGroup[]): string | nu
     }
   }
   return null;
+}
+
+/** Drop photo links that no longer exist in the product gallery. */
+export function stripInvalidVariantImageRefs(
+  groups: ProductOptionGroup[],
+  galleryImages: string[],
+): ProductOptionGroup[] {
+  const gallery = new Set(galleryImages.map(normalizeImageRef));
+  return groups.map((group) => ({
+    ...group,
+    options: group.options.map((option) => {
+      if (!option.imageRef) return option;
+      const ref = normalizeImageRef(option.imageRef);
+      return gallery.has(ref) ? { ...option, imageRef: ref } : { ...option, imageRef: undefined };
+    }),
+  }));
+}
+
+/** First linked photo among currently selected options (group order). */
+export function selectedVariantImageRef(
+  groups: ProductOptionGroup[],
+  selectedByGroupId: Record<string, string>,
+): string | undefined {
+  for (const group of groups) {
+    const selectedId = selectedByGroupId[group.id];
+    const option = group.options.find((item) => item.id === selectedId);
+    if (option?.imageRef) return normalizeImageRef(option.imageRef);
+  }
+  return undefined;
+}
+
+export function findGalleryIndexForImageRef(
+  imageRefs: string[],
+  imageRef: string | undefined,
+): number {
+  if (!imageRef) return -1;
+  const normalized = normalizeImageRef(imageRef);
+  return imageRefs.findIndex((ref) => normalizeImageRef(ref) === normalized);
 }
