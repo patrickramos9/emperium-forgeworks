@@ -22,13 +22,4 @@ export async function hasAdminSession(): Promise<boolean> {
   }
 }
 
-export function isAlreadySignedInError(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  const name = "name" in err ? String(err.name) : "";
-  const message = err instanceof Error ? err.message : "";
-  return (
-    name === "UserAlreadyAuthenticatedException" ||
-    message.toLowerCase().includes("already a signed in user") ||
-    message.toLowerCase().includes("already signed in")
-  );
-}
+export { isAlreadySignedInError } from "@/lib/customerAuth";

@@ -8,6 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import type { Product, ProductVariant } from "@/data/seedProducts";
+import {
+  CART_STORAGE_KEY,
+  CART_STORAGE_VERSION,
+  MAX_LINE_QTY,
+} from "@/lib/cartConstants";
 
 export interface CartLine {
   key: string;
@@ -25,10 +30,11 @@ interface CartContextValue {
   items: CartLine[];
   itemCount: number;
   subtotalCents: number;
+  maxLineQty: number;
   addItem: (
     product: Product,
     options?: { variant?: ProductVariant; quantity?: number },
-  ) => void;
+  ) => boolean;
   removeItem: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
   clearCart: () => void;
@@ -36,24 +42,59 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-const STORAGE_KEY = "emperium-cart";
+interface StoredCart {
+  version: number;
+  items: CartLine[];
+}
 
 function lineKey(productId: string, variantId?: string) {
   return `${productId}:${variantId ?? "default"}`;
 }
 
+function clampQuantity(quantity: number): number {
+  return Math.min(MAX_LINE_QTY, Math.max(1, quantity));
+}
+
+function loadStoredItems(): CartLine[] {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw) as StoredCart | CartLine[];
+    const items = Array.isArray(parsed) ? parsed : parsed.items;
+
+    if (!Array.isArray(items)) return [];
+
+    return items
+      .filter(
+        (item) =>
+          item &&
+          typeof item.key === "string" &&
+          typeof item.productId === "string" &&
+          typeof item.quantity === "number",
+      )
+      .map((item) => ({
+        ...item,
+        quantity: clampQuantity(item.quantity),
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function persistItems(items: CartLine[]) {
+  const payload: StoredCart = {
+    version: CART_STORAGE_VERSION,
+    items,
+  };
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(payload));
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartLine[]>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as CartLine[]) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [items, setItems] = useState<CartLine[]>(loadStoredItems);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    persistItems(items);
   }, [items]);
 
   const addItem = useCallback(
@@ -61,8 +102,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       product: Product,
       options?: { variant?: ProductVariant; quantity?: number },
     ) => {
+      if (!product.inStock) return false;
+
       const variant = options?.variant;
-      const quantity = options?.quantity ?? 1;
+      const quantity = clampQuantity(options?.quantity ?? 1);
       const key = lineKey(product.id, variant?.id);
       const priceCents = product.priceCents + (variant?.priceDeltaCents ?? 0);
 
@@ -70,7 +113,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const existing = prev.find((i) => i.key === key);
         if (existing) {
           return prev.map((i) =>
-            i.key === key ? { ...i, quantity: i.quantity + quantity } : i,
+            i.key === key
+              ? { ...i, quantity: clampQuantity(i.quantity + quantity) }
+              : i,
           );
         }
         return [
@@ -88,6 +133,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           },
         ];
       });
+      return true;
     },
     [],
   );
@@ -102,7 +148,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (i.key === key ? { ...i, quantity } : i)),
+      prev.map((i) =>
+        i.key === key ? { ...i, quantity: clampQuantity(quantity) } : i,
+      ),
     );
   }, []);
 
@@ -118,6 +166,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       itemCount,
       subtotalCents,
+      maxLineQty: MAX_LINE_QTY,
       addItem,
       removeItem,
       updateQuantity,

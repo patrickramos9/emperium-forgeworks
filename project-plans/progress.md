@@ -2,13 +2,13 @@
 
 Living status log. Update this file when milestones move or deploys land.
 
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-24 (M3a + M4)
 
 ---
 
 ## Current phase
 
-**M4 — Customer accounts** — **Next up.** M2 is complete. **M3b (Stripe + Google Pay) pinned** until EIN is available for Stripe onboarding.
+**M5 — Admin portal v2 + stats** — **Next up.** M3a and M4 implemented in codebase (deploy backend for auth/schema changes). **M3b (Stripe + Google Pay) pinned** until EIN.
 
 | Area | Status |
 |------|--------|
@@ -16,9 +16,9 @@ Living status log. Update this file when milestones move or deploys land.
 | Admin product CRUD + gallery + variations | ✅ |
 | Storefront live catalog + PDP enhancements | ✅ |
 | Production smoke-test | ✅ Passed 2026-05-23 |
-| Cart UX hardening | ⚪ M3a (optional parallel) |
+| Cart UX hardening (M3a) | ✅ Code complete — deploy not required for local |
+| Customer accounts (M4) | ✅ Code complete — **requires Amplify deploy** |
 | Stripe + Google Pay live checkout | ⏳ M3b — blocked on EIN |
-| Customer accounts | 🎯 M4 — next |
 | Admin dashboard + stats | ⚪ M5 |
 | Promo codes | ⚪ M6 |
 | Hidden Vault | ⚪ M7 |
@@ -31,9 +31,10 @@ Living status log. Update this file when milestones move or deploys land.
 |-----------|--------|-------|
 | **M1** Public preview | ✅ Done | https://emperiumforgeworks.com |
 | **M2** Backend + admin | ✅ Done | Production smoke-test passed |
-| **M3a** Cart UX | ⚪ Optional | Persistence, limits, polish |
+| **M3a** Cart UX | ✅ Done | Qty limits, validation, guest orders |
 | **M3b** Stripe + Google Pay | ⏳ Pinned | Waiting on EIN; mock checkout today |
-| **M4** Customer accounts | 🎯 Next | Optional signup; guest still OK |
+| **M4** Customer accounts | ✅ Done | Sign up/in, orders, header menu |
+| **M5** Admin portal + stats | 🎯 Next | Dashboard, orders UI, analytics |
 | **M5** Admin portal + stats | ⚪ Not started | Dashboard, orders, analytics |
 | **M6** Promo codes | ⚪ Not started | Cart/checkout discounts |
 | **M7** Hidden Vault | ⚪ Not started | Key-gated exclusive catalog |
@@ -80,9 +81,8 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ## Next actions (recommended order)
 
-1. **M4** — customer accounts (guest checkout preserved; mock orders OK)  
-2. **M3a** — cart UX hardening (can run in parallel with M4)  
-3. **M5** — admin shell + dashboard (orders + traffic)  
+1. **Deploy** — push M3a/M4 backend (`customer` group, Order `userId`, guest order create)  
+2. **M5** — admin shell + dashboard (orders + traffic)  
 4. **M7** — Hidden Vault (mock checkout OK)  
 5. **M3b** — Stripe + Google Pay + webhooks — **resume when EIN is ready**  
 6. **M6** — promo codes (after M3b)  
@@ -106,7 +106,8 @@ See [milestones.md](./milestones.md) for full scope per phase.
 
 | Date | Update |
 |------|--------|
-| 2026-05-24 | **M3b pinned** — Stripe + Google Pay deferred until EIN; **M4** is next |
+| 2026-05-24 | **M3a + M4** — cart UX, customer auth, order history (code) |
+| 2026-05-24 | **M3b pinned** — Stripe + Google Pay deferred until EIN |
 | 2026-05-23 | **M2 complete** — production smoke-test passed; phase closed |
 | 2026-05-23 | **M2 enhancements** — variations, gallery, multi-select PDP, description |
 | 2026-05-23 | **M2 live** — fullstack CI; seed + admin user |

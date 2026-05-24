@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
+import { AccountMenu } from "./AccountMenu";
 import { Icon } from "./Icon";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -78,13 +79,7 @@ export function Header() {
               </span>
             )}
           </Link>
-          <Link
-            to="/admin/login"
-            className="p-2 text-on-surface-variant transition-colors hover:text-primary active:scale-95"
-            aria-label="Admin"
-          >
-            <Icon name="person" />
-          </Link>
+          <AccountMenu />
         </div>
       </div>
     </header>

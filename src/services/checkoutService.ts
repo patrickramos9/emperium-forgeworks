@@ -6,6 +6,9 @@ import {
 import type { CartLine } from "@/context/CartContext";
 import { SITE_URL } from "@/lib/config";
 import { configureAmplify, isAmplifyConfigured } from "@/lib/amplify";
+import { getGuestDataClient } from "@/lib/amplifyDataClient";
+import { getCustomerUserId } from "@/lib/customerAuth";
+import { toOrderLineItemSnapshots } from "@/lib/orderLineItems";
 
 function toLineItems(items: CartLine[]): CheckoutLineItem[] {
   return items.map((item) => ({
@@ -28,27 +31,40 @@ async function saveMockOrder(
 ) {
   if (!isAmplifyConfigured()) return;
 
-  try {
-    const { generateClient } = await import("aws-amplify/data");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = generateClient<any>();
-    await client.models.Order.create({
-      externalSessionId: sessionId,
-      paymentProvider: "mock",
-      status: "paid",
-      lineItems: JSON.stringify(items),
-      totalCents,
-    });
-  } catch {
-    /* orders optional without sandbox */
+  const client = await getGuestDataClient();
+  if (!client) return;
+
+  const userId = await getCustomerUserId();
+  const snapshots = toOrderLineItemSnapshots(items);
+
+  const { data, errors } = await client.models.Order.create({
+    externalSessionId: sessionId,
+    paymentProvider: "mock",
+    status: "paid",
+    lineItems: JSON.stringify(snapshots),
+    totalCents,
+    ...(userId ? { userId } : {}),
+  });
+
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+
+  if (!data) {
+    throw new Error("Order could not be saved.");
   }
 }
 
 export async function startCheckout(items: CartLine[]) {
+  if (!items.length) {
+    throw new Error("Cart is empty");
+  }
+
   await configureAmplify();
 
   const config = loadConfig({
-    appEnv: import.meta.env.VITE_APP_ENV === "deployment" ? "deployment" : "local",
+    appEnv:
+      import.meta.env.VITE_APP_ENV === "deployment" ? "deployment" : "local",
     siteUrl: SITE_URL,
     stripeSecretKey: undefined,
   });
@@ -64,11 +80,7 @@ export async function startCheckout(items: CartLine[]) {
 
   if (provider.name === "mock") {
     await saveMockOrder(session.sessionId, items, totalCents);
-    if (session.redirectUrl.startsWith("http")) {
-      window.location.href = session.redirectUrl;
-    } else {
-      window.location.href = session.redirectUrl;
-    }
+    window.location.href = session.redirectUrl;
     return session;
   }
 

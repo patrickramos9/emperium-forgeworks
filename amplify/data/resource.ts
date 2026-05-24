@@ -29,13 +29,17 @@ const schema = a.schema({
       externalSessionId: a.string().required(),
       paymentProvider: a.enum(["mock", "stripe"]),
       status: a.enum(["pending", "paid", "failed"]),
+      userId: a.string(),
+      /** Deprecated — not collected; kept for schema compatibility. */
       email: a.string(),
       lineItems: a.json(),
       totalCents: a.integer().required(),
     })
     .authorization((allow) => [
+      allow.guest().to(["create"]),
+      allow.authenticated().to(["create"]),
+      allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
       allow.group("admin").to(["read"]),
-      allow.authenticated().to(["create", "read"]),
     ]),
 });
 
