@@ -41,7 +41,8 @@ Products are high-fidelity **resin prints** (made to order), positioned as premi
 
 ### Payments
 
-- **Stripe** for production card payments (not yet live)
+- **Stripe** for production card payments (not yet live — **pinned until EIN** is available for Stripe business onboarding)
+- **Google Pay** via Stripe Checkout / Payment Element (same session and webhooks as cards; enable in Stripe Dashboard when M3b ships)
 - **`PaymentProvider` abstraction** in `packages/shared/` — `MockPaymentProvider` for local/preview, `StripePaymentProvider` stub for later
 - Checkout must not scatter payment logic across pages; one provider interface, env-driven implementation
 
@@ -81,7 +82,7 @@ We want to **minimize sensitive customer data** stored in our systems.
 
 1. **Option A (now):** Amplify Hosting — frontend only, seed catalog, public preview URL  
 2. **Option B (next):** Deploy Amplify backend, seed DynamoDB, wire catalog + admin to live API  
-3. **Stripe + domain:** Real payments, `emperiumforgeworks.com`, production env vars  
+3. **Stripe + Google Pay + domain:** Real payments (when EIN unblocks M3b), `emperiumforgeworks.com`, production env vars  
 
 Each feature ships via **commit → push → Amplify build** unless backend schema changes require sandbox/pipeline deploy.
 

@@ -2,7 +2,7 @@
 
 Roadmap in priority order. Each milestone should be shippable independently where possible (incremental deploys).
 
-**Last updated:** 2026-05-23
+**Last updated:** 2026-05-24
 
 ---
 
@@ -48,25 +48,39 @@ Roadmap in priority order. Each milestone should be shippable independently wher
 
 ---
 
-## M3 — Cart & checkout 🎯 *next*
+## M3 — Cart & checkout
 
 **Goal:** Reliable purchase flow with minimal PII; **guest checkout remains available.**
+
+Split into cart work (can ship now) and live payments (blocked until business can complete Stripe onboarding).
+
+### M3a — Cart UX 🎯 *next (no Stripe required)*
 
 | Task | Notes |
 |------|--------|
 | Harden cart UX | Persistence, empty states, quantity limits |
-| Stripe + `StripePaymentProvider` | `createCheckoutSession`, secrets in Amplify/Lambda |
-| Lambda checkout + webhook | Confirm payment → `Order.status` |
-| Order privacy review | Minimize stored email; Stripe for receipts where possible |
-| Production env | `VITE_APP_ENV=deployment` |
+| Order privacy review | Minimize stored email; align mock fields with production minimum |
 
-**Exit criteria:** Test purchase end-to-end; order visible in Stripe.
+**Exit criteria:** Cart behaves well on mobile/desktop; mock checkout still creates orders for fulfillment testing.
+
+### M3b — Live payments ⏳ *pinned — waiting on EIN*
+
+**Blocker:** Stripe account setup requires EIN (or equivalent business verification). Mock checkout remains in all environments until unblocked.
+
+| Task | Notes |
+|------|--------|
+| Stripe + `StripePaymentProvider` | `createCheckoutSession`, secrets in Amplify/Lambda |
+| **Google Pay** | Enable via Stripe Checkout / Payment Element (no separate processor); same webhook flow as cards |
+| Lambda checkout + webhook | Confirm payment → `Order.status` |
+| Production env | `VITE_APP_ENV=deployment` + `STRIPE_*` in Amplify |
+
+**Exit criteria:** Test purchase end-to-end (card + Google Pay); order visible in Stripe Dashboard.
 
 **Does not include:** customer accounts (M4), promo codes (M6), admin dashboard (M5).
 
 ---
 
-## M4 — Customer accounts
+## M4 — Customer accounts 🎯 *active track while M3b pinned*
 
 **Goal:** Shoppers **may** register and sign in; **guest checkout still works.**
 
@@ -79,9 +93,9 @@ Roadmap in priority order. Each milestone should be shippable independently wher
 
 **Schema:** `Order.userId` optional; users read own orders, admin reads all.
 
-**Exit criteria:** Guest completes M3 checkout without account; signed-in user sees order history.
+**Exit criteria:** Guest completes checkout without account; signed-in user sees order history.
 
-**Depends on:** M3 (orders exist).
+**Depends on:** M3a (orders exist — mock checkout is sufficient until M3b).
 
 ---
 
@@ -99,7 +113,7 @@ Roadmap in priority order. Each milestone should be shippable independently wher
 
 **Exit criteria:** Admin dashboard shows purchase metrics; product management at least as capable as today, better organized.
 
-**Depends on:** M3 for meaningful sales stats.
+**Depends on:** M3b for real revenue; mock orders OK for UI until Stripe is live.
 
 ---
 
@@ -116,7 +130,7 @@ Roadmap in priority order. Each milestone should be shippable independently wher
 
 **Exit criteria:** Valid code reduces checkout total; invalid/expired codes error clearly.
 
-**Depends on:** M3.
+**Depends on:** M3b (Stripe discounts).
 
 ---
 
@@ -132,9 +146,9 @@ Roadmap in priority order. Each milestone should be shippable independently wher
 | Admin | Vault products + key rotation (env or `VaultSettings` in DB) |
 | Security | Hash key server-side; rate-limit attempts |
 
-**Exit criteria:** Vault SKUs hidden on `/shop` until key entered; purchasable via M3 checkout when unlocked.
+**Exit criteria:** Vault SKUs hidden on `/shop` until key entered; purchasable via checkout when unlocked.
 
-**Depends on:** M2 catalog; M3 for purchases.
+**Depends on:** M2 catalog; M3a/M3b for purchases (mock OK until Stripe).
 
 ---
 
@@ -169,19 +183,21 @@ Roadmap in priority order. Each milestone should be shippable independently wher
 ## Dependency sketch
 
 ```text
-M1 → M2 → M3 → M4
-              ↘ M5 → M8 → M9
-              ↘ M6
-         M2 → M7 (buy path needs M3)
+M1 → M2 → M3a ─┬→ M4
+                ├→ M5 → M8 → M9
+                ├→ M6 (needs M3b)
+                └→ M3b (Stripe + Google Pay) ⏳ EIN
+         M2 → M7 (buy path: M3a mock or M3b live)
 ```
 
 | Phase | Depends on |
 |-------|------------|
-| M3 | M2 |
-| M4 | M3 |
-| M5 | M3 (sales stats) |
-| M6 | M3 |
-| M7 | M2; M3 for checkout |
+| M3a | M2 |
+| M3b | M2; **EIN** for Stripe onboarding |
+| M4 | M3a |
+| M5 | M3a (UI); M3b (real revenue) |
+| M6 | M3b |
+| M7 | M2; M3a or M3b for checkout |
 | M8 | M5 admin shell (recommended) |
 | M9 | — |
 
@@ -192,7 +208,8 @@ M1 → M2 → M3 → M4
 | Phase | Out of scope |
 |-------|----------------|
 | M2 | Stripe, accounts, promos, vault, admin dashboard |
-| M3 | Accounts, promos, vault, admin stats |
+| M3a | Live payments, accounts, promos, vault, admin stats |
+| M3b | Accounts, promos, vault, admin stats |
 | M4 | Promos, vault, admin dashboard |
 | M5 | Stripe implementation, promos, vault unlock |
 | M6 | Vault, customer accounts |
