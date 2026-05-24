@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { ProductImage } from "@/components/ProductImage";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
 import type { ProductVariant } from "@/data/seedProducts";
+import { productDisplayImages } from "@/lib/productDisplayImages";
 import { productPrimaryImage } from "@/lib/productImageUrls";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 
@@ -37,7 +39,7 @@ export function ProductDetailPage() {
   const selectedVariant = variant ?? product.variants[0];
   const priceCents =
     product.priceCents + (selectedVariant?.priceDeltaCents ?? 0);
-  const heroImage = product.detailImage ?? product.images[0];
+  const galleryImages = productDisplayImages(product);
   const displayTitle = product.title.split("–")[0]?.trim() ?? product.title;
   const related = products
     .filter((p) => p.slug !== product.slug)
@@ -60,15 +62,11 @@ export function ProductDetailPage() {
 
         <div className="grid grid-cols-1 items-start gap-gutter lg:grid-cols-12">
           <div className="space-y-gutter lg:col-span-7">
-            <div className="group relative iron-bevel">
-              <ProductImage
-                src={heroImage}
-                alt={product.title}
-                className="aspect-[4/5] bg-surface-container-low"
-                imageClassName="contrast-125 grayscale-[0.2] transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
-            </div>
+            <ProductImageGallery
+              images={galleryImages}
+              alt={product.title}
+              resetKey={product.slug}
+            />
 
             {product.specs && (
               <div className="grid grid-cols-3 gap-stack-sm font-label-sm">
