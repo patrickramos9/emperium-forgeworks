@@ -30,12 +30,20 @@ const SECTIONS: {
     title: "Returns & refunds",
     items: [
       {
-        heading: "Returns accepted",
-        body: "We accept returns on eligible items. Contact us before sending anything back so we can confirm details and provide return instructions.",
+        heading: "Eligibility",
+        body: "Returns and refunds are accepted only on new products—whether defective or non-defective—within 30 days of delivery. The return window begins on the date your order is delivered. Contact us before sending anything back so we can confirm eligibility and provide return instructions.",
       },
       {
-        heading: "Refunds",
-        body: "Refunds are available for qualifying returns. Once we receive and inspect your return, we will process your refund to the original payment method.",
+        heading: "Return shipping",
+        body: "The buyer is responsible for return shipping costs.",
+      },
+      {
+        heading: "Fees",
+        body: "There are no restocking fees or any other additional charges on approved returns.",
+      },
+      {
+        heading: "Refund processing",
+        body: "Once we receive your returned product at our location, allow up to 2 days for us to process your refund to the original payment method.",
       },
       {
         heading: "Questions",
