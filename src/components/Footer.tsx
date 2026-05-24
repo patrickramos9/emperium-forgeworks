@@ -1,13 +1,18 @@
 import { Link } from "react-router-dom";
+import { CONTACT_EMAIL } from "@/lib/config";
 import { Icon } from "./Icon";
 
-const FOOTER_LINKS = [
-  { label: "Shipping & Returns", href: "#" },
+type FooterLink =
+  | { label: string; to: string }
+  | { label: string; href: string };
+
+const FOOTER_LINKS: FooterLink[] = [
+  { label: "Shipping & Returns", to: "/shipping-returns" },
   { label: "Privacy Policy", href: "#" },
   { label: "Forge Terms", href: "#" },
   {
-    label: "Contact Support",
-    href: "mailto:support@emperiumforgeworks.com",
+    label: "Contact Melissa",
+    href: `mailto:${CONTACT_EMAIL}`,
   },
 ];
 
@@ -28,15 +33,25 @@ export function Footer({ showPowerLine = false }: { showPowerLine?: boolean }) {
           </p>
         </div>
         <nav className="flex flex-wrap justify-center gap-stack-lg">
-          {FOOTER_LINKS.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              className="font-body-md text-on-surface-variant underline-offset-4 transition-colors hover:text-on-surface hover:underline decoration-primary/50"
-            >
-              {link.label}
-            </a>
-          ))}
+          {FOOTER_LINKS.map((link) =>
+            "to" in link ? (
+              <Link
+                key={link.label}
+                to={link.to}
+                className="font-body-md text-on-surface-variant underline-offset-4 transition-colors hover:text-on-surface hover:underline decoration-primary/50"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.label}
+                href={link.href}
+                className="font-body-md text-on-surface-variant underline-offset-4 transition-colors hover:text-on-surface hover:underline decoration-primary/50"
+              >
+                {link.label}
+              </a>
+            ),
+          )}
           <Link
             to="/process"
             className="font-body-md text-on-surface-variant underline-offset-4 transition-colors hover:text-on-surface hover:underline decoration-primary/50"
@@ -61,8 +76,8 @@ export function Footer({ showPowerLine = false }: { showPowerLine?: boolean }) {
           </a>
           <a
             className="text-on-surface-variant transition-colors hover:text-primary"
-            href="mailto:support@emperiumforgeworks.com"
-            aria-label="Email"
+            href={`mailto:${CONTACT_EMAIL}`}
+            aria-label="Email Melissa"
           >
             <Icon name="alternate_email" />
           </a>

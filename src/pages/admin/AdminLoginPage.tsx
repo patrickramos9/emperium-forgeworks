@@ -63,7 +63,7 @@ export function AdminLoginPage() {
       }
 
       setError(
-        `Sign-in requires another step: ${result.nextStep.signInStep}. Contact support if this persists.`,
+        `Sign-in requires another step: ${result.nextStep.signInStep}. Contact Melissa if this persists.`,
       );
     } catch (err) {
       if (isAlreadySignedInError(err)) {

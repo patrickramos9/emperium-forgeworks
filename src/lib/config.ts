@@ -8,3 +8,5 @@ export const SITE_URL =
 
 export const SITE_DOMAIN =
   import.meta.env.VITE_SITE_DOMAIN ?? "emperiumforgeworks.com";
+
+export const CONTACT_EMAIL = "melissa@emperiumforgeworks.com";

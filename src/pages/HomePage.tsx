@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { CONTACT_EMAIL } from "@/lib/config";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
 
 const TECH_SPECS = [
@@ -156,7 +157,7 @@ export function HomePage() {
               Commission bespoke sculpts and print runs.
             </p>
             <a
-              href="mailto:support@emperiumforgeworks.com"
+              href={`mailto:${CONTACT_EMAIL}`}
               className="mt-4 font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
             >
               Start Commission
