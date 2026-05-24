@@ -1,0 +1,247 @@
+import { Icon } from "@/components/Icon";
+import {
+  createVariantGroup,
+  createVariantOption,
+  groupDisplayName,
+  type ProductOptionGroup,
+  type ProductVariantOption,
+  type VariationKind,
+} from "@/lib/productVariants";
+import {
+  formatAdjustmentForInput,
+  parsePriceAdjustmentToCents,
+} from "@/lib/priceUtils";
+
+interface AdminProductVariantsEditorProps {
+  groups: ProductOptionGroup[];
+  onChange: (groups: ProductOptionGroup[]) => void;
+  disabled?: boolean;
+}
+
+const KIND_OPTIONS: { kind: VariationKind; label: string; hint: string }[] = [
+  { kind: "size", label: "Size", hint: "Scale or dimensions (75mm, 110mm…)" },
+  { kind: "type", label: "Type", hint: "Material, finish, or style" },
+  { kind: "custom", label: "Custom", hint: "Name your own variation" },
+];
+
+function updateGroup(
+  groups: ProductOptionGroup[],
+  groupId: string,
+  patch: Partial<ProductOptionGroup>,
+): ProductOptionGroup[] {
+  return groups.map((group) =>
+    group.id === groupId ? { ...group, ...patch } : group,
+  );
+}
+
+function updateOption(
+  groups: ProductOptionGroup[],
+  groupId: string,
+  optionId: string,
+  patch: Partial<ProductVariantOption>,
+): ProductOptionGroup[] {
+  return groups.map((group) =>
+    group.id === groupId
+      ? {
+          ...group,
+          options: group.options.map((option) =>
+            option.id === optionId ? { ...option, ...patch } : option,
+          ),
+        }
+      : group,
+  );
+}
+
+export function AdminProductVariantsEditor({
+  groups,
+  onChange,
+  disabled = false,
+}: AdminProductVariantsEditorProps) {
+  function addGroup(kind: VariationKind) {
+    onChange([...groups, createVariantGroup(kind)]);
+  }
+
+  function removeGroup(groupId: string) {
+    onChange(groups.filter((group) => group.id !== groupId));
+  }
+
+  function addOption(groupId: string) {
+    onChange(
+      updateGroup(groups, groupId, {
+        options: [
+          ...(groups.find((group) => group.id === groupId)?.options ?? []),
+          createVariantOption(""),
+        ],
+      }),
+    );
+  }
+
+  function removeOption(groupId: string, optionId: string) {
+    onChange(
+      updateGroup(groups, groupId, {
+        options: (groups.find((group) => group.id === groupId)?.options ?? []).filter(
+          (option) => option.id !== optionId,
+        ),
+      }),
+    );
+  }
+
+  return (
+    <div className="space-y-4 border border-outline-variant/20 bg-surface-container-lowest p-4 iron-bevel">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-label-sm uppercase text-on-surface-variant">
+            Variations
+          </p>
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            Offer size, type, or custom options — shoppers pick one value per
+            variation on the product page.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {KIND_OPTIONS.map(({ kind, label }) => (
+            <button
+              key={kind}
+              type="button"
+              disabled={disabled}
+              onClick={() => addGroup(kind)}
+              className="border border-outline-variant/30 bg-surface-container-low px-3 py-1.5 font-label-sm uppercase text-on-surface-variant transition-colors hover:border-primary hover:text-primary disabled:opacity-50"
+            >
+              + {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {groups.length === 0 ? (
+        <p className="text-body-sm text-on-surface-variant">
+          No variations yet. Add Size, Type, or Custom to create options like
+          Etsy listings.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {groups.map((group) => (
+            <div
+              key={group.id}
+              className="border border-outline-variant/20 bg-surface-container-low p-4"
+            >
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="bg-primary/15 px-2 py-0.5 font-label-sm uppercase text-primary">
+                    {group.kind}
+                  </span>
+                  {group.kind === "custom" ? (
+                    <input
+                      value={group.name}
+                      disabled={disabled}
+                      onChange={(e) =>
+                        onChange(
+                          updateGroup(groups, group.id, { name: e.target.value }),
+                        )
+                      }
+                      placeholder="Variation name (e.g. Finish)"
+                      className="border border-outline-variant/30 bg-surface-container-high px-2 py-1 text-body-sm"
+                    />
+                  ) : (
+                    <span className="font-label-md uppercase text-on-surface">
+                      {groupDisplayName(group)}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => removeGroup(group.id)}
+                  className="font-label-sm uppercase text-error hover:underline disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              </div>
+
+              <p className="mb-3 text-body-sm text-on-surface-variant">
+                {KIND_OPTIONS.find((item) => item.kind === group.kind)?.hint}
+              </p>
+
+              {group.options.length === 0 ? (
+                <p className="mb-3 text-body-sm text-on-surface-variant">
+                  No options yet.
+                </p>
+              ) : (
+                <div className="mb-3 space-y-2">
+                  <div className="hidden gap-2 font-label-sm uppercase text-on-surface-variant sm:grid sm:grid-cols-[1fr_120px_40px]">
+                    <span>Option</span>
+                    <span>Price +</span>
+                    <span />
+                  </div>
+                  {group.options.map((option) => (
+                    <div
+                      key={option.id}
+                      className="grid gap-2 sm:grid-cols-[1fr_120px_40px]"
+                    >
+                      <input
+                        value={option.label}
+                        disabled={disabled}
+                        onChange={(e) =>
+                          onChange(
+                            updateOption(groups, group.id, option.id, {
+                              label: e.target.value,
+                            }),
+                          )
+                        }
+                        placeholder={
+                          group.kind === "size" ? "75mm" : "Option name"
+                        }
+                        className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
+                      />
+                      <input
+                        defaultValue={formatAdjustmentForInput(option.priceDeltaCents)}
+                        key={`${option.id}-${option.priceDeltaCents}`}
+                        disabled={disabled}
+                        onBlur={(e) => {
+                          try {
+                            const priceDeltaCents = parsePriceAdjustmentToCents(
+                              e.target.value,
+                            );
+                            onChange(
+                              updateOption(groups, group.id, option.id, {
+                                priceDeltaCents,
+                              }),
+                            );
+                          } catch {
+                            e.target.value = formatAdjustmentForInput(
+                              option.priceDeltaCents,
+                            );
+                          }
+                        }}
+                        placeholder="0.00"
+                        className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
+                      />
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => removeOption(group.id, option.id)}
+                        className="flex h-10 w-10 items-center justify-center text-error hover:bg-error/10 disabled:opacity-50"
+                        aria-label="Remove option"
+                      >
+                        <Icon name="close" className="text-base" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => addOption(group.id)}
+                className="font-label-sm uppercase text-primary hover:underline disabled:opacity-50"
+              >
+                + Add option
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

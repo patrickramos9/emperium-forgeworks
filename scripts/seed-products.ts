@@ -39,7 +39,7 @@ async function main() {
       badges: product.badges,
       images: product.images,
       detailImage: product.detailImage,
-      variants: product.variants,
+      variantGroups: product.variantGroups,
       specs: product.specs,
       inStock: product.inStock,
       featured: product.featured,

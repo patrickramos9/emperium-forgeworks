@@ -1,4 +1,9 @@
 import type { Product, ProductCategory } from "@/data/seedProducts";
+import { parseJsonField } from "@/lib/productPayload";
+import {
+  flattenVariantGroups,
+  parseVariantGroups,
+} from "@/lib/productVariants";
 
 /** Maps an Amplify Data Product record to the storefront Product shape. */
 export function mapAmplifyProduct(row: {
@@ -24,6 +29,10 @@ export function mapAmplifyProduct(row: {
   const images =
     gallery.length > 0 ? gallery : detailImage ? [detailImage] : [];
 
+  const variantGroups = parseVariantGroups(row.variants);
+  const variants = flattenVariantGroups(variantGroups);
+  const specsRaw = parseJsonField(row.specs);
+
   return {
     id: row.id,
     slug: row.slug,
@@ -36,8 +45,9 @@ export function mapAmplifyProduct(row: {
     priceCents: row.priceCents,
     badges: (row.badges ?? []).filter(Boolean) as string[],
     images,
-    variants: (row.variants ?? []) as Product["variants"],
-    specs: row.specs as Product["specs"],
+    variantGroups,
+    variants,
+    specs: specsRaw as Product["specs"],
     inStock: row.inStock ?? true,
     featured: row.featured ?? false,
     sortOrder: row.sortOrder ?? 0,

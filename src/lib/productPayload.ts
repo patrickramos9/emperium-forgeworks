@@ -1,12 +1,32 @@
 import type { Product } from "@/data/seedProducts";
 import { normalizeImageRef, normalizeImageRefs } from "@/lib/productImageRefs";
 
-/** AppSync AWSJSON fields reject empty arrays; use null when empty. */
-export function normalizeVariants(
-  variants: Product["variants"] | null | undefined,
-): Product["variants"] | null {
-  if (!variants?.length) return null;
-  return variants;
+import {
+  serializeVariantGroups,
+  type ProductOptionGroup,
+} from "@/lib/productVariants";
+
+/** AppSync AWSJSON inputs must be JSON strings, not raw objects/arrays. */
+export function toJsonField(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+  return JSON.stringify(value);
+}
+
+/** Parse AWSJSON from API responses (object or string). */
+export function parseJsonField(raw: unknown): unknown {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  return raw;
 }
 
 export function normalizeSpecs(
@@ -34,7 +54,7 @@ export function buildProductMutationPayload(input: {
   detailImage?: string;
   badges: string[];
   images: string[];
-  variants: Product["variants"] | null;
+  variantGroups: ProductOptionGroup[];
   specs?: Product["specs"] | null;
 }) {
   const detailImage = input.detailImage
@@ -58,7 +78,7 @@ export function buildProductMutationPayload(input: {
     ...(detailImage ? { detailImage } : {}),
     badges: normalizeStringArray(input.badges),
     images: normalizeStringArray(images),
-    variants: normalizeVariants(input.variants),
-    specs: normalizeSpecs(input.specs),
+    variants: toJsonField(serializeVariantGroups(input.variantGroups)),
+    specs: toJsonField(normalizeSpecs(input.specs)),
   };
 }

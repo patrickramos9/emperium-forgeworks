@@ -11,6 +11,8 @@ export interface ProductVariant {
   priceDeltaCents: number;
 }
 
+export type { ProductOptionGroup, ProductVariantOption, VariationKind } from "@/lib/productVariants";
+
 export interface ProductSpecs {
   material?: string;
   sculptor?: string;
@@ -30,6 +32,7 @@ export interface Product {
   priceCents: number;
   badges: string[];
   images: string[];
+  variantGroups: import("@/lib/productVariants").ProductOptionGroup[];
   variants: ProductVariant[];
   specs?: ProductSpecs;
   inStock: boolean;
@@ -48,6 +51,7 @@ export const SEED_PRODUCTS: Product[] = [
     images: [
       "https://lh3.googleusercontent.com/aida/ADBb0uiCu0fMeqDDbDMabvO4dEa0cFx6tdmXn1S85jqegmhASVH100rAYf_jWCNA84fXEnLoHp_jc6DvE0evg8xqy-Nk4nO2ryLDZFNSldHlD89_smlmdXQp4a62NhB-6cGiKaoK2hYJjtjrjETRFWy6aOZuUsWLj-kMGA0Dm7w06aJDcZT2LCNuEbGjGn3DtcZSpJmXVstC84gqXj-ub6U2iCNNwrzT0mhNjtkK1tuxRmaigEJZGWSAiN1m4Q",
     ],
+    variantGroups: [],
     variants: [],
     inStock: true,
     featured: false,
@@ -63,6 +67,7 @@ export const SEED_PRODUCTS: Product[] = [
     images: [
       "https://lh3.googleusercontent.com/aida/ADBb0uhR61_EUExl9TKHrBTryQPzNu_kqgdGjCsRjyYwtNXwmLEgPPAM3qPhdT9bxzVCfPcl-xpQgz28hKdEszLpnkqiTThxJab_bXgoUouur8DO8mulXayU4kv-RVIwkA5LSTZjR8LuVo_aa5Hve6v8TihieqBNL1JS0D93PlDed7qahMhOkYmAvVJ-wKsskXTTmStjyDGJRlHYJO8-WAAmGC5yLe7WujGCVot-KsLzLvI2yD8KwoWdL8JoYo4",
     ],
+    variantGroups: [],
     variants: [],
     inStock: true,
     featured: true,
@@ -78,6 +83,7 @@ export const SEED_PRODUCTS: Product[] = [
     images: [
       "https://lh3.googleusercontent.com/aida/ADBb0uhZDjuh1FPho1TT504QYC-PNXrdILBAF3DYjs-xEwTPZA-SOzVLc3eCXztAaP2wKqlnXQ9pBy9z1ydmDybMY9KL25xUyawy9eNKLvsDThOTSBsAtosKt3T5DRejMLfoD8WRJEPnbCe7CnsBzmsmMm4-WRb8pdGi-1h4klaNZER-7Bjgd2ihQ4CqWKoscSYJDRsqElLicd6uXRpzmuPMmRbCXWtafyKCY3W_9ZVqJQzcGivrz8OIiKHIdPo",
     ],
+    variantGroups: [],
     variants: [],
     inStock: true,
     featured: false,
@@ -93,6 +99,7 @@ export const SEED_PRODUCTS: Product[] = [
     images: [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuA6nmIf895QEH6SBkAicEKuTFL--TU-7rDyNCPnLwj8OktATx0wySsaa_k8wwWrmpkRRLQGEDZrXNgLSSAIlJavbMlGt-ErzLb2VLooYDtDdKNPHYJGkN38dSEg0rAb0m9RGWhpZG2XYHrKL6bVgqArZK-SH5C-cSjL-IxYs-AI50SxxR_cPKYPfkNbrA53ngvEoVxv6klVn5m_duldWfkMIraq_ETVRkGJYNrp4AroudeZ7qjMyHfUOm48IfmulHJsT5XpyzKLjDE",
     ],
+    variantGroups: [],
     variants: [],
     inStock: true,
     featured: false,
@@ -108,6 +115,7 @@ export const SEED_PRODUCTS: Product[] = [
     images: [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDYtEOm5p2H_u11SgFYnMfcJavHQVG_Yy1mEggqoaL6wrlUrw5M1y6PpzrqkniU3bwHWoIvx5IP_OIO3kkutZ7xyEpMr5Whib0rSiySt6gumqHEFg-eqxDSrJlid5R2eZrTNtTuyPpMZXQilUpID5op03WA1A1EPltUB0-zNLEmBlei_nyPTIKIO7akDhbjSkCauXlI9Ol3y68L2torBIwXd-WBdxo4HFoCTo5vMUZXwVhtX0WCXvTqYVNaNJ4LdWSJlZ05gq7Ikko",
     ],
+    variantGroups: [],
     variants: [],
     inStock: true,
     featured: false,
@@ -129,6 +137,17 @@ export const SEED_PRODUCTS: Product[] = [
     badges: ["75mm Scale"],
     images: [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuC-8dI-AG-TQwJIsqrSwTP1vYfWE90n7xZAOWCh3g-dlqxHDm5Fgnubp0tlwtjThW7FUSO9A2YMINmV5GT4bb_vXwfN2C0jInSYzDakWAiBllhsgoaORyGnTct9UTaDIlC7WZX4upzatwAqOsLLtN2bZOwdhZ7PiWXT6UFarIU2_YHthI2kuIXrA297u5CWArIqIvQthX9x-gCS5LH9gmcFHrn_Sx1U8xn8yIqPv1vIal04juiaxT_GAxYJ2ItJIE--7MopyzcYRGk",
+    ],
+    variantGroups: [
+      {
+        id: "size",
+        kind: "size",
+        name: "Size",
+        options: [
+          { id: "75mm", label: "75MM", priceDeltaCents: 0 },
+          { id: "110mm", label: "110MM", priceDeltaCents: 1500 },
+        ],
+      },
     ],
     variants: [
       { id: "75mm", label: "75MM", priceDeltaCents: 0 },
@@ -153,6 +172,7 @@ export const SEED_PRODUCTS: Product[] = [
     images: [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuADvuGKG5u8vNdzeRaiWgIhC3w_ES4XwhVneHox2Z2yhgkMR7s2ZOrIfTxFzUOvKBb_S9WRfd7pURWkA8cqBqcm_F1Msu5vrfEiPIsOZEVetJzMRmy4y9kKWORVEXZ9h7DIeKkYLrEUxnbRZlRAijHQnoD3FXespjmTJnfY3oyuF6Qbjm95KwVTFgY0_4JVuuavkYZyOvtzvAdI1WnByDtUI8jAV1ZhnbKYBuHMhOkrpksVJTaBTQLYthdxxkfKy2uA1K83BOEeg0Y",
     ],
+    variantGroups: [],
     variants: [],
     inStock: true,
     featured: false,
@@ -168,6 +188,7 @@ export const SEED_PRODUCTS: Product[] = [
     images: [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuChXL5DYyhoZsHBbyadOI0XeV6HjPQKwY_qByi9YrYO57X6M4DGrqGeDSlT_csv9v7M9yydMDZK-Ed6tYIHZd4tF8eqGvHapqWYykIhbfI-DRpW2vFHDYnlioaqs6QfVkZIMw2htRj6XxaMniDX1Wm1BMNKS8u8-a1OswttTazK6-5R3BVxxK7koLVRy52Q1lkIYrSmkSqDm-BVMvtojsQxsS3dpi1nLXJeGaf-rCf0pLWB_1lsMFRaLeISjDZTGyNh0Hb-kaEIDc4",
     ],
+    variantGroups: [],
     variants: [],
     inStock: true,
     featured: false,

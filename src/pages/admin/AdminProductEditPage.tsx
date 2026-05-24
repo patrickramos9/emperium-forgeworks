@@ -6,6 +6,7 @@ import {
   getProductBySlug,
 } from "@/data/seedProducts";
 import { AdminProductGalleryEditor } from "@/components/admin/AdminProductGalleryEditor";
+import { AdminProductVariantsEditor } from "@/components/admin/AdminProductVariantsEditor";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { mapAmplifyProduct } from "@/lib/mapAmplifyProduct";
@@ -14,6 +15,8 @@ import {
   productToGalleryImages,
 } from "@/lib/productGallery";
 import { buildProductMutationPayload } from "@/lib/productPayload";
+import type { ProductOptionGroup } from "@/lib/productVariants";
+import { validateVariantGroups } from "@/lib/productVariants";
 import {
   formatCentsForInput,
   parseDollarInputToCents,
@@ -64,7 +67,7 @@ export function AdminProductEditPage() {
   const [lore, setLore] = useState("");
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [badgesText, setBadgesText] = useState("");
-  const [variantsJson, setVariantsJson] = useState("[]");
+  const [variantGroups, setVariantGroups] = useState<ProductOptionGroup[]>([]);
   const [specsJson, setSpecsJson] = useState("");
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +88,7 @@ export function AdminProductEditPage() {
     setLore(p.lore ?? "");
     setGalleryImages(productToGalleryImages(p));
     setBadgesText(p.badges.join(", "));
-    setVariantsJson(JSON.stringify(p.variants ?? [], null, 2));
+    setVariantGroups(p.variantGroups ?? []);
     setSpecsJson(p.specs ? JSON.stringify(p.specs, null, 2) : "");
   }
 
@@ -147,11 +150,12 @@ export function AdminProductEditPage() {
     }
 
     try {
+      const variantError = validateVariantGroups(variantGroups);
+      if (variantError) {
+        throw new Error(variantError);
+      }
+
       const priceCents = parseDollarInputToCents(priceDollars);
-      const variants = parseJsonField<Product["variants"]>(
-        variantsJson,
-        "variants",
-      );
       const specs = specsJson.trim()
         ? parseJsonField<Product["specs"]>(specsJson, "specs")
         : undefined;
@@ -175,7 +179,7 @@ export function AdminProductEditPage() {
           .map((s) => s.trim())
           .filter(Boolean),
         images,
-        variants,
+        variantGroups,
         specs: specs ?? null,
       });
 
@@ -369,17 +373,11 @@ export function AdminProductEditPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
         </label>
-        <label className="block">
-          <span className="font-label-sm uppercase text-on-surface-variant">
-            Variants (JSON array)
-          </span>
-          <textarea
-            value={variantsJson}
-            onChange={(e) => setVariantsJson(e.target.value)}
-            rows={5}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2 font-mono text-body-sm"
-          />
-        </label>
+        <AdminProductVariantsEditor
+          groups={variantGroups}
+          onChange={setVariantGroups}
+          disabled={saving || uploading}
+        />
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
             Specs (JSON object, optional)

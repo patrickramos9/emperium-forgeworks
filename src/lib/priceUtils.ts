@@ -21,3 +21,25 @@ export function parseDollarInputToCents(raw: string): number {
 
   return Math.round(dollars * 100);
 }
+
+/** Parse a USD adjustment (0 or positive) into cents for variant price deltas. */
+export function parsePriceAdjustmentToCents(raw: string): number {
+  const trimmed = raw.trim();
+  if (!trimmed) return 0;
+
+  if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) {
+    throw new Error("Enter a valid adjustment (e.g. 15.00 or 0).");
+  }
+
+  const dollars = Number(trimmed);
+  if (!Number.isFinite(dollars) || dollars < 0) {
+    throw new Error("Adjustment cannot be negative.");
+  }
+
+  return Math.round(dollars * 100);
+}
+
+/** Format cents as a dollar string for adjustment inputs (allows 0). */
+export function formatAdjustmentForInput(cents: number): string {
+  return (cents / 100).toFixed(2);
+}

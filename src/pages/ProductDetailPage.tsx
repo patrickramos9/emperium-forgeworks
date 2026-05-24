@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { ProductImage } from "@/components/ProductImage";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
-import type { ProductVariant } from "@/data/seedProducts";
 import { productDisplayImages } from "@/lib/productDisplayImages";
 import { productPrimaryImage } from "@/lib/productImageUrls";
+import {
+  buildSelectedVariant,
+  groupDisplayName,
+  initialVariantSelection,
+} from "@/lib/productVariants";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 
 export function ProductDetailPage() {
@@ -15,7 +19,26 @@ export function ProductDetailPage() {
   const { product, loading } = useProduct(slug);
   const { products } = useProducts();
   const { addItem } = useCart();
-  const [variant, setVariant] = useState<ProductVariant | undefined>();
+  const [variantSelection, setVariantSelection] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    if (product) {
+      setVariantSelection(initialVariantSelection(product.variantGroups));
+    }
+  }, [product?.slug, product?.variantGroups]);
+
+  const activeGroups = useMemo(
+    () =>
+      product?.variantGroups.filter((group) => group.options.length > 0) ?? [],
+    [product?.variantGroups],
+  );
+
+  const selectedVariant = useMemo(() => {
+    if (!product) return undefined;
+    return buildSelectedVariant(product.variantGroups, variantSelection);
+  }, [product, variantSelection]);
 
   if (loading) {
     return (
@@ -36,7 +59,6 @@ export function ProductDetailPage() {
     );
   }
 
-  const selectedVariant = variant ?? product.variants[0];
   const priceCents =
     product.priceCents + (selectedVariant?.priceDeltaCents ?? 0);
   const galleryImages = productDisplayImages(product);
@@ -130,37 +152,49 @@ export function ProductDetailPage() {
               {formatPrice(priceCents)}
             </p>
 
-            {product.variants.length > 0 && (
-              <div className="space-y-stack-md">
-                <label className="font-label-md text-[12px] uppercase text-on-surface-variant">
-                  Select Scale Variant
-                </label>
-                <div className="grid grid-cols-2 gap-stack-sm">
-                  {product.variants.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setVariant(v)}
-                      className={
-                        selectedVariant?.id === v.id
-                          ? "molten-glow flex items-center justify-between border-2 border-primary bg-surface-container-highest px-4 py-3 font-label-md text-primary transition-all"
-                          : "flex items-center justify-between border border-outline-variant/30 bg-surface-container px-4 py-3 font-label-md text-on-surface-variant transition-all hover:border-primary/50"
-                      }
-                    >
-                      <span>{v.label} SCALE</span>
-                      {selectedVariant?.id === v.id ? (
-                        <Icon name="check_circle" className="text-sm" />
-                      ) : v.priceDeltaCents > 0 ? (
-                        <span className="text-[10px]">
-                          +{formatPrice(v.priceDeltaCents)}
-                        </span>
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
+            {activeGroups.length > 0 && (
+              <div className="space-y-stack-lg">
+                {activeGroups.map((group) => (
+                  <div key={group.id} className="space-y-stack-md">
+                    <label className="font-label-md text-[12px] uppercase text-on-surface-variant">
+                      {groupDisplayName(group)}
+                    </label>
+                    <div className="grid grid-cols-2 gap-stack-sm">
+                      {group.options.map((option) => {
+                        const selected =
+                          variantSelection[group.id] === option.id;
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() =>
+                              setVariantSelection((current) => ({
+                                ...current,
+                                [group.id]: option.id,
+                              }))
+                            }
+                            className={
+                              selected
+                                ? "molten-glow flex items-center justify-between border-2 border-primary bg-surface-container-highest px-4 py-3 font-label-md text-primary transition-all"
+                                : "flex items-center justify-between border border-outline-variant/30 bg-surface-container px-4 py-3 font-label-md text-on-surface-variant transition-all hover:border-primary/50"
+                            }
+                          >
+                            <span>{option.label}</span>
+                            {selected ? (
+                              <Icon name="check_circle" className="text-sm" />
+                            ) : option.priceDeltaCents > 0 ? (
+                              <span className="text-[10px]">
+                                +{formatPrice(option.priceDeltaCents)}
+                              </span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
-
             <div className="space-y-stack-sm">
               <button
                 type="button"
