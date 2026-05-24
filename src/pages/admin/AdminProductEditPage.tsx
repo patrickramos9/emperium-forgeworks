@@ -10,6 +10,10 @@ import { configureAmplify } from "@/lib/amplify";
 import { mapAmplifyProduct } from "@/lib/mapAmplifyProduct";
 import { uploadProductImage } from "@/lib/productImageUpload";
 import { buildProductMutationPayload } from "@/lib/productPayload";
+import {
+  formatCentsForInput,
+  parseDollarInputToCents,
+} from "@/lib/priceUtils";
 
 const CATEGORIES: ProductCategory[] = [
   "Horror",
@@ -40,23 +44,11 @@ function parseJsonField<T>(raw: string, label: string): T | null {
   }
 }
 
-function emptyForm(): Omit<Product, "id"> {
+function newProductDefaults(): Pick<Product, "title" | "slug" | "category"> {
   return {
     slug: "",
     title: "",
-    subtitle: "",
-    description: "",
-    lore: "",
     category: "Horror",
-    priceCents: 0,
-    badges: [],
-    images: [],
-    detailImage: "",
-    variants: [],
-    specs: undefined,
-    inStock: true,
-    featured: false,
-    sortOrder: 99,
   };
 }
 
@@ -71,7 +63,7 @@ export function AdminProductEditPage() {
   const [productSlug, setProductSlug] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priceCents, setPriceCents] = useState(0);
+  const [priceDollars, setPriceDollars] = useState("");
   const [category, setCategory] = useState<ProductCategory>("Horror");
   const [inStock, setInStock] = useState(true);
   const [featured, setFeatured] = useState(false);
@@ -93,7 +85,7 @@ export function AdminProductEditPage() {
     setProductSlug(p.slug);
     setSubtitle(p.subtitle ?? "");
     setDescription(p.description ?? "");
-    setPriceCents(p.priceCents);
+    setPriceDollars(formatCentsForInput(p.priceCents));
     setCategory(p.category);
     setInStock(p.inStock);
     setFeatured(p.featured);
@@ -109,7 +101,7 @@ export function AdminProductEditPage() {
   useEffect(() => {
     async function load() {
       if (isNew) {
-        const blank = emptyForm();
+        const blank = newProductDefaults();
         setTitle(blank.title);
         setProductSlug(blank.slug);
         setCategory(blank.category);
@@ -189,6 +181,7 @@ export function AdminProductEditPage() {
     }
 
     try {
+      const priceCents = parseDollarInputToCents(priceDollars);
       const variants = parseJsonField<Product["variants"]>(
         variantsJson,
         "variants",
@@ -321,13 +314,16 @@ export function AdminProductEditPage() {
         </label>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
-            Price (cents)
+            Price (USD)
           </span>
           <input
-            type="number"
-            value={priceCents}
-            onChange={(e) => setPriceCents(Number(e.target.value))}
+            type="text"
+            inputMode="decimal"
+            value={priceDollars}
+            onChange={(e) => setPriceDollars(e.target.value)}
             required
+            placeholder="0.00"
+            autoComplete="off"
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
         </label>
