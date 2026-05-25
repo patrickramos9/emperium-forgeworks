@@ -1,35 +1,37 @@
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../amplify/data/resource";
 import { configureAmplify } from "@/lib/amplify";
-import { adminSignOut } from "@/lib/adminAuth";
+import { adminSignOut, isAdminUser } from "@/lib/adminAuth";
 
 export type AmplifyDataClient = ReturnType<typeof generateClient<Schema>>;
 
-/** Guest reads (e.g. storefront catalog). Uses IAM when anonymous; userPool when signed in (e.g. admin). */
+/**
+ * Storefront catalog reads — always IAM (guest rule on Product).
+ * Do not switch to userPool when a customer is signed in; they are not in `admin`.
+ */
 export async function getGuestDataClient(): Promise<AmplifyDataClient | null> {
   const ok = await configureAmplify();
   if (!ok) return null;
 
-  const { fetchAuthSession, getCurrentUser } = await import("aws-amplify/auth");
-
+  const { fetchAuthSession } = await import("aws-amplify/auth");
   try {
-    await getCurrentUser();
     await fetchAuthSession();
-    return generateClient<Schema>({ authMode: "userPool" });
   } catch {
-    try {
-      await fetchAuthSession();
-    } catch {
-      /* unauthenticated identity pool credentials may still be issued on data calls */
-    }
-    return generateClient<Schema>({ authMode: "iam" });
+    /* identity pool credentials may still be issued on data calls */
   }
+
+  return generateClient<Schema>({ authMode: "iam" });
 }
 
 /** Admin CRUD — requires signed-in user in the `admin` Cognito group. */
 export async function getAdminDataClient(): Promise<AmplifyDataClient | null> {
   const ok = await configureAmplify();
   if (!ok) return null;
+
+  if (!(await isAdminUser())) {
+    return null;
+  }
+
   return generateClient<Schema>({ authMode: "userPool" });
 }
 
@@ -65,12 +67,12 @@ export async function requireCustomerSession(
   return client;
 }
 
-/** Ensures the user is signed in; redirects to login when not. */
+/** Ensures the user is in the `admin` group; redirects to login when not. */
 export async function requireAdminSession(
   navigate: (path: string) => void,
 ): Promise<AmplifyDataClient | null> {
-  const client = await getAdminDataClient();
-  if (!client) {
+  const ok = await configureAmplify();
+  if (!ok) {
     navigate("/admin/login");
     return null;
   }
@@ -80,11 +82,17 @@ export async function requireAdminSession(
     await getCurrentUser();
     const session = await fetchAuthSession();
     if (!session.tokens?.accessToken) {
-      await adminSignOut(false);
       navigate("/admin/login");
       return null;
     }
-    return client;
+
+    if (!(await isAdminUser())) {
+      await adminSignOut(false);
+      navigate("/admin/login?error=not_admin");
+      return null;
+    }
+
+    return generateClient<Schema>({ authMode: "userPool" });
   } catch {
     navigate("/admin/login");
     return null;

@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   adminSignOut,
   hasAdminSession,
+  isAdminUser,
   isAlreadySignedInError,
 } from "@/lib/adminAuth";
 import { configureAmplify } from "@/lib/amplify";
@@ -11,6 +12,7 @@ type LoginMode = "signIn" | "newPassword";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<LoginMode>("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +23,14 @@ export function AdminLoginPage() {
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
+    if (searchParams.get("error") === "not_admin") {
+      setError(
+        "This account is not in the admin group. Sign in with your admin credentials, or sign out of a customer account first.",
+      );
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     async function redirectIfSignedIn() {
       if (await hasAdminSession()) {
         navigate("/admin", { replace: true });
@@ -29,6 +39,18 @@ export function AdminLoginPage() {
     }
     void redirectIfSignedIn();
   }, [navigate]);
+
+  async function redirectIfAdmin() {
+    if (await isAdminUser()) {
+      navigate("/admin", { replace: true });
+      return true;
+    }
+    await adminSignOut(false);
+    setError(
+      "This account does not have admin access. Use your admin login, not a customer account.",
+    );
+    return false;
+  }
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
@@ -49,7 +71,7 @@ export function AdminLoginPage() {
       const result = await signIn({ username: email, password });
 
       if (result.isSignedIn) {
-        navigate("/admin");
+        if (await redirectIfAdmin()) return;
         return;
       }
 
@@ -67,7 +89,7 @@ export function AdminLoginPage() {
       );
     } catch (err) {
       if (isAlreadySignedInError(err)) {
-        navigate("/admin", { replace: true });
+        if (await redirectIfAdmin()) return;
         return;
       }
       setError(err instanceof Error ? err.message : "Sign in failed");
@@ -95,7 +117,7 @@ export function AdminLoginPage() {
       const result = await confirmSignIn({ challengeResponse: newPassword });
 
       if (result.isSignedIn) {
-        navigate("/admin");
+        if (await redirectIfAdmin()) return;
         return;
       }
 
