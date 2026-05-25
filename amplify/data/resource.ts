@@ -39,7 +39,7 @@ const schema = a.schema({
       allow.guest().to(["create"]),
       allow.authenticated().to(["create"]),
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
-      allow.group("admin").to(["read"]),
+      allow.group("admin").to(["read", "update"]),
     ]),
 });
 

@@ -2,26 +2,25 @@
 
 Living status log. Update this file when milestones move or deploys land.
 
-**Last updated:** 2026-05-24 (M3a + M4)
+**Last updated:** 2026-05-24 (M5)
 
 ---
 
 ## Current phase
 
-**M5 — Admin portal v2 + stats** — **Next up.** M3a and M4 implemented in codebase (deploy backend for auth/schema changes). **M3b (Stripe + Google Pay) pinned** until EIN.
+**M7 — Hidden Vault** or **M8 — Runtime news** — **Next up.** M5 complete. **M3b pinned** until EIN.
 
 | Area | Status |
 |------|--------|
 | Fullstack CI + DynamoDB + S3 | ✅ |
 | Admin product CRUD + gallery + variations | ✅ |
 | Storefront live catalog + PDP enhancements | ✅ |
-| Production smoke-test | ✅ Passed 2026-05-23 |
-| Cart UX hardening (M3a) | ✅ Code complete — deploy not required for local |
-| Customer accounts (M4) | ✅ Code complete — **requires Amplify deploy** |
+| Cart UX hardening (M3a) | ✅ |
+| Customer accounts (M4) | ✅ |
+| Admin portal + stats (M5) | ✅ |
 | Stripe + Google Pay live checkout | ⏳ M3b — blocked on EIN |
-| Admin dashboard + stats | ⚪ M5 |
-| Promo codes | ⚪ M6 |
 | Hidden Vault | ⚪ M7 |
+| Promo codes | ⚪ M6 |
 
 ---
 
@@ -34,8 +33,7 @@ Living status log. Update this file when milestones move or deploys land.
 | **M3a** Cart UX | ✅ Done | Qty limits, validation, guest orders |
 | **M3b** Stripe + Google Pay | ⏳ Pinned | Waiting on EIN; mock checkout today |
 | **M4** Customer accounts | ✅ Done | Sign up/in, orders, header menu |
-| **M5** Admin portal + stats | 🎯 Next | Dashboard, orders UI, analytics |
-| **M5** Admin portal + stats | ⚪ Not started | Dashboard, orders, analytics |
+| **M5** Admin portal + stats | ✅ Done | Shell, dashboard, orders UI |
 | **M6** Promo codes | ⚪ Not started | Cart/checkout discounts |
 | **M7** Hidden Vault | ⚪ Not started | Key-gated exclusive catalog |
 | **M8** Runtime news | ⚪ Not started | Announcements API + admin |
@@ -81,11 +79,11 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ## Next actions (recommended order)
 
-1. **Deploy** — push M3a/M4 backend (`customer` group, Order `userId`, guest order create)  
-2. **M5** — admin shell + dashboard (orders + traffic)  
-4. **M7** — Hidden Vault (mock checkout OK)  
-5. **M3b** — Stripe + Google Pay + webhooks — **resume when EIN is ready**  
-6. **M6** — promo codes (after M3b)  
+1. **Deploy** — push M5 (Order admin `update` auth) if not yet deployed  
+2. **M7** — Hidden Vault (mock checkout OK)  
+3. **M8** — runtime announcements (uses M5 admin shell)  
+4. **M3b** — Stripe + Google Pay — **resume when EIN is ready**  
+5. **M6** — promo codes (after M3b)  
 
 See [milestones.md](./milestones.md) for full scope per phase.
 
@@ -106,7 +104,8 @@ See [milestones.md](./milestones.md) for full scope per phase.
 
 | Date | Update |
 |------|--------|
-| 2026-05-24 | **M3a + M4** — cart UX, customer auth, order history (code) |
+| 2026-05-24 | **M5 complete** — admin shell, dashboard, orders list/detail |
+| 2026-05-24 | **M3a + M4** — cart UX, customer auth, order history |
 | 2026-05-24 | **M3b pinned** — Stripe + Google Pay deferred until EIN |
 | 2026-05-23 | **M2 complete** — production smoke-test passed; phase closed |
 | 2026-05-23 | **M2 enhancements** — variations, gallery, multi-select PDP, description |

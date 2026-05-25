@@ -224,15 +224,11 @@ export function AdminProductEditPage() {
   }
 
   if (loading) {
-    return (
-      <main className="mx-auto min-h-screen max-w-3xl px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
-        <p className="text-on-surface-variant">Loading...</p>
-      </main>
-    );
+    return <p className="text-on-surface-variant">Loading...</p>;
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
+    <div className="mx-auto max-w-3xl">
       <Link to="/admin/products" className="text-primary hover:underline">
         ← Products
       </Link>
@@ -419,6 +415,6 @@ export function AdminProductEditPage() {
           )}
         </div>
       </form>
-    </main>
+    </div>
   );
 }

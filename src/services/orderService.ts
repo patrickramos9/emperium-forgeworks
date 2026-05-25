@@ -47,6 +47,13 @@ export function orderStatusLabel(
 export async function listCustomerOrders(
   client: AmplifyDataClient,
 ): Promise<OrderRecord[]> {
+  return listAllOrders(client);
+}
+
+/** Admin — paginated list of all orders. */
+export async function listAllOrders(
+  client: AmplifyDataClient,
+): Promise<OrderRecord[]> {
   const rows: OrderRecord[] = [];
   let nextToken: string | undefined;
 
@@ -72,6 +79,34 @@ export async function listCustomerOrders(
     const bTime = b.createdAt ? Date.parse(b.createdAt) : 0;
     return bTime - aTime;
   });
+}
+
+export async function getOrderById(
+  client: AmplifyDataClient,
+  id: string,
+): Promise<OrderRecord | null> {
+  const { data, errors } = await client.models.Order.get({ id });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  return data ?? null;
+}
+
+export type OrderStatus = NonNullable<OrderRecord["status"]>;
+
+export async function updateOrderStatus(
+  client: AmplifyDataClient,
+  id: string,
+  status: OrderStatus,
+): Promise<OrderRecord> {
+  const { data, errors } = await client.models.Order.update({ id, status });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  if (!data) {
+    throw new Error("Order update failed.");
+  }
+  return data;
 }
 
 export function orderLineItemsSummary(items: OrderLineItemSnapshot[]): string {

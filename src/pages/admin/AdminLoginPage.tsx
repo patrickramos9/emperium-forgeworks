@@ -23,7 +23,7 @@ export function AdminLoginPage() {
   useEffect(() => {
     async function redirectIfSignedIn() {
       if (await hasAdminSession()) {
-        navigate("/admin/products", { replace: true });
+        navigate("/admin", { replace: true });
       }
       setCheckingSession(false);
     }
@@ -49,7 +49,7 @@ export function AdminLoginPage() {
       const result = await signIn({ username: email, password });
 
       if (result.isSignedIn) {
-        navigate("/admin/products");
+        navigate("/admin");
         return;
       }
 
@@ -67,7 +67,7 @@ export function AdminLoginPage() {
       );
     } catch (err) {
       if (isAlreadySignedInError(err)) {
-        navigate("/admin/products", { replace: true });
+        navigate("/admin", { replace: true });
         return;
       }
       setError(err instanceof Error ? err.message : "Sign in failed");
@@ -95,7 +95,7 @@ export function AdminLoginPage() {
       const result = await confirmSignIn({ challengeResponse: newPassword });
 
       if (result.isSignedIn) {
-        navigate("/admin/products");
+        navigate("/admin");
         return;
       }
 

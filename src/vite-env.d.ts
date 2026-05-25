@@ -4,6 +4,7 @@ interface ImportMetaEnv {
   readonly VITE_APP_ENV: string;
   readonly VITE_SITE_URL: string;
   readonly VITE_SITE_DOMAIN: string;
+  readonly VITE_PLAUSIBLE_DOMAIN?: string;
 }
 
 interface ImportMeta {

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { formatPrice } from "@/data/seedProducts";
-import { adminSignOut } from "@/lib/adminAuth";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { listAllProducts } from "@/lib/listAllProducts";
@@ -23,7 +22,6 @@ export function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [amplifyReady, setAmplifyReady] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -98,20 +96,8 @@ export function AdminProductsPage() {
     }
   }
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      await adminSignOut();
-      navigate("/admin/login");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign out failed");
-    } finally {
-      setSigningOut(false);
-    }
-  }
-
   return (
-    <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-container-max">
+    <div className="mx-auto max-w-container-max">
       <div className="mb-stack-lg flex items-center justify-between">
         <div>
           <h1 className="font-display-lg text-headline-lg uppercase text-primary">
@@ -123,29 +109,19 @@ export function AdminProductsPage() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => void handleSignOut()}
-            disabled={signingOut}
-            className="font-label-sm uppercase text-on-surface-variant hover:text-primary disabled:opacity-50"
-          >
-            {signingOut ? "Signing out..." : "Sign out"}
-          </button>
-          <Link
-            to="/admin/products/new"
-            className="bg-primary px-4 py-2 font-label-md uppercase text-on-primary"
-          >
-            Add Product
-          </Link>
-        </div>
+        <Link
+          to="/admin/products/new"
+          className="bg-primary px-4 py-2 font-label-md uppercase text-on-primary"
+        >
+          Add Product
+        </Link>
       </div>
       {loading ? (
         <p className="text-on-surface-variant">Loading...</p>
       ) : error ? (
         <p className="text-error">{error}</p>
       ) : products.length === 0 ? (
-        <div className="border border-outline-variant/20 bg-surface-container-low p-6">
+        <div className="border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
           <p className="text-on-surface">No products in the catalog yet.</p>
           {amplifyReady && (
             <p className="mt-2 text-body-md text-on-surface-variant">
@@ -155,7 +131,7 @@ export function AdminProductsPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto border border-outline-variant/20">
+        <div className="overflow-x-auto border border-outline-variant/20 iron-bevel">
           <table className="w-full text-left text-body-md">
             <thead className="bg-surface-container-high font-label-sm uppercase text-on-surface-variant">
               <tr>
@@ -188,7 +164,7 @@ export function AdminProductsPage() {
                   <td className="p-3">
                     {p.inStock ? "In stock" : "Out"}
                   </td>
-                  <td className="p-3 space-x-3">
+                  <td className="space-x-3 p-3">
                     <Link
                       to={`/admin/products/${p.slug}`}
                       className="text-primary hover:underline"
@@ -209,6 +185,6 @@ export function AdminProductsPage() {
           </table>
         </div>
       )}
-    </main>
+    </div>
   );
 }

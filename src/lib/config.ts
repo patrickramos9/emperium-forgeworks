@@ -10,3 +10,6 @@ export const SITE_DOMAIN =
   import.meta.env.VITE_SITE_DOMAIN ?? "emperiumforgeworks.com";
 
 export const CONTACT_EMAIL = "melissa@emperiumforgeworks.com";
+
+export const PLAUSIBLE_DOMAIN =
+  import.meta.env.VITE_PLAUSIBLE_DOMAIN?.trim() || undefined;
