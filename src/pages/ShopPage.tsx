@@ -90,6 +90,12 @@ export function ShopPage() {
 
       {loading ? (
         <p className="text-on-surface-variant">Loading the vault...</p>
+      ) : products.length === 0 ? (
+        <p className="text-on-surface-variant">
+          {loadError
+            ? "The catalog could not be loaded."
+            : "No products in the vault yet."}
+        </p>
       ) : filtered.length === 0 ? (
         <p className="text-on-surface-variant">
           No artifacts match your search. Try another category or term.

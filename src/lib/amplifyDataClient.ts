@@ -10,18 +10,31 @@ import {
 export type AmplifyDataClient = ReturnType<typeof generateClient<Schema>>;
 
 /**
- * Storefront catalog reads — always IAM (guest rule on Product).
- * Do not switch to userPool when a customer is signed in; they are not in `admin`.
+ * Storefront catalog + guest order writes.
+ * - Signed out: IAM (guest rules).
+ * - Signed in: userPool (authenticated read on Product; admin group retains CRUD).
+ *   Using IAM while signed in can map to the wrong identity-pool role and return no rows.
  */
 export async function getGuestDataClient(): Promise<AmplifyDataClient | null> {
   const ok = await configureAmplify();
   if (!ok) return null;
 
-  const { fetchAuthSession } = await import("aws-amplify/auth");
+  const { fetchAuthSession, getCurrentUser } = await import("aws-amplify/auth");
+
+  try {
+    await getCurrentUser();
+    const session = await fetchAuthSession();
+    if (session.tokens?.accessToken) {
+      return generateClient<Schema>({ authMode: "userPool" });
+    }
+  } catch {
+    /* not signed in — use guest IAM below */
+  }
+
   try {
     await fetchAuthSession();
   } catch {
-    /* identity pool credentials may still be issued on data calls */
+    /* unauthenticated identity pool credentials may still be issued on data calls */
   }
 
   return generateClient<Schema>({ authMode: "iam" });
