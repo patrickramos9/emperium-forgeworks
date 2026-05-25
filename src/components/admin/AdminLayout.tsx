@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { adminSignOut } from "@/lib/adminAuth";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
+import {
+  isAdminIdleExpired,
+  touchAdminActivity,
+} from "@/lib/adminSessionPolicy";
 
 type NavItem = { label: string; to: string; end?: boolean };
 
@@ -29,11 +33,42 @@ export function AdminLayout() {
 
   useEffect(() => {
     async function guard() {
+      if (isAdminIdleExpired()) {
+        await adminSignOut(false);
+        navigate("/admin/login?error=session_expired");
+        return;
+      }
       const client = await requireAdminSession(navigate);
+      if (client) touchAdminActivity();
       setReady(Boolean(client));
     }
     void guard();
   }, [navigate]);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    function recordActivity() {
+      touchAdminActivity();
+    }
+
+    const interval = window.setInterval(() => {
+      if (isAdminIdleExpired()) {
+        void adminSignOut(false).then(() => {
+          navigate("/admin/login?error=session_expired");
+        });
+      }
+    }, 60_000);
+
+    window.addEventListener("click", recordActivity);
+    window.addEventListener("keydown", recordActivity);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("click", recordActivity);
+      window.removeEventListener("keydown", recordActivity);
+    };
+  }, [ready, navigate]);
 
   async function handleSignOut() {
     setSigningOut(true);

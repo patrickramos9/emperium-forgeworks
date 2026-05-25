@@ -6,6 +6,7 @@ import {
   isAdminUser,
   isAlreadySignedInError,
 } from "@/lib/adminAuth";
+import { touchAdminActivity } from "@/lib/adminSessionPolicy";
 import { configureAmplify } from "@/lib/amplify";
 
 type LoginMode = "signIn" | "newPassword";
@@ -28,6 +29,11 @@ export function AdminLoginPage() {
         "This account is not in the admin group. Sign in with your admin credentials, or sign out of a customer account first.",
       );
     }
+    if (searchParams.get("error") === "session_expired") {
+      setError(
+        "Your admin session expired after 8 hours of inactivity. Sign in again.",
+      );
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -42,6 +48,7 @@ export function AdminLoginPage() {
 
   async function redirectIfAdmin() {
     if (await isAdminUser()) {
+      touchAdminActivity();
       navigate("/admin", { replace: true });
       return true;
     }

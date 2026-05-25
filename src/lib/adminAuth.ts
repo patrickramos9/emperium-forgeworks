@@ -1,4 +1,9 @@
 import { configureAmplify } from "@/lib/amplify";
+import {
+  clearAdminActivity,
+  isAdminIdleExpired,
+  touchAdminActivity,
+} from "@/lib/adminSessionPolicy";
 
 const ADMIN_GROUP = "admin";
 
@@ -31,6 +36,7 @@ export async function isAdminUser(): Promise<boolean> {
 
 /** Clear Cognito session (local or global). */
 export async function adminSignOut(global = true): Promise<void> {
+  clearAdminActivity();
   await configureAmplify();
   const { signOut } = await import("aws-amplify/auth");
   await signOut({ global });
@@ -38,6 +44,8 @@ export async function adminSignOut(global = true): Promise<void> {
 
 /** True when the user has a valid session in the `admin` group. */
 export async function hasAdminSession(): Promise<boolean> {
+  if (isAdminIdleExpired()) return false;
+
   const ok = await configureAmplify();
   if (!ok) return false;
 
@@ -46,7 +54,9 @@ export async function hasAdminSession(): Promise<boolean> {
     await getCurrentUser();
     const session = await fetchAuthSession();
     if (!session.tokens?.accessToken) return false;
-    return isAdminUser();
+    if (!(await isAdminUser())) return false;
+    touchAdminActivity();
+    return true;
   } catch {
     return false;
   }

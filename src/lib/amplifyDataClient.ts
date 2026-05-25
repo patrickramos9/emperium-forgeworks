@@ -2,6 +2,10 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../amplify/data/resource";
 import { configureAmplify } from "@/lib/amplify";
 import { adminSignOut, isAdminUser } from "@/lib/adminAuth";
+import {
+  isAdminIdleExpired,
+  touchAdminActivity,
+} from "@/lib/adminSessionPolicy";
 
 export type AmplifyDataClient = ReturnType<typeof generateClient<Schema>>;
 
@@ -86,12 +90,19 @@ export async function requireAdminSession(
       return null;
     }
 
+    if (isAdminIdleExpired()) {
+      await adminSignOut(false);
+      navigate("/admin/login?error=session_expired");
+      return null;
+    }
+
     if (!(await isAdminUser())) {
       await adminSignOut(false);
       navigate("/admin/login?error=not_admin");
       return null;
     }
 
+    touchAdminActivity();
     return generateClient<Schema>({ authMode: "userPool" });
   } catch {
     navigate("/admin/login");
