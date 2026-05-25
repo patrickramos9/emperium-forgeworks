@@ -82,7 +82,10 @@ We want to **minimize sensitive customer data** stored in our systems.
 
 1. **Option A (now):** Amplify Hosting — frontend only, seed catalog, public preview URL  
 2. **Option B (next):** Deploy Amplify backend, seed DynamoDB, wire catalog + admin to live API  
-3. **Stripe + Google Pay + domain:** Real payments (when EIN unblocks M3b), `emperiumforgeworks.com`, production env vars  
+3. **Stripe + Google Pay:** Real payments when EIN unblocks **M3b** (pinned)  
+4. **M7a cleanup** — shop/About copy and nav (Enter the Lair, no card quick-add)  
+5. **M7b Hidden Vault** — exclusive catalog behind access code  
+6. **M8** — announcements, order reviews, sculptors admin, notification badge on avatar  
 
 Each feature ships via **commit → push → Amplify build** unless backend schema changes require sandbox/pipeline deploy.
 

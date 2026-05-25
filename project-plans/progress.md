@@ -2,25 +2,28 @@
 
 Living status log. Update this file when milestones move or deploys land.
 
-**Last updated:** 2026-05-24 (M5)
+**Last updated:** 2026-05-25
 
 ---
 
 ## Current phase
 
-**M7 — Hidden Vault** or **M8 — Runtime news** — **Next up.** M5 complete. **M3b pinned** until EIN.
+**M7 — Hidden Vault + storefront cleanup** — **Next up.** M3a, M4, and M5 are complete and deployed. **M3b pinned** until EIN.
 
 | Area | Status |
 |------|--------|
 | Fullstack CI + DynamoDB + S3 | ✅ |
 | Admin product CRUD + gallery + variations | ✅ |
-| Storefront live catalog + PDP enhancements | ✅ |
-| Cart UX hardening (M3a) | ✅ |
-| Customer accounts (M4) | ✅ |
-| Admin portal + stats (M5) | ✅ |
-| Stripe + Google Pay live checkout | ⏳ M3b — blocked on EIN |
-| Hidden Vault | ⚪ M7 |
-| Promo codes | ⚪ M6 |
+| Storefront live catalog + PDP | ✅ |
+| Cart UX (M3a) | ✅ Deployed |
+| Customer accounts (M4) | ✅ Deployed |
+| Admin portal + stats (M5) | ✅ Deployed |
+| Auth/catalog ops fixes | ✅ Admin group, shop catalog, idle timeout |
+| Stripe + Google Pay (M3b) | ⏳ Blocked on EIN |
+| M7a Storefront cleanup | 🎯 Next (quick UX) |
+| M7b Hidden Vault | 🎯 After M7a |
+| M8 Content, reviews, sculptors | ⚪ After M7a (can overlap M7b) |
+| Promo codes (M6) | ⚪ After M3b |
 
 ---
 
@@ -35,8 +38,9 @@ Living status log. Update this file when milestones move or deploys land.
 | **M4** Customer accounts | ✅ Done | Sign up/in, orders, header menu |
 | **M5** Admin portal + stats | ✅ Done | Shell, dashboard, orders UI |
 | **M6** Promo codes | ⚪ Not started | Cart/checkout discounts |
-| **M7** Hidden Vault | ⚪ Not started | Key-gated exclusive catalog |
-| **M8** Runtime news | ⚪ Not started | Announcements API + admin |
+| **M7a** Storefront cleanup | 🎯 Next | No Forge on cards; About-only; copy |
+| **M7b** Hidden Vault | ⚪ Not started | Key-gated exclusive catalog |
+| **M8** Content & community | ⚪ Not started | Reviews, sculptors, notifications |
 | **M9** Polish / Gallery | ⚪ Not started | SEO, gallery page, performance |
 
 Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
@@ -56,10 +60,11 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ## Recent accomplishments
 
-- **M2 complete** — production smoke-test passed; phase closed
-- **M2 deployed** — IAM service role + CDK bootstrap; fullstack CI; catalog seeded
-- Admin: userPool client, CRUD, S3 upload, expanded product form
-- Storefront: guest/userPool data clients, `mapAmplifyProduct`, image URL resolution
+- **M5** — `AdminLayout`, dashboard stats, orders list/detail, Plausible placeholder, nav stubs
+- **M4** — customer sign-up/sign-in, order history, `addCustomerToGroup` Lambda, `Order.userId`
+- **M3a** — cart qty limits, validation, guest orders, minimal line-item snapshots
+- **Ops fixes** — admin must be in `admin` group; shop uses userPool when signed in + `authenticated` Product read; 8h admin idle sign-out
+- **M2 complete** — production smoke-test passed; fullstack CI; catalog seeded
 - Docs: [docs/deploy-option-b.md](../docs/deploy-option-b.md)
 
 ---
@@ -69,8 +74,10 @@ Completed 2026-05-23 (production smoke-test passed):
 | Item | Status |
 |------|--------|
 | Payment provider | Mock until **M3b** (Stripe + Google Pay); **blocked on EIN** |
-| Visitor analytics | Not in app today — **M5** (Plausible/GA4 or similar) |
-| Sales stats in admin | Needs paid **Orders** from **M3b**; mock orders OK for UI |
+| Visitor analytics | Dashboard placeholder only — set `VITE_PLAUSIBLE_DOMAIN` when ready |
+| Sales stats in admin | Mock orders drive dashboard until **M3b** |
+| Cognito sessions | Access token ~1h (auto-refresh); refresh token ~30d; **admin 8h idle** sign-out |
+| Shop + admin same browser | Signed-in admin uses userPool on `/shop`; deploy `authenticated` Product read |
 | Vault access model | Shared key / access code — **M7** |
 | Gallery page | Deferred to **M9** |
 | PII | Prefer Stripe for receipts; minimal `Order` in DynamoDB |
@@ -79,11 +86,32 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ## Next actions (recommended order)
 
-1. **Deploy** — push M5 (Order admin `update` auth) if not yet deployed  
-2. **M7** — Hidden Vault (mock checkout OK)  
-3. **M8** — runtime announcements (uses M5 admin shell)  
-4. **M3b** — Stripe + Google Pay — **resume when EIN is ready**  
-5. **M6** — promo codes (after M3b)  
+### M7 (next)
+
+**M7a — Storefront cleanup** (frontend; ship first)
+
+1. Remove **Forge** quick-add from shop product cards — PDP only  
+2. Hero: **Explore Arsenal** → **Enter the Lair** (or similar)  
+3. Drop **Process** route; keep **About** at `/about` (forge-story content); remove **Affiliated Forge**  
+4. **Ready To Summon The Darkness?** on About CTA  
+
+**M7b — Hidden Vault** (backend deploy)
+
+5. `vaultOnly` products, unlock flow, `/vault`, admin key config  
+
+### M8 (after M7a; uses M5 admin shell)
+
+6. Announcements + **notification badge** on account avatar  
+7. Order **reviews** + home **Voices From The Void** + `/reviews` page  
+8. Admin **Sculptors** CRUD + public `/sculptors/:slug` pages  
+
+### Later
+
+9. **M3b** — Stripe + Google Pay when EIN ready  
+10. **M6** — promo codes  
+11. **M9** — Gallery, SEO, performance  
+
+**Optional:** `VITE_PLAUSIBLE_DOMAIN` for admin dashboard traffic link.
 
 See [milestones.md](./milestones.md) for full scope per phase.
 
@@ -104,8 +132,12 @@ See [milestones.md](./milestones.md) for full scope per phase.
 
 | Date | Update |
 |------|--------|
-| 2026-05-24 | **M5 complete** — admin shell, dashboard, orders list/detail |
-| 2026-05-24 | **M3a + M4** — cart UX, customer auth, order history |
+| 2026-05-25 | **M7/M8 scope expanded** — cleanup tasks, reviews, sculptors, notifications |
+| 2026-05-25 | **Plan refresh** — M3a/M4/M5 marked done; auth/shop fixes logged |
+| 2026-05-24 | **Shop catalog fix** — `authenticated` Product read; signed-in catalog uses userPool |
+| 2026-05-24 | **Admin auth fix** — `admin` group guard; 8h idle session |
+| 2026-05-24 | **M5 complete** — admin shell, dashboard, orders list/detail (deployed) |
+| 2026-05-24 | **M3a + M4** — cart UX, customer auth (deployed) |
 | 2026-05-24 | **M3b pinned** — Stripe + Google Pay deferred until EIN |
 | 2026-05-23 | **M2 complete** — production smoke-test passed; phase closed |
 | 2026-05-23 | **M2 enhancements** — variations, gallery, multi-select PDP, description |

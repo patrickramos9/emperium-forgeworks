@@ -2,7 +2,7 @@
 
 Roadmap in priority order. Each milestone should be shippable independently where possible (incremental deploys).
 
-**Last updated:** 2026-05-24
+**Last updated:** 2026-05-25 (M7 cleanup + M8 scope)
 
 ---
 
@@ -54,14 +54,15 @@ Roadmap in priority order. Each milestone should be shippable independently wher
 
 Split into cart work (can ship now) and live payments (blocked until business can complete Stripe onboarding).
 
-### M3a — Cart UX 🎯 *next (no Stripe required)*
+### M3a — Cart UX ✅
 
 | Task | Notes |
 |------|--------|
 | Harden cart UX | Persistence, empty states, quantity limits |
-| Order privacy review | Minimize stored email; align mock fields with production minimum |
+| Order privacy review | Minimal line-item snapshots; guest `Order.create` |
+| Pre-checkout validation | Stock, price drift vs live catalog |
 
-**Exit criteria:** Cart behaves well on mobile/desktop; mock checkout still creates orders for fulfillment testing.
+**Exit criteria:** Cart behaves well on mobile/desktop; mock checkout still creates orders for fulfillment testing. **Met.**
 
 ### M3b — Live payments ⏳ *pinned — waiting on EIN*
 
@@ -80,40 +81,41 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 
 ---
 
-## M4 — Customer accounts 🎯 *active track while M3b pinned*
+## M4 — Customer accounts ✅
 
 **Goal:** Shoppers **may** register and sign in; **guest checkout still works.**
 
 | Task | Notes |
 |------|--------|
-| Cognito customer auth | Separate from `admin` group (e.g. `customer` group) |
-| Account UI | Sign up, sign in, profile |
-| Order history | Link `Order` to `userId` when signed in |
-| Storefront | Header account menu; optional post-checkout account creation |
+| Cognito customer auth | `customer` group via post-confirmation Lambda |
+| Account UI | Sign up, sign in, profile, order history |
+| Order history | `Order.userId` + owner-scoped read |
+| Storefront | Header account menu; post-checkout account CTA |
 
-**Schema:** `Order.userId` optional; users read own orders, admin reads all.
+**Schema:** `Order.userId` optional; guest create; admin read/update.
 
-**Exit criteria:** Guest completes checkout without account; signed-in user sees order history.
+**Exit criteria:** Guest completes checkout without account; signed-in user sees order history. **Met** (production verified).
 
 **Depends on:** M3a (orders exist — mock checkout is sufficient until M3b).
 
 ---
 
-## M5 — Admin portal v2 + stats
+## M5 — Admin portal v2 + stats ✅
 
 **Goal:** Cohesive admin experience with operational visibility.
 
 | Task | Notes |
 |------|--------|
-| Admin shell | Sidebar/nav: Dashboard, Products, Orders, Promo codes, Vault, Settings |
-| Products | Migrate existing product list/edit into shell |
-| Stats — sales | Revenue, order count, AOV, recent orders (from `Order`) |
-| Stats — traffic | Analytics integration (Plausible, GA4, etc.) — not in DynamoDB natively |
-| Orders UI | List + detail for fulfillment |
+| Admin shell | Sidebar/nav: Dashboard, Products, Orders; stubs for Promos, Vault, Settings |
+| Products | List/edit in layout (unchanged CRUD) |
+| Stats — sales | Revenue, order count, AOV, recent orders (mock labeled) |
+| Stats — traffic | `VITE_PLAUSIBLE_DOMAIN` placeholder + external link |
+| Orders UI | List + detail; status update (admin `update` on `Order`) |
+| Ops fixes | Admin group guard; 8h idle timeout; catalog auth for signed-in users |
 
-**Exit criteria:** Admin dashboard shows purchase metrics; product management at least as capable as today, better organized.
+**Exit criteria:** Admin dashboard shows purchase metrics; product management at least as capable as today, better organized. **Met** (production verified).
 
-**Depends on:** M3b for real revenue; mock orders OK for UI until Stripe is live.
+**Depends on:** M3a (orders); M3b for real revenue only.
 
 ---
 
@@ -134,35 +136,76 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 
 ---
 
-## M7 — Hidden Vault
+## M7 — Hidden Vault + storefront cleanup 🎯 *next*
 
-**Goal:** Exclusive products visible only after unlocking with a **vault key** (access code).
+**Goal:** Ship vault-exclusive catalog **and** polish navigation/copy so the public site matches the grimdark tone before adding more backend features.
+
+### M7a — Storefront cleanup (quick UX; no new models)
 
 | Task | Notes |
 |------|--------|
-| Product flag | e.g. `vaultOnly`; exclude from public catalog queries |
+| Remove shop quick-add | Drop **Forge** button on [`ProductCard.tsx`](src/components/ProductCard.tsx); add-to-cart only from PDP |
+| Hero CTA copy | Replace **Explore Arsenal** on [`HomePage.tsx`](src/pages/HomePage.tsx) — e.g. **Enter the Lair** (primary shop link) |
+| Consolidate About | Remove **Process** nav/route; single **About** page at `/about` with existing forge-story content from [`ProcessPage.tsx`](src/pages/ProcessPage.tsx) |
+| Remove Affiliated Forge | Delete NSMiniatures “Affiliated Forge” block from About (no affiliated forge yet) |
+| Nav/footer links | [`Header.tsx`](src/components/Header.tsx), [`Footer.tsx`](src/components/Footer.tsx), [`App.tsx`](src/App.tsx) — redirect `/process` → `/about` |
+| CTA headline | **Ready to Summon Your Fleet** → **Ready To Summon The Darkness?** on About |
+
+**Exit criteria:** Shop cards link to PDP only; one About page; updated foreboding CTAs; no broken links.
+
+### M7b — Hidden Vault (backend + routes)
+
+| Task | Notes |
+|------|--------|
+| Product flag | e.g. `vaultOnly`; exclude from public `/shop` queries |
 | Unlock flow | Key entry UI; httpOnly cookie / session after success |
 | Vault shop | `/vault` or filtered collection when unlocked |
 | Admin | Vault products + key rotation (env or `VaultSettings` in DB) |
 | Security | Hash key server-side; rate-limit attempts |
 
-**Exit criteria:** Vault SKUs hidden on `/shop` until key entered; purchasable via checkout when unlocked.
+**Exit criteria:** Vault SKUs hidden on `/shop` until key entered; purchasable via mock checkout when unlocked.
 
 **Depends on:** M2 catalog; M3a/M3b for purchases (mock OK until Stripe).
 
 ---
 
-## M8 — Runtime content & operations
+## M8 — Runtime content, reviews, sculptors & notifications
 
-**Goal:** News and announcements without code changes. *(Former M4.)*
+**Goal:** Replace hardcoded marketing content with admin-managed data; social proof from real orders; sculptor pages for partners.
+
+**Depends on:** M5 admin shell (recommended).
+
+### M8a — Announcements & notifications
 
 | Task | Notes |
 |------|--------|
-| **Announcement** / **News** model | Title, body, dates, pinned, active |
-| Admin publish/edit | Home / shop announcement blocks |
-| Storefront | Replace hardcoded announcement copy |
+| **Announcement** model | Title, body, dates, pinned, active — home + shop blocks |
+| Admin publish/edit | Under M5 shell |
+| **Notification** model | Lightweight inbox (e.g. system + admin broadcasts) |
+| Avatar badge | Unread count on account avatar in [`Header.tsx`](src/components/Header.tsx) / [`AccountMenu.tsx`](src/components/AccountMenu.tsx) |
 
-**Exit criteria:** Post from admin → appears on site immediately.
+### M8b — Customer reviews (“Voices From The Void”)
+
+| Task | Notes |
+|------|--------|
+| **Review** model | Linked to `Order` + `userId`; rating, text, optional display name; moderation flag |
+| Account UI | **Review** button per eligible order row on [`AccountOrdersPage.tsx`](src/pages/account/AccountOrdersPage.tsx) |
+| Review form | Post-purchase only (paid orders); one review per order |
+| Home — runtime | Load approved reviews under **Voices From The Void** (rename section from hardcoded testimonials in [`HomePage.tsx`](src/pages/HomePage.tsx)) |
+| Reviews index | **See all reviews** link beside subtitle → `/reviews` (full list page) |
+
+### M8c — Sculptors (admin + public pages)
+
+| Task | Notes |
+|------|--------|
+| **Sculptor** model | Name, logo (S3), description, MyMiniFactory URL, Patreon URL, social URLs (Instagram, Facebook, X, etc.) |
+| Admin **Sculptors** | CRUD in admin nav (replace stub); logo upload |
+| Sculptor detail page | `/sculptors/:slug` — bio, logo, outbound links |
+| Home integration | Replace hardcoded `SCULPTORS` on home with live list; cards link to sculptor page |
+
+**Exit criteria:** Admin can publish announcements and sculptors; customers can review orders; home shows live reviews + sculptor links; notification badge reflects unread count.
+
+**Out of scope for M8:** Etsy sync; automated review solicitation emails (manual post-order review button only).
 
 ---
 
@@ -184,10 +227,10 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 
 ```text
 M1 → M2 → M3a ─┬→ M4
-                ├→ M5 → M8 → M9
+                ├→ M5 → M8 (content, reviews, sculptors) → M9
                 ├→ M6 (needs M3b)
                 └→ M3b (Stripe + Google Pay) ⏳ EIN
-         M2 → M7 (buy path: M3a mock or M3b live)
+         M2 → M7a (cleanup) → M7b (vault)
 ```
 
 | Phase | Depends on |
@@ -197,8 +240,9 @@ M1 → M2 → M3a ─┬→ M4
 | M4 | M3a |
 | M5 | M3a (UI); M3b (real revenue) |
 | M6 | M3b |
-| M7 | M2; M3a or M3b for checkout |
-| M8 | M5 admin shell (recommended) |
+| M7a | — (frontend only) |
+| M7b | M2; M3a or M3b for checkout |
+| M8 | M5 admin shell; M4 for reviews |
 | M9 | — |
 
 ---
@@ -213,4 +257,5 @@ M1 → M2 → M3a ─┬→ M4
 | M4 | Promos, vault, admin dashboard |
 | M5 | Stripe implementation, promos, vault unlock |
 | M6 | Vault, customer accounts |
-| M7 | Promo codes, customer accounts |
+| M7a | Vault, reviews, sculptors |
+| M7b | Promo codes (core vault only) |
