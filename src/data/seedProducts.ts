@@ -40,6 +40,8 @@ export interface Product {
   inStock: boolean;
   featured: boolean;
   sortOrder: number;
+  /** Hidden Vault exclusive — hidden from public /shop when true. */
+  vaultOnly?: boolean;
 }
 
 export const SEED_PRODUCTS: Product[] = [

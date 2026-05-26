@@ -23,6 +23,7 @@ export function mapAmplifyProduct(row: {
   inStock?: boolean | null;
   featured?: boolean | null;
   sortOrder?: number | null;
+  vaultOnly?: boolean | null;
 }): Product {
   const gallery = (row.images ?? []).filter(Boolean) as string[];
   const detailImage = row.detailImage ?? undefined;
@@ -51,5 +52,6 @@ export function mapAmplifyProduct(row: {
     inStock: row.inStock ?? true,
     featured: row.featured ?? false,
     sortOrder: row.sortOrder ?? 0,
+    vaultOnly: row.vaultOnly ?? false,
   };
 }

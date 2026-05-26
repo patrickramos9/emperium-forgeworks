@@ -136,11 +136,11 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 
 ---
 
-## M7 — Hidden Vault + storefront cleanup 🎯 *next*
+## M7 — Hidden Vault + storefront cleanup ✅
 
 **Goal:** Ship vault-exclusive catalog **and** polish navigation/copy so the public site matches the grimdark tone before adding more backend features.
 
-### M7a — Storefront cleanup (quick UX; no new models)
+### M7a — Storefront cleanup ✅
 
 | Task | Notes |
 |------|--------|
@@ -151,9 +151,9 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 | Nav/footer links | [`Header.tsx`](src/components/Header.tsx), [`Footer.tsx`](src/components/Footer.tsx), [`App.tsx`](src/App.tsx) — redirect `/process` → `/about` |
 | CTA headline | **Ready to Summon Your Fleet** → **Ready To Summon The Darkness?** on About |
 
-**Exit criteria:** Shop cards link to PDP only; one About page; updated foreboding CTAs; no broken links.
+**Exit criteria:** Shop cards link to PDP only; one About page; updated foreboding CTAs; no broken links. **Met.**
 
-### M7b — Hidden Vault (backend + routes)
+### M7b — Hidden Vault ✅
 
 | Task | Notes |
 |------|--------|
@@ -163,13 +163,13 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 | Admin | Vault products + key rotation (env or `VaultSettings` in DB) |
 | Security | Hash key server-side; rate-limit attempts |
 
-**Exit criteria:** Vault SKUs hidden on `/shop` until key entered; purchasable via mock checkout when unlocked.
+**Exit criteria:** Vault SKUs hidden on `/shop` until key entered; purchasable via mock checkout when unlocked. **Met** (set `VAULT_ACCESS_KEY` secret + backend deploy).
 
 **Depends on:** M2 catalog; M3a/M3b for purchases (mock OK until Stripe).
 
 ---
 
-## M8 — Runtime content, reviews, sculptors & notifications
+## M8 — Runtime content, reviews, sculptors & notifications 🎯 *next*
 
 **Goal:** Replace hardcoded marketing content with admin-managed data; social proof from real orders; sculptor pages for partners.
 

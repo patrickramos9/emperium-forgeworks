@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { AnnouncementBlock } from "@/components/AnnouncementBlock";
 import { Icon } from "@/components/Icon";
 import { ProductCard } from "@/components/ProductCard";
 import { CATEGORY_FILTERS } from "@/data/seedProducts";
@@ -109,31 +110,7 @@ export function ShopPage() {
       )}
 
       <section className="mt-section-gap grid grid-cols-1 gap-gutter md:grid-cols-3">
-        <div className="relative overflow-hidden border border-outline-variant/10 bg-surface-container-low p-stack-lg iron-bevel md:col-span-2">
-          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
-          <h2 className="mb-4 font-display-lg text-headline-lg uppercase tracking-tighter text-primary">
-            Forge Announcement
-          </h2>
-          <div className="space-y-4 font-body-lg text-on-surface-variant">
-            <p>
-              Welcome to Emperium Forgeworks — your source for premium 3D
-              printed collectibles, sci-fi miniatures, Voidbound Sentinels, and
-              ancient terrors. Every item is made to order with high-quality
-              resin and surgical precision.
-            </p>
-            <p>
-              Latest activation: May 16, 2026. New sculpts from NSMiniatures
-              have been added to the Dark Fantasy vault.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="mt-stack-lg flex items-center gap-2 font-label-md uppercase tracking-widest text-primary transition-transform duration-300 hover:translate-x-2"
-          >
-            Read Transmission
-            <Icon name="trending_flat" />
-          </button>
-        </div>
+        <AnnouncementBlock className="md:col-span-2" />
         <div className="flex flex-col justify-center border border-secondary/10 bg-void-purple/20 p-stack-lg text-center iron-bevel backdrop-blur-sm">
           <Icon name="verified" className="mb-4 text-5xl text-secondary" />
           <h4 className="mb-2 font-headline-md text-secondary">

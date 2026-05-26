@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Icon } from "@/components/Icon";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
 
 const STEPS = [
@@ -33,7 +32,7 @@ const STEPS = [
   },
 ];
 
-export function ProcessPage() {
+export function AboutPage() {
   return (
     <main className="pb-section-gap pt-[88px]">
       <section className="relative flex h-[614px] items-center overflow-hidden border-b border-outline-variant/10">
@@ -100,65 +99,6 @@ export function ProcessPage() {
         </div>
       </section>
 
-      <section className="border-y border-outline-variant/10 bg-surface-container-lowest py-section-gap">
-        <div className="mx-auto max-w-container-max px-margin-mobile md:px-margin-desktop">
-          <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">
-            <div className="space-y-stack-lg md:col-span-5">
-              <span className="font-label-md uppercase tracking-[0.2em] text-secondary">
-                Affiliated Forge
-              </span>
-              <h2 className="font-display-lg text-display-lg leading-none text-on-surface">
-                NSMiniatures
-              </h2>
-              <div className="h-1 w-24 bg-secondary" />
-              <p className="font-body-lg leading-relaxed text-on-surface-variant">
-                The visionary studio behind{" "}
-                <span className="font-bold text-secondary">
-                  The Petrified Choir Collection
-                </span>
-                . Based in Miami, NSMiniatures translates eldritch horrors into
-                tangible nightmares.
-              </p>
-              <Link
-                to="/shop"
-                className="inline-flex items-center gap-2 bg-secondary px-6 py-3 font-label-md uppercase tracking-wider text-on-secondary transition-colors hover:bg-on-secondary-container"
-              >
-                View Collection
-                <Icon name="open_in_new" className="text-sm" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-stack-md md:col-span-7">
-              <div className="group relative aspect-[4/5] overflow-hidden rounded-sm bg-iron-gray">
-                <div className="absolute inset-0 z-10 bg-void-purple/20 transition-colors group-hover:bg-transparent" />
-                <img
-                  src={LEGACY_IMAGES.process.nsMini1}
-                  alt="Eldritch sculpture"
-                  className="h-full w-full object-cover brightness-75 grayscale transition-all duration-500 group-hover:brightness-100 group-hover:grayscale-0"
-                />
-              </div>
-              <div className="space-y-stack-md">
-                <div className="group relative aspect-square overflow-hidden rounded-sm bg-iron-gray">
-                  <div className="absolute inset-0 z-10 bg-void-purple/20 transition-colors group-hover:bg-transparent" />
-                  <img
-                    src={LEGACY_IMAGES.process.nsMini2}
-                    alt="Miniature detail"
-                    className="h-full w-full object-cover brightness-75 grayscale transition-all duration-500 group-hover:brightness-100 group-hover:grayscale-0"
-                  />
-                </div>
-                <div className="border-l-2 border-secondary bg-surface-container p-stack-md">
-                  <h4 className="mb-2 font-label-md uppercase text-secondary">
-                    Creative Vision
-                  </h4>
-                  <p className="text-body-md text-on-surface-variant">
-                    &ldquo;From twisted horrors to towering eldritch beings.&rdquo;
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section
         id="forge-story"
         className="mx-auto max-w-container-max overflow-hidden px-margin-mobile py-section-gap md:px-margin-desktop"
@@ -214,7 +154,7 @@ export function ProcessPage() {
       <section className="px-margin-mobile py-section-gap text-center md:px-margin-desktop">
         <div className="mx-auto max-w-2xl space-y-stack-md">
           <h2 className="font-display-lg text-headline-lg uppercase text-on-surface">
-            Ready to Summon Your Fleet?
+            Ready To Summon The Darkness?
           </h2>
           <p className="font-body-lg text-on-surface-variant">
             Browse our latest licensed sculpts and original prints.
@@ -223,7 +163,7 @@ export function ProcessPage() {
             to="/shop"
             className="molten-glow inline-block bg-primary px-10 py-4 font-display-lg text-headline-md uppercase tracking-widest text-on-primary transition-all hover:scale-105 active:scale-95"
           >
-            Enter the Shop
+            Enter the Lair
           </Link>
         </div>
       </section>

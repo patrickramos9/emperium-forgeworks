@@ -15,12 +15,28 @@ import {
   selectedVariantImageRef,
   toggleVariantMultiSelection,
 } from "@/lib/productVariants";
+import type { CatalogMode } from "@/lib/catalogFilter";
 import { useProduct, useProducts } from "@/hooks/useProducts";
+import { isVaultUnlocked } from "@/lib/vaultSession";
 
-export function ProductDetailPage() {
+type ProductDetailPageProps = {
+  catalogMode?: CatalogMode;
+  listPath?: string;
+  listLabel?: string;
+  productBasePath?: string;
+  requiresVaultUnlock?: boolean;
+};
+
+export function ProductDetailPage({
+  catalogMode = "public",
+  listPath = "/shop",
+  listLabel = "Shop",
+  productBasePath = "/shop",
+  requiresVaultUnlock = false,
+}: ProductDetailPageProps) {
   const { slug } = useParams<{ slug: string }>();
-  const { product, loading } = useProduct(slug);
-  const { products } = useProducts();
+  const { product, loading } = useProduct(slug, catalogMode);
+  const { products } = useProducts(catalogMode);
   const { addItem } = useCart();
   const [variantSelection, setVariantSelection] = useState<
     Record<string, string[]>
@@ -79,12 +95,23 @@ export function ProductDetailPage() {
     );
   }
 
+  if (requiresVaultUnlock && !isVaultUnlocked()) {
+    return (
+      <main className="px-margin-mobile pt-32 md:px-margin-desktop">
+        <p className="text-on-surface-variant">The vault is sealed.</p>
+        <Link to="/vault" className="mt-4 text-primary">
+          Enter access key
+        </Link>
+      </main>
+    );
+  }
+
   if (!product) {
     return (
       <main className="px-margin-mobile pt-32 md:px-margin-desktop">
         <p className="text-on-surface-variant">Product not found.</p>
-        <Link to="/shop" className="mt-4 text-primary">
-          Back to shop
+        <Link to={listPath} className="mt-4 text-primary">
+          Back to {listLabel.toLowerCase()}
         </Link>
       </main>
     );
@@ -103,11 +130,14 @@ export function ProductDetailPage() {
     <main className="pb-section-gap pt-24">
       <div className="mx-auto max-w-container-max px-margin-mobile md:px-margin-desktop">
         <nav className="mb-stack-lg flex items-center gap-2 font-label-sm uppercase text-on-surface-variant">
-          <Link to="/shop" className="hover:text-primary">
-            Shop
+          <Link to={listPath} className="hover:text-primary">
+            {listLabel}
           </Link>
           <Icon name="chevron_right" className="text-[14px]" />
-          <Link to={`/shop?category=${encodeURIComponent(product.category)}`} className="hover:text-primary">
+          <Link
+            to={`${listPath}?category=${encodeURIComponent(product.category)}`}
+            className="hover:text-primary"
+          >
             {product.category}
           </Link>
           <Icon name="chevron_right" className="text-[14px]" />
@@ -284,7 +314,7 @@ export function ProductDetailPage() {
                 </p>
               </div>
               <Link
-                to="/shop"
+                to={listPath}
                 className="flex items-center gap-1 font-label-md uppercase text-primary hover:text-plasma-glow"
               >
                 View All
@@ -293,7 +323,7 @@ export function ProductDetailPage() {
             </div>
             <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 lg:grid-cols-4">
               {related.map((p) => (
-                <Link key={p.id} to={`/shop/${p.slug}`} className="group">
+                <Link key={p.id} to={`${productBasePath}/${p.slug}`} className="group">
                   <ProductImage
                     src={productPrimaryImage(p)}
                     alt={p.title}

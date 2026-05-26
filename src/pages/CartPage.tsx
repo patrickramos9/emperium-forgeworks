@@ -16,7 +16,7 @@ export function CartPage() {
     removeItem,
     clearCart,
   } = useCart();
-  const { products, loading: catalogLoading } = useProducts();
+  const { products, loading: catalogLoading } = useProducts("all");
   const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

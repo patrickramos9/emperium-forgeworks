@@ -41,10 +41,10 @@ export function Header() {
             <span className="cursor-not-allowed font-display-lg text-headline-md uppercase tracking-widest text-on-surface-variant/40">
               Gallery
             </span>
-            <NavLink to="/process" className={navLinkClass}>
-              Process
+            <NavLink to="/vault" className={navLinkClass}>
+              Vault
             </NavLink>
-            <NavLink to="/process#forge-story" className={navLinkClass}>
+            <NavLink to="/about" className={navLinkClass}>
               About
             </NavLink>
           </nav>

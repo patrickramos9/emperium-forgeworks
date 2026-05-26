@@ -51,6 +51,7 @@ export function buildProductMutationPayload(input: {
   inStock: boolean;
   featured: boolean;
   sortOrder: number;
+  vaultOnly?: boolean;
   detailImage?: string;
   badges: string[];
   images: string[];
@@ -72,6 +73,7 @@ export function buildProductMutationPayload(input: {
     inStock: input.inStock,
     featured: input.featured,
     sortOrder: input.sortOrder,
+    vaultOnly: input.vaultOnly ?? false,
     ...(input.subtitle ? { subtitle: input.subtitle } : {}),
     ...(input.description ? { description: input.description } : {}),
     ...(input.lore ? { lore: input.lore } : {}),

@@ -1,11 +1,11 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { CartProvider } from "@/context/CartContext";
 import { HomePage } from "@/pages/HomePage";
 import { ShopPage } from "@/pages/ShopPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
-import { ProcessPage } from "@/pages/ProcessPage";
+import { AboutPage } from "@/pages/AboutPage";
 import { ShippingReturnsPage } from "@/pages/ShippingReturnsPage";
 import { CartPage } from "@/pages/CartPage";
 import { CheckoutSuccessPage } from "@/pages/CheckoutSuccessPage";
@@ -21,6 +21,11 @@ import { AccountLoginPage } from "@/pages/account/AccountLoginPage";
 import { AccountRegisterPage } from "@/pages/account/AccountRegisterPage";
 import { AccountPage } from "@/pages/account/AccountPage";
 import { AccountOrdersPage } from "@/pages/account/AccountOrdersPage";
+import { VaultPage } from "@/pages/VaultPage";
+import { VaultProductDetailPage } from "@/pages/VaultProductDetailPage";
+import { AdminVaultPage } from "@/pages/admin/AdminVaultPage";
+import { AdminAnnouncementsPage } from "@/pages/admin/AdminAnnouncementsPage";
+import { AdminAnnouncementEditPage } from "@/pages/admin/AdminAnnouncementEditPage";
 
 export default function App() {
   return (
@@ -31,7 +36,11 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/shop/:slug" element={<ProductDetailPage />} />
-            <Route path="/process" element={<ProcessPage />} />
+            <Route path="/vault" element={<VaultPage />} />
+            <Route path="/vault/:slug" element={<VaultProductDetailPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/process" element={<Navigate to="/about" replace />} />
+            <Route path="/process/*" element={<Navigate to="/about" replace />} />
             <Route path="/shipping-returns" element={<ShippingReturnsPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/account" element={<AccountPage />} />
@@ -48,6 +57,11 @@ export default function App() {
             <Route path="products/:slug" element={<AdminProductEditPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="orders/:id" element={<AdminOrderDetailPage />} />
+            <Route path="announcements" element={<AdminAnnouncementsPage />} />
+            <Route
+              path="announcements/:id"
+              element={<AdminAnnouncementEditPage />}
+            />
             <Route
               path="promos"
               element={
@@ -58,16 +72,7 @@ export default function App() {
                 />
               }
             />
-            <Route
-              path="vault"
-              element={
-                <AdminComingSoonPage
-                  title="Vault"
-                  milestone="M7"
-                  description="Manage exclusive vault products and access keys."
-                />
-              }
-            />
+            <Route path="vault" element={<AdminVaultPage />} />
             <Route
               path="settings"
               element={

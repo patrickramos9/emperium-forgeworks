@@ -83,13 +83,13 @@ export function HomePage() {
               to="/shop"
               className="molten-glow bg-primary px-8 py-3 font-label-md uppercase tracking-widest text-on-primary transition-all hover:brightness-110"
             >
-              Explore Arsenal
+              Enter the Lair
             </Link>
             <Link
-              to="/process"
+              to="/about"
               className="border border-on-surface/30 px-8 py-3 font-label-md uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary"
             >
-              Our Process
+              About
             </Link>
           </div>
         </div>

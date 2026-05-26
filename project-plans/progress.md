@@ -8,7 +8,7 @@ Living status log. Update this file when milestones move or deploys land.
 
 ## Current phase
 
-**M7 — Hidden Vault + storefront cleanup** — **Next up.** M3a, M4, and M5 are complete and deployed. **M3b pinned** until EIN.
+**M8 — Content & community** — **In progress (M8a announcements started).** M7 complete (deploy pending). M3b pinned until EIN.
 
 | Area | Status |
 |------|--------|
@@ -20,9 +20,10 @@ Living status log. Update this file when milestones move or deploys land.
 | Admin portal + stats (M5) | ✅ Deployed |
 | Auth/catalog ops fixes | ✅ Admin group, shop catalog, idle timeout |
 | Stripe + Google Pay (M3b) | ⏳ Blocked on EIN |
-| M7a Storefront cleanup | 🎯 Next (quick UX) |
-| M7b Hidden Vault | 🎯 After M7a |
-| M8 Content, reviews, sculptors | ⚪ After M7a (can overlap M7b) |
+| M7a Storefront cleanup | ✅ Done |
+| M7b Hidden Vault | ✅ Done (backend deploy + `VAULT_ACCESS_KEY` secret) |
+| M8a Announcements | 🟡 In progress |
+| M8b Reviews / M8c Sculptors / notifications | ⚪ Not started |
 | Promo codes (M6) | ⚪ After M3b |
 
 ---
@@ -38,8 +39,8 @@ Living status log. Update this file when milestones move or deploys land.
 | **M4** Customer accounts | ✅ Done | Sign up/in, orders, header menu |
 | **M5** Admin portal + stats | ✅ Done | Shell, dashboard, orders UI |
 | **M6** Promo codes | ⚪ Not started | Cart/checkout discounts |
-| **M7a** Storefront cleanup | 🎯 Next | No Forge on cards; About-only; copy |
-| **M7b** Hidden Vault | ⚪ Not started | Key-gated exclusive catalog |
+| **M7a** Storefront cleanup | ✅ Done | No Forge on cards; About-only; copy |
+| **M7b** Hidden Vault | ✅ Done | `vaultOnly`, `/vault`, Lambda verify, admin |
 | **M8** Content & community | ⚪ Not started | Reviews, sculptors, notifications |
 | **M9** Polish / Gallery | ⚪ Not started | SEO, gallery page, performance |
 
@@ -86,20 +87,7 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ## Next actions (recommended order)
 
-### M7 (next)
-
-**M7a — Storefront cleanup** (frontend; ship first)
-
-1. Remove **Forge** quick-add from shop product cards — PDP only  
-2. Hero: **Explore Arsenal** → **Enter the Lair** (or similar)  
-3. Drop **Process** route; keep **About** at `/about` (forge-story content); remove **Affiliated Forge**  
-4. **Ready To Summon The Darkness?** on About CTA  
-
-**M7b — Hidden Vault** (backend deploy)
-
-5. `vaultOnly` products, unlock flow, `/vault`, admin key config  
-
-### M8 (after M7a; uses M5 admin shell)
+### M8 (next; uses M5 admin shell)
 
 6. Announcements + **notification badge** on account avatar  
 7. Order **reviews** + home **Voices From The Void** + `/reviews` page  
@@ -132,6 +120,7 @@ See [milestones.md](./milestones.md) for full scope per phase.
 
 | Date | Update |
 |------|--------|
+| 2026-05-24 | **M7 complete** — storefront cleanup + Hidden Vault (`vaultOnly`, `/vault`, verify Lambda) |
 | 2026-05-25 | **M7/M8 scope expanded** — cleanup tasks, reviews, sculptors, notifications |
 | 2026-05-25 | **Plan refresh** — M3a/M4/M5 marked done; auth/shop fixes logged |
 | 2026-05-24 | **Shop catalog fix** — `authenticated` Product read; signed-in catalog uses userPool |

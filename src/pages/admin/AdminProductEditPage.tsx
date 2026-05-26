@@ -66,6 +66,7 @@ export function AdminProductEditPage() {
   const [category, setCategory] = useState<ProductCategory>("Horror");
   const [inStock, setInStock] = useState(true);
   const [featured, setFeatured] = useState(false);
+  const [vaultOnly, setVaultOnly] = useState(false);
   const [sortOrder, setSortOrder] = useState(99);
   const [lore, setLore] = useState("");
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
@@ -87,6 +88,7 @@ export function AdminProductEditPage() {
     setCategory(p.category);
     setInStock(p.inStock);
     setFeatured(p.featured);
+    setVaultOnly(p.vaultOnly ?? false);
     setSortOrder(p.sortOrder);
     setLore(p.lore ?? "");
     setGalleryImages(productToGalleryImages(p));
@@ -175,6 +177,7 @@ export function AdminProductEditPage() {
         priceCents,
         inStock,
         featured,
+        vaultOnly,
         sortOrder,
         detailImage,
         badges: badgesText
@@ -349,6 +352,14 @@ export function AdminProductEditPage() {
               onChange={(e) => setFeatured(e.target.checked)}
             />
             <span className="font-label-sm uppercase">Featured</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={vaultOnly}
+              onChange={(e) => setVaultOnly(e.target.checked)}
+            />
+            <span className="font-label-sm uppercase">Vault only</span>
           </label>
         </div>
         <label className="block">
