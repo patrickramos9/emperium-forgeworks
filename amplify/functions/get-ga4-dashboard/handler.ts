@@ -44,11 +44,12 @@ function formatDuration(seconds: number): string {
   return `${mins}m ${secs}s`;
 }
 
-function toDimensionRows(
-  rows:
-    | { dimensionValues?: { value?: string | null }[]; metricValues?: { value?: string | null }[] }[]
-    | undefined,
-): DimensionRow[] {
+type Ga4ReportRow = {
+  dimensionValues?: { value?: string | null }[] | null;
+  metricValues?: { value?: string | null }[] | null;
+};
+
+function toDimensionRows(rows: Ga4ReportRow[] | null | undefined): DimensionRow[] {
   return (rows ?? [])
     .map((row) => {
       const rawValue = asNumber(row.metricValues?.[0]?.value);
@@ -156,10 +157,10 @@ export const handler: Schema["getGa4Dashboard"]["functionHandler"] = async (
     startDate,
     endDate,
     metrics,
-    topPages: toDimensionRows(pagesResponse[0].rows),
-    topSources: toDimensionRows(sourcesResponse[0].rows),
-    topDevices: toDimensionRows(devicesResponse[0].rows),
-    topCountries: toDimensionRows(countriesResponse[0].rows),
+    topPages: toDimensionRows(pagesResponse[0]?.rows),
+    topSources: toDimensionRows(sourcesResponse[0]?.rows),
+    topDevices: toDimensionRows(devicesResponse[0]?.rows),
+    topCountries: toDimensionRows(countriesResponse[0]?.rows),
     fetchedAt: new Date().toISOString(),
   };
 
