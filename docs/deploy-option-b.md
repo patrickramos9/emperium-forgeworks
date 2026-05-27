@@ -29,6 +29,16 @@ Option A (frontend-only) is documented in [deploy-option-a.md](deploy-option-a.m
 | `VITE_SITE_DOMAIN` | `emperiumforgeworks.com` |
 | `VITE_SITE_URL` | `https://emperiumforgeworks.com` |
 
+**GA4 admin dashboard (backend Lambda):**
+
+| Name | Value |
+|------|--------|
+| `GA4_PROPERTY_ID` | `539229345` |
+| `GA4_CLIENT_EMAIL` | Service account email |
+| `GA4_PRIVATE_KEY` | Private key (single line, `\n` escaped) |
+
+See [ga4-admin-dashboard.md](ga4-admin-dashboard.md) for Google Cloud access and verification.
+
 Redeploy after changing env vars.
 
 ## 3. First deploy
@@ -73,6 +83,7 @@ Admin mutations use Cognito **userPool** auth; the user must be in the `admin` g
 | `/admin/products` | Lists same products; empty state prompts seed if none |
 | Edit title in admin → Save | `/shop` and PDP show new title without redeploying frontend |
 | Upload image on edit form | New URL on PDP (S3 signed/public URL) |
+| `/admin` → Traffic (GA4) | Metric cards + top pages/sources after backend deploy |
 
 ## 7. Local development
 
