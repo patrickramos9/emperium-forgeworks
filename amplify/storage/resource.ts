@@ -1,3 +1,10 @@
+/**
+ * Product image bucket. Keep in sync with docs/storage-auth.md.
+ *
+ * Shoppers land in the `customer` Cognito group → identity pool uses
+ * groupscustomer IAM for Storage, not generic authenticated.
+ * Grant read on products/* for guest, authenticated, customer, and admin.
+ */
 import { defineStorage } from "@aws-amplify/backend";
 
 export const storage = defineStorage({
@@ -6,7 +13,6 @@ export const storage = defineStorage({
     "products/*": [
       allow.guest.to(["read"]),
       allow.authenticated.to(["read"]),
-      /** Post-confirmation adds shoppers to `customer`; they use the group IAM role for Storage. */
       allow.groups(["customer"]).to(["read"]),
       allow.groups(["admin"]).to(["read", "write", "delete"]),
     ],

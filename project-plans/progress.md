@@ -79,6 +79,7 @@ Completed 2026-05-23 (production smoke-test passed):
 | Sales stats in admin | Mock orders drive dashboard until **M3b** |
 | Cognito sessions | Access token ~1h (auto-refresh); refresh token ~30d; **admin 8h idle** sign-out |
 | Shop + admin same browser | Signed-in admin uses userPool on `/shop`; deploy `authenticated` Product read |
+| Product images + IAM | Catalog images use **guest IAM** (`storefrontStorage.ts`); `npm run check:storage` catches outputs drift — see [docs/storage-auth.md](../docs/storage-auth.md) |
 | Vault access model | Shared key / access code — **M7** |
 | Gallery page | Deferred to **M9** |
 | PII | Prefer Stripe for receipts; minimal `Order` in DynamoDB |
@@ -123,6 +124,7 @@ See [milestones.md](./milestones.md) for full scope per phase.
 | 2026-05-24 | **M7 complete** — storefront cleanup + Hidden Vault (`vaultOnly`, `/vault`, verify Lambda) |
 | 2026-05-25 | **M7/M8 scope expanded** — cleanup tasks, reviews, sculptors, notifications |
 | 2026-05-25 | **Plan refresh** — M3a/M4/M5 marked done; auth/shop fixes logged |
+| 2026-05-27 | **Storage auth guard** — `storefrontStorage.ts` (guest IAM for catalog images), `check:storage`, [docs/storage-auth.md](../docs/storage-auth.md) |
 | 2026-05-24 | **Shop catalog fix** — `authenticated` Product read; signed-in catalog uses userPool |
 | 2026-05-24 | **Admin auth fix** — `admin` group guard; 8h idle session |
 | 2026-05-24 | **M5 complete** — admin shell, dashboard, orders list/detail (deployed) |

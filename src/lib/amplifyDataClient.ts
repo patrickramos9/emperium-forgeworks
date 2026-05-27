@@ -14,6 +14,8 @@ export type AmplifyDataClient = ReturnType<typeof generateClient<Schema>>;
  * - Signed out: IAM (guest rules).
  * - Signed in: userPool (authenticated read on Product; admin group retains CRUD).
  *   Using IAM while signed in can map to the wrong identity-pool role and return no rows.
+ *
+ * Product **images** use guest IAM via getPublicCatalogImageUrl() — see docs/storage-auth.md.
  */
 export async function getGuestDataClient(): Promise<AmplifyDataClient | null> {
   const ok = await configureAmplify();

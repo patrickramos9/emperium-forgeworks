@@ -1,8 +1,6 @@
-import { getUrl, type GetUrlWithPathInput } from "aws-amplify/storage";
 import type { Product } from "@/data/seedProducts";
-import { configureAmplify } from "@/lib/amplify";
-import { getGuestStorageCredentialsProvider } from "@/lib/guestStorageCredentials";
 import { isStoragePath, normalizeImageRef, normalizeImageRefs } from "@/lib/productImageRefs";
+import { getPublicCatalogImageUrl } from "@/lib/storefrontStorage";
 
 /** Resolve a stored path or legacy URL to a browser-loadable image URL. */
 export async function resolveImageUrl(
@@ -13,16 +11,8 @@ export async function resolveImageUrl(
   const path = normalizeImageRef(ref);
   if (!isStoragePath(path)) return ref;
 
-  await configureAmplify();
-  const guestCredentials = getGuestStorageCredentialsProvider();
   try {
-    const input: GetUrlWithPathInput = guestCredentials
-      ? ({
-          path,
-          options: { locationCredentialsProvider: guestCredentials },
-        } as GetUrlWithPathInput)
-      : { path };
-    const { url } = await getUrl(input);
+    const url = await getPublicCatalogImageUrl(path);
     return url.toString();
   } catch (err) {
     console.warn("[resolveImageUrl] Failed for", path, err);
