@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SiteSystemBanner } from "@/components/SiteSystemBanner";
 import { AnnouncementProvider } from "@/context/AnnouncementContext";
 import { Layout } from "@/components/Layout";
@@ -30,11 +31,28 @@ import { AdminVaultPage } from "@/pages/admin/AdminVaultPage";
 import { AdminAnnouncementsPage } from "@/pages/admin/AdminAnnouncementsPage";
 import { AdminAnnouncementEditPage } from "@/pages/admin/AdminAnnouncementEditPage";
 
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
+    if (!gtag) return;
+
+    gtag("event", "page_view", {
+      page_path: `${location.pathname}${location.search}${location.hash}`,
+      page_title: document.title,
+    });
+  }, [location.pathname, location.search, location.hash]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <CartProvider>
       <AnnouncementProvider>
         <BrowserRouter>
+          <AnalyticsTracker />
           <SiteSystemBanner />
           <Routes>
           <Route element={<Layout showPowerLine />}>
