@@ -1,7 +1,7 @@
 const STORAGE_KEY = "emperium-vault-unlocked";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
-type VaultSession = {
+export type VaultSession = {
   expiresAt: number;
   userId: string;
   accessKey: string;

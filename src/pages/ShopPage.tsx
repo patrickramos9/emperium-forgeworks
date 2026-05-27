@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { AnnouncementBlock } from "@/components/AnnouncementBlock";
 import { Icon } from "@/components/Icon";
 import { ProductCard } from "@/components/ProductCard";
@@ -7,6 +7,10 @@ import { CATEGORY_FILTERS } from "@/data/seedProducts";
 import { useProducts } from "@/hooks/useProducts";
 
 export function ShopPage() {
+  const location = useLocation();
+  const vaultRevoked = Boolean(
+    (location.state as { vaultAccessRevoked?: boolean } | null)?.vaultAccessRevoked,
+  );
   const { products, loading, source, loadError } = useProducts();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") ?? "All";
@@ -48,6 +52,12 @@ export function ShopPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-container-max px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
+      {vaultRevoked && (
+        <p className="mb-stack-md border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-body-sm text-on-surface-variant iron-bevel">
+          Your vault access is no longer active. Contact us if you believe this is
+          an error.
+        </p>
+      )}
       <div className="mb-stack-lg flex flex-col justify-between gap-stack-md md:flex-row md:items-end">
         <div>
           <h1 className="mb-2 font-display-lg text-display-lg uppercase tracking-tighter text-primary">

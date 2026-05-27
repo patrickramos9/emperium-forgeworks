@@ -1,15 +1,12 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { ProductCard } from "@/components/ProductCard";
 import { useProducts } from "@/hooks/useProducts";
-import {
-  clearVaultUnlocked,
-  isVaultUnlocked,
-} from "@/lib/vaultSession";
+import { useVaultGate } from "@/hooks/useVaultGate";
+import { clearVaultUnlocked } from "@/lib/vaultSession";
 import {
   isVaultUnlockLockedOut,
-  tryAutoUnlockVaultForSignedInUser,
   unlockVaultWithKey,
 } from "@/lib/vaultUnlock";
 
@@ -42,22 +39,10 @@ function VaultCatalog() {
 }
 
 export function VaultPage() {
+  const { status, recheck } = useVaultGate();
   const [key, setKey] = useState("");
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [unlocking, setUnlocking] = useState(false);
-  const [sessionOpen, setSessionOpen] = useState(isVaultUnlocked());
-
-  useEffect(() => {
-    async function init() {
-      if (isVaultUnlocked()) {
-        setSessionOpen(true);
-        return;
-      }
-      const auto = await tryAutoUnlockVaultForSignedInUser();
-      if (auto) setSessionOpen(true);
-    }
-    void init();
-  }, []);
 
   async function handleUnlock(e: FormEvent) {
     e.preventDefault();
@@ -66,8 +51,8 @@ export function VaultPage() {
     const result = await unlockVaultWithKey(key.trim());
     setUnlocking(false);
     if (result.ok) {
-      setSessionOpen(true);
       setKey("");
+      await recheck();
       return;
     }
     setUnlockError(result.message);
@@ -75,10 +60,18 @@ export function VaultPage() {
 
   function handleLock() {
     clearVaultUnlocked();
-    setSessionOpen(false);
+    void recheck();
   }
 
-  if (!sessionOpen) {
+  if (status === "loading" || status === "denied") {
+    return (
+      <main className="px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
+        <p className="text-on-surface-variant">Checking vault access...</p>
+      </main>
+    );
+  }
+
+  if (status === "locked") {
     return (
       <main className="px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
         <div className="mx-auto max-w-md border border-outline-variant/20 bg-surface-container-low p-8 iron-bevel">
