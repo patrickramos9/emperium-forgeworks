@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Hub } from "aws-amplify/utils";
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { hasVaultAccessModel } from "@/lib/dataModels";
-import { validateVaultSession } from "@/lib/vaultAccess";
 
 /**
  * True when the signed-in customer has an active vault key assigned in admin.
@@ -15,11 +14,6 @@ export function useVaultNavAccess() {
     let cancelled = false;
 
     async function check() {
-      if (await validateVaultSession()) {
-        if (!cancelled) setShowVaultNav(true);
-        return;
-      }
-
       const client = await getCustomerDataClient();
       if (!client || !hasVaultAccessModel(client)) {
         if (!cancelled) setShowVaultNav(false);

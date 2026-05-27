@@ -5,7 +5,7 @@ import { useVaultGate } from "@/hooks/useVaultGate";
 export function VaultProductDetailPage() {
   const { status } = useVaultGate();
 
-  if (status === "loading" || status === "denied") {
+  if (status === "loading") {
     return (
       <main className="px-margin-mobile pt-32 md:px-margin-desktop">
         <p className="text-on-surface-variant">Checking vault access...</p>
@@ -13,8 +13,8 @@ export function VaultProductDetailPage() {
     );
   }
 
-  if (status === "locked") {
-    return <Navigate to="/vault" replace />;
+  if (status !== "authorized") {
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -23,7 +23,6 @@ export function VaultProductDetailPage() {
       listPath="/vault"
       listLabel="Hidden Vault"
       productBasePath="/vault"
-      requiresVaultUnlock
     />
   );
 }

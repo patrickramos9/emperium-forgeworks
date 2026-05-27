@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { resolveVaultEntry, type VaultEntryStatus } from "@/lib/vaultAccess";
-import { clearVaultUnlocked } from "@/lib/vaultSession";
 
-export type VaultGateStatus = VaultEntryStatus | "loading" | "denied";
+export type VaultGateStatus = VaultEntryStatus | "loading";
 
 /**
  * Guards /vault routes: re-checks vault access on navigation, refresh, and tab focus.
- * Revoked users are redirected to /shop with no way back until access is restored.
+ * Non-authorized users are redirected to home and cannot access /vault routes.
  */
 export function useVaultGate() {
   const navigate = useNavigate();
@@ -18,9 +17,7 @@ export function useVaultGate() {
     setStatus("loading");
     const entry = await resolveVaultEntry();
     if (entry === "denied") {
-      clearVaultUnlocked();
-      navigate("/shop", { replace: true, state: { vaultAccessRevoked: true } });
-      setStatus("denied");
+      navigate("/", { replace: true });
       return;
     }
     setStatus(entry);

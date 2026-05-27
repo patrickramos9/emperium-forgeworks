@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
@@ -12,10 +12,6 @@ import {
 } from "@/lib/dataModels";
 import { listAllProducts } from "@/lib/listAllProducts";
 import { listAllVaultAccess } from "@/lib/listAllVaultAccess";
-import {
-  normalizeVaultAccessKey,
-  validateVaultAccessKey,
-} from "@/lib/vaultKey";
 
 type VaultRow = {
   accessKey: string;
@@ -57,11 +53,7 @@ export function AdminVaultPage() {
 
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerAccount | null>(null);
-  const [accessKey, setAccessKey] = useState("");
   const [saving, setSaving] = useState(false);
-
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editAccessKey, setEditAccessKey] = useState("");
 
   const loadVaultData = useCallback(async () => {
     setLoading(true);
@@ -163,17 +155,16 @@ export function AdminVaultPage() {
     });
   }, [customers, rows, vaultFilter]);
 
-  async function handleAssign(e: FormEvent) {
-    e.preventDefault();
+  function generateAccessToken(length = 20): string {
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+  }
+
+  async function handleGrantAccess() {
     setSaving(true);
     setError(null);
-
-    const keyError = validateVaultAccessKey(accessKey);
-    if (keyError) {
-      setError(keyError);
-      setSaving(false);
-      return;
-    }
     if (!selectedCustomer) {
       setError("Select a customer account first.");
       setSaving(false);
@@ -187,7 +178,6 @@ export function AdminVaultPage() {
     }
 
     const VaultAccess = requireVaultAccessModel(client);
-    const normalizedKey = normalizeVaultAccessKey(accessKey);
 
     const existingForUser = rows.find(
       (r) => r.userId === selectedCustomer.userId && r.active,
@@ -200,15 +190,10 @@ export function AdminVaultPage() {
       return;
     }
 
-    if (rows.some((r) => r.accessKey === normalizedKey)) {
-      setError("That access key is already in use.");
-      setSaving(false);
-      return;
-    }
-
     try {
+      const token = generateAccessToken(20);
       const result = await VaultAccess.create({
-        accessKey: normalizedKey,
+        accessKey: token,
         userId: selectedCustomer.userId,
         userEmail: selectedCustomer.email.toLowerCase(),
         active: true,
@@ -217,10 +202,9 @@ export function AdminVaultPage() {
         throw new Error(result.errors.map((e) => e.message).join("; "));
       }
       setSelectedCustomer(null);
-      setAccessKey("");
       await loadVaultData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not assign key");
+      setError(err instanceof Error ? err.message : "Could not grant vault access");
     }
     setSaving(false);
   }
@@ -248,59 +232,15 @@ export function AdminVaultPage() {
     setSaving(false);
   }
 
-  async function handleReassign(oldKey: string) {
-    const keyError = validateVaultAccessKey(editAccessKey);
-    if (keyError) {
-      setError(keyError);
-      return;
-    }
-    const normalized = normalizeVaultAccessKey(editAccessKey);
-    if (normalized === oldKey) {
-      setEditingKey(null);
-      return;
-    }
-    if (rows.some((r) => r.accessKey === normalized)) {
-      setError("That access key is already in use.");
-      return;
-    }
-
-    const row = rows.find((r) => r.accessKey === oldKey);
-    if (!row) return;
-
-    const client = await requireAdminSession(navigate);
-    if (!client) return;
-
-    const VaultAccess = requireVaultAccessModel(client);
-    setSaving(true);
-    try {
-      await VaultAccess.delete({ accessKey: oldKey });
-      const result = await VaultAccess.create({
-        accessKey: normalized,
-        userId: row.userId,
-        userEmail: row.userEmail,
-        active: row.active,
-      });
-      if (result.errors?.length) {
-        throw new Error(result.errors.map((e) => e.message).join("; "));
-      }
-      setEditingKey(null);
-      setEditAccessKey("");
-      await loadVaultData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Re-assign failed");
-    }
-    setSaving(false);
-  }
-
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="font-display-lg text-headline-lg uppercase text-primary">
         Hidden Vault
       </h1>
       <p className="mt-4 text-on-surface-variant">
-        Assign a unique alphanumeric key (up to 20 characters) to each customer.
-        Only customers with an active key see Vault in the storefront navigation.
-        Vault-only products are managed on{" "}
+        Grant vault permission to customer accounts. Only customers with active
+        vault permission can access <code>/vault</code> or see Vault in the
+        storefront navigation. Vault-only products are managed on{" "}
         <Link to="/admin/products" className="text-primary hover:underline">
           Products
         </Link>
@@ -425,29 +365,14 @@ export function AdminVaultPage() {
               Selected: {selectedCustomer.email}
             </p>
           )}
-
-          <form onSubmit={(e) => void handleAssign(e)} className="mt-4 space-y-4">
-            <label className="block max-w-xs">
-              <span className="font-label-sm uppercase text-on-surface-variant">
-                Access key (A–Z, a–z, 0–9, max 20)
-              </span>
-              <input
-                value={accessKey}
-                onChange={(e) => setAccessKey(e.target.value)}
-                required
-                maxLength={20}
-                autoComplete="off"
-                className="mt-1 w-full border border-outline-variant/30 bg-surface-container-high px-3 py-2 font-mono"
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={saving || !selectedCustomer}
-              className="bg-primary px-6 py-2 font-label-md uppercase text-on-primary disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Assign key"}
-            </button>
-          </form>
+          <button
+            type="button"
+            disabled={saving || !selectedCustomer}
+            onClick={() => void handleGrantAccess()}
+            className="mt-4 bg-primary px-6 py-2 font-label-md uppercase text-on-primary disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Grant vault access"}
+          </button>
         </section>
       )}
 
@@ -463,64 +388,24 @@ export function AdminVaultPage() {
               <li key={row.accessKey} className="py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-mono text-body-md text-on-surface">
-                      {row.accessKey}
-                    </p>
+                    <p className="text-body-md text-on-surface">{row.userEmail}</p>
                     <p className="font-label-sm text-on-surface-variant">
-                      {row.userEmail}
-                      {!row.active && " · Revoked"}
+                      {row.active ? "Active permission" : "Revoked"}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {row.active && (
-                      <>
-                        <button
-                          type="button"
-                          className="font-label-sm uppercase text-primary hover:underline"
-                          onClick={() => {
-                            setEditingKey(row.accessKey);
-                            setEditAccessKey(row.accessKey);
-                          }}
-                        >
-                          Re-assign key
-                        </button>
-                        <button
-                          type="button"
-                          disabled={saving}
-                          className="font-label-sm uppercase text-error hover:underline"
-                          onClick={() => void handleRevoke(row.accessKey)}
-                        >
-                          Revoke
-                        </button>
-                      </>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        className="font-label-sm uppercase text-error hover:underline"
+                        onClick={() => void handleRevoke(row.accessKey)}
+                      >
+                        Revoke
+                      </button>
                     )}
                   </div>
                 </div>
-                {editingKey === row.accessKey && (
-                  <div className="mt-3 flex flex-wrap items-end gap-2">
-                    <input
-                      value={editAccessKey}
-                      onChange={(e) => setEditAccessKey(e.target.value)}
-                      maxLength={20}
-                      className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 font-mono"
-                    />
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => void handleReassign(row.accessKey)}
-                      className="bg-primary px-3 py-2 font-label-sm uppercase text-on-primary"
-                    >
-                      Save new key
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingKey(null)}
-                      className="font-label-sm uppercase text-on-surface-variant"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
               </li>
             ))}
           </ul>
