@@ -232,6 +232,38 @@ export function AdminVaultPage() {
     setSaving(false);
   }
 
+  async function handleReEnable(accessKeyToEnable: string, userId: string) {
+    const existingActive = rows.find(
+      (r) => r.userId === userId && r.active && r.accessKey !== accessKeyToEnable,
+    );
+    if (existingActive) {
+      setError(
+        "This customer already has active vault access. Revoke the active permission first.",
+      );
+      return;
+    }
+
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+
+    const VaultAccess = requireVaultAccessModel(client);
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await VaultAccess.update({
+        accessKey: accessKeyToEnable,
+        active: true,
+      });
+      if (result.errors?.length) {
+        throw new Error(result.errors.map((e) => e.message).join("; "));
+      }
+      await loadVaultData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not re-enable access");
+    }
+    setSaving(false);
+  }
+
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="font-display-lg text-headline-lg uppercase text-primary">
@@ -394,7 +426,7 @@ export function AdminVaultPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {row.active && (
+                    {row.active ? (
                       <button
                         type="button"
                         disabled={saving}
@@ -402,6 +434,15 @@ export function AdminVaultPage() {
                         onClick={() => void handleRevoke(row.accessKey)}
                       >
                         Revoke
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={saving}
+                        className="font-label-sm uppercase text-primary hover:underline"
+                        onClick={() => void handleReEnable(row.accessKey, row.userId)}
+                      >
+                        Re-enable
                       </button>
                     )}
                   </div>
