@@ -1,6 +1,7 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { listCustomers as listCustomersFn } from "../functions/list-customers/resource";
 import { lookupCustomerByEmail as lookupCustomerByEmailFn } from "../functions/lookup-customer-by-email/resource";
+import { getGa4Dashboard as getGa4DashboardFn } from "../functions/get-ga4-dashboard/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -16,6 +17,28 @@ const schema = a.schema({
   CustomerLookupResult: a.customType({
     userId: a.string().required(),
     email: a.string().required(),
+  }),
+
+  Ga4DashboardMetric: a.customType({
+    key: a.string().required(),
+    label: a.string().required(),
+    value: a.string().required(),
+  }),
+
+  Ga4DashboardDimensionRow: a.customType({
+    name: a.string().required(),
+    value: a.string().required(),
+  }),
+
+  Ga4DashboardResult: a.customType({
+    startDate: a.string().required(),
+    endDate: a.string().required(),
+    metrics: a.ref("Ga4DashboardMetric").array().required(),
+    topPages: a.ref("Ga4DashboardDimensionRow").array().required(),
+    topSources: a.ref("Ga4DashboardDimensionRow").array().required(),
+    topDevices: a.ref("Ga4DashboardDimensionRow").array().required(),
+    topCountries: a.ref("Ga4DashboardDimensionRow").array().required(),
+    fetchedAt: a.datetime().required(),
   }),
 
   listCustomers: a
@@ -35,6 +58,16 @@ const schema = a.schema({
     .returns(a.ref("CustomerLookupResult"))
     .authorization((allow) => [allow.group("admin")])
     .handler(a.handler.function(lookupCustomerByEmailFn)),
+
+  getGa4Dashboard: a
+    .query()
+    .arguments({
+      startDate: a.string().required(),
+      endDate: a.string().required(),
+    })
+    .returns(a.ref("Ga4DashboardResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(getGa4DashboardFn)),
 
   VaultAccess: a
     .model({

@@ -14,6 +14,35 @@ import {
   orderStatusLabel,
   parseOrderLineItems,
 } from "@/services/orderService";
+import {
+  daysAgoIsoDate,
+  fetchGa4Dashboard,
+  readGa4Cache,
+  todayIsoDate,
+  writeGa4Cache,
+  type Ga4DashboardResult,
+} from "@/services/adminAnalyticsService";
+
+function compactRows(
+  rows: ({ name: string; value: string } | null | undefined)[] | null | undefined,
+): { name: string; value: string }[] {
+  return (rows ?? []).filter(
+    (row): row is { name: string; value: string } =>
+      Boolean(row?.name) && Boolean(row?.value),
+  );
+}
+
+function compactMetrics(
+  metrics:
+    | ({ key: string; label: string; value: string } | null | undefined)[]
+    | null
+    | undefined,
+): { key: string; label: string; value: string }[] {
+  return (metrics ?? []).filter(
+    (metric): metric is { key: string; label: string; value: string } =>
+      Boolean(metric?.key) && Boolean(metric?.label) && Boolean(metric?.value),
+  );
+}
 
 export function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -22,6 +51,11 @@ export function AdminDashboardPage() {
   const [stats, setStats] = useState(
     computeAdminOrderStats([]),
   );
+  const [startDate, setStartDate] = useState(() => daysAgoIsoDate(30));
+  const [endDate, setEndDate] = useState(() => todayIsoDate());
+  const [ga4, setGa4] = useState<Ga4DashboardResult | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -41,6 +75,35 @@ export function AdminDashboardPage() {
     }
     void load();
   }, [navigate]);
+
+  useEffect(() => {
+    async function loadGa4() {
+      const client = await requireAdminSession(navigate);
+      if (!client) return;
+
+      const cached = readGa4Cache(startDate, endDate);
+      if (cached) {
+        setGa4(cached);
+        setAnalyticsLoading(false);
+      } else {
+        setAnalyticsLoading(true);
+      }
+
+      try {
+        const fresh = await fetchGa4Dashboard(client, startDate, endDate);
+        setGa4(fresh);
+        writeGa4Cache(fresh);
+        setAnalyticsError(null);
+      } catch (err) {
+        setAnalyticsError(
+          err instanceof Error ? err.message : "Could not load GA4 analytics",
+        );
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    }
+    void loadGa4();
+  }, [navigate, startDate, endDate]);
 
   if (loading) {
     return <p className="text-on-surface-variant">Loading dashboard...</p>;
@@ -162,27 +225,92 @@ export function AdminDashboardPage() {
       )}
 
       <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
-        <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
-          Traffic
-        </h2>
-        {PLAUSIBLE_DOMAIN ? (
-          <p className="mt-2 text-on-surface-variant">
-            Analytics configured for{" "}
-            <span className="text-on-surface">{PLAUSIBLE_DOMAIN}</span>.{" "}
-            <a
-              href={`https://plausible.io/${PLAUSIBLE_DOMAIN}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline"
-            >
-              Open Plausible dashboard
-            </a>
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
+              Traffic (GA4)
+            </h2>
+            <p className="mt-1 text-label-sm text-on-surface-variant">
+              Cached for fast loads; refreshes on page reload.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="text-label-sm text-on-surface-variant">
+              Start
+              <input
+                type="date"
+                value={startDate}
+                max={endDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="mt-1 block rounded border border-outline-variant/20 bg-surface px-3 py-2 text-on-surface"
+              />
+            </label>
+            <label className="text-label-sm text-on-surface-variant">
+              End
+              <input
+                type="date"
+                value={endDate}
+                min={startDate}
+                max={todayIsoDate()}
+                onChange={(event) => setEndDate(event.target.value)}
+                className="mt-1 block rounded border border-outline-variant/20 bg-surface px-3 py-2 text-on-surface"
+              />
+            </label>
+          </div>
+        </div>
+
+        {analyticsError && <p className="mt-4 text-error">{analyticsError}</p>}
+
+        {analyticsLoading && !ga4 ? (
+          <p className="mt-4 text-on-surface-variant">Loading GA4 analytics...</p>
+        ) : ga4 ? (
+          <>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              {compactMetrics(ga4.metrics).map((metric) => (
+                <StatCard
+                  key={metric.key}
+                  label={metric.label}
+                  value={metric.value}
+                  hint={`${ga4.startDate} to ${ga4.endDate}`}
+                />
+              ))}
+            </div>
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              <DimensionList
+                title="Top pages"
+                  rows={compactRows(ga4.topPages)}
+                valueLabel="Views"
+              />
+              <DimensionList
+                title="Top sources"
+                  rows={compactRows(ga4.topSources)}
+                valueLabel="Sessions"
+              />
+              <DimensionList
+                title="Top devices"
+                  rows={compactRows(ga4.topDevices)}
+                valueLabel="Users"
+              />
+              <DimensionList
+                title="Top countries"
+                  rows={compactRows(ga4.topCountries)}
+                valueLabel="Users"
+              />
+            </div>
+            <p className="mt-4 text-label-sm text-on-surface-variant">
+              Last refreshed: {new Date(ga4.fetchedAt).toLocaleString()}
+            </p>
+          </>
         ) : (
-          <p className="mt-2 text-on-surface-variant">
-            Connect Plausible or GA4 — set{" "}
-            <code className="text-primary">VITE_PLAUSIBLE_DOMAIN</code> in
-            Amplify environment variables.
+          <p className="mt-4 text-on-surface-variant">
+            No GA4 data is available for this date range.
+          </p>
+        )}
+
+        {PLAUSIBLE_DOMAIN && (
+          <p className="mt-4 text-label-sm text-on-surface-variant">
+            Plausible domain configured:{" "}
+            <span className="text-on-surface">{PLAUSIBLE_DOMAIN}</span>.
           </p>
         )}
       </section>
@@ -206,6 +334,41 @@ function StatCard({
         {value}
       </p>
       <p className="mt-1 text-label-sm text-on-surface-variant/80">{hint}</p>
+    </div>
+  );
+}
+
+function DimensionList({
+  title,
+  rows,
+  valueLabel,
+}: {
+  title: string;
+  rows: { name: string; value: string }[];
+  valueLabel: string;
+}) {
+  return (
+    <div className="border border-outline-variant/20 bg-surface p-4 iron-bevel">
+      <h3 className="font-label-sm uppercase text-on-surface">{title}</h3>
+      <ul className="mt-3 space-y-2 text-body-sm">
+        {rows.length ? (
+          rows.map((row) => (
+            <li
+              key={`${title}:${row.name}`}
+              className="flex items-center justify-between gap-4"
+            >
+              <span className="truncate text-on-surface" title={row.name}>
+                {row.name}
+              </span>
+              <span className="whitespace-nowrap text-on-surface-variant">
+                {row.value} {valueLabel}
+              </span>
+            </li>
+          ))
+        ) : (
+          <li className="text-on-surface-variant">No data</li>
+        )}
+      </ul>
     </div>
   );
 }

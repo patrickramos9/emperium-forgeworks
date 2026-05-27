@@ -9,6 +9,7 @@ backend:
         - npm ci --prefix amplify/functions/add-customer-to-group --cache .npm-fn-add-customer --prefer-offline
         - npm ci --prefix amplify/functions/lookup-customer-by-email --cache .npm-fn-lookup-customer --prefer-offline
         - npm ci --prefix amplify/functions/list-customers --cache .npm-fn-list-customers --prefer-offline
+        - npm ci --prefix amplify/functions/get-ga4-dashboard --cache .npm-fn-ga4-dashboard --prefer-offline
         - export CI=1
         - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
   cache:
@@ -23,6 +24,8 @@ backend:
       - .npm-fn-lookup-customer/**/*
       - amplify/functions/list-customers/node_modules/**/*
       - .npm-fn-list-customers/**/*
+      - amplify/functions/get-ga4-dashboard/node_modules/**/*
+      - .npm-fn-ga4-dashboard/**/*
 frontend:
   phases:
     preBuild:
