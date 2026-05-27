@@ -1,7 +1,11 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
+import {
+  fetchCustomerAccounts,
+  type CustomerAccount,
+} from "@/lib/customerAdmin";
 import {
   hasVaultAccessModel,
   requireVaultAccessModel,
@@ -20,6 +24,18 @@ type VaultRow = {
   active: boolean;
 };
 
+type VaultFilter = "all" | "with-key" | "no-key";
+
+function vaultStatusForUser(
+  userId: string,
+  rows: VaultRow[],
+): "active" | "revoked" | "none" {
+  const matches = rows.filter((r) => r.userId === userId);
+  if (matches.some((r) => r.active)) return "active";
+  if (matches.length > 0) return "revoked";
+  return "none";
+}
+
 export function AdminVaultPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<VaultRow[]>([]);
@@ -30,16 +46,24 @@ export function AdminVaultPage() {
   const [error, setError] = useState<string | null>(null);
   const [modelReady, setModelReady] = useState(false);
 
-  const [userEmail, setUserEmail] = useState("");
-  const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<CustomerAccount[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customersNextToken, setCustomersNextToken] = useState<
+    string | null | undefined
+  >(undefined);
+  const [emailSearch, setEmailSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [vaultFilter, setVaultFilter] = useState<VaultFilter>("all");
+
+  const [selectedCustomer, setSelectedCustomer] =
+    useState<CustomerAccount | null>(null);
   const [accessKey, setAccessKey] = useState("");
-  const [lookupLoading, setLookupLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editAccessKey, setEditAccessKey] = useState("");
 
-  const load = useCallback(async () => {
+  const loadVaultData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -87,38 +111,57 @@ export function AdminVaultPage() {
     setLoading(false);
   }, [navigate]);
 
+  const loadCustomers = useCallback(
+    async (options: { append?: boolean; nextToken?: string } = {}) => {
+      setCustomersLoading(true);
+      setError(null);
+
+      const client = await requireAdminSession(navigate);
+      if (!client) {
+        setCustomersLoading(false);
+        return;
+      }
+
+      try {
+        const { items, nextToken } = await fetchCustomerAccounts(client, {
+          emailFilter: debouncedSearch || undefined,
+          nextToken: options.append ? options.nextToken : undefined,
+          limit: 25,
+        });
+        setCustomers((prev) => (options.append ? [...prev, ...items] : items));
+        setCustomersNextToken(nextToken);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load customers");
+      }
+      setCustomersLoading(false);
+    },
+    [navigate, debouncedSearch],
+  );
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadVaultData();
+  }, [loadVaultData]);
 
-  async function handleLookupEmail() {
-    setLookupLoading(true);
-    setError(null);
-    setResolvedUserId(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(emailSearch.trim());
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [emailSearch]);
 
-    const client = await requireAdminSession(navigate);
-    if (!client) {
-      setLookupLoading(false);
-      return;
-    }
+  useEffect(() => {
+    if (!modelReady) return;
+    void loadCustomers();
+  }, [modelReady, debouncedSearch, loadCustomers]);
 
-    try {
-      const { data, errors } = await client.queries.lookupCustomerByEmail({
-        email: userEmail.trim(),
-      });
-      if (errors?.length) {
-        throw new Error(errors.map((e) => e.message).join("; "));
-      }
-      if (!data?.userId) {
-        setError("No customer account found for that email.");
-      } else {
-        setResolvedUserId(data.userId);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Lookup failed");
-    }
-    setLookupLoading(false);
-  }
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((customer) => {
+      const status = vaultStatusForUser(customer.userId, rows);
+      if (vaultFilter === "with-key") return status === "active";
+      if (vaultFilter === "no-key") return status === "none";
+      return true;
+    });
+  }, [customers, rows, vaultFilter]);
 
   async function handleAssign(e: FormEvent) {
     e.preventDefault();
@@ -131,8 +174,8 @@ export function AdminVaultPage() {
       setSaving(false);
       return;
     }
-    if (!resolvedUserId) {
-      setError("Look up the customer email before assigning a key.");
+    if (!selectedCustomer) {
+      setError("Select a customer account first.");
       setSaving(false);
       return;
     }
@@ -147,11 +190,11 @@ export function AdminVaultPage() {
     const normalizedKey = normalizeVaultAccessKey(accessKey);
 
     const existingForUser = rows.find(
-      (r) => r.userId === resolvedUserId && r.active,
+      (r) => r.userId === selectedCustomer.userId && r.active,
     );
     if (existingForUser) {
       setError(
-        `This customer already has key "${existingForUser.accessKey}". Revoke it first or edit that assignment.`,
+        `This customer already has key "${existingForUser.accessKey}". Revoke it first or re-assign that key.`,
       );
       setSaving(false);
       return;
@@ -166,17 +209,16 @@ export function AdminVaultPage() {
     try {
       const result = await VaultAccess.create({
         accessKey: normalizedKey,
-        userId: resolvedUserId,
-        userEmail: userEmail.trim().toLowerCase(),
+        userId: selectedCustomer.userId,
+        userEmail: selectedCustomer.email.toLowerCase(),
         active: true,
       });
       if (result.errors?.length) {
         throw new Error(result.errors.map((e) => e.message).join("; "));
       }
-      setUserEmail("");
-      setResolvedUserId(null);
+      setSelectedCustomer(null);
       setAccessKey("");
-      await load();
+      await loadVaultData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not assign key");
     }
@@ -199,7 +241,7 @@ export function AdminVaultPage() {
       if (result.errors?.length) {
         throw new Error(result.errors.map((e) => e.message).join("; "));
       }
-      await load();
+      await loadVaultData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Revoke failed");
     }
@@ -243,7 +285,7 @@ export function AdminVaultPage() {
       }
       setEditingKey(null);
       setEditAccessKey("");
-      await load();
+      await loadVaultData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Re-assign failed");
     }
@@ -251,13 +293,13 @@ export function AdminVaultPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <h1 className="font-display-lg text-headline-lg uppercase text-primary">
         Hidden Vault
       </h1>
       <p className="mt-4 text-on-surface-variant">
         Assign a unique alphanumeric key (up to 20 characters) to each customer.
-        Keys are stored in the database and can be revoked or re-assigned here.
+        Only customers with an active key see Vault in the storefront navigation.
         Vault-only products are managed on{" "}
         <Link to="/admin/products" className="text-primary hover:underline">
           Products
@@ -277,37 +319,114 @@ export function AdminVaultPage() {
       {modelReady && (
         <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
           <h2 className="font-headline-md text-on-surface">Assign vault key</h2>
-          <form onSubmit={(e) => void handleAssign(e)} className="mt-4 space-y-4">
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="block min-w-[240px] flex-1">
-                <span className="font-label-sm uppercase text-on-surface-variant">
-                  Customer email
-                </span>
-                <input
-                  type="email"
-                  value={userEmail}
-                  onChange={(e) => {
-                    setUserEmail(e.target.value);
-                    setResolvedUserId(null);
-                  }}
-                  required
-                  className="mt-1 w-full border border-outline-variant/30 bg-surface-container-high px-3 py-2"
-                />
-              </label>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {(
+              [
+                ["all", "All accounts"],
+                ["no-key", "No vault key"],
+                ["with-key", "Has active key"],
+              ] as const
+            ).map(([value, label]) => (
               <button
+                key={value}
                 type="button"
-                disabled={lookupLoading || !userEmail.trim()}
-                onClick={() => void handleLookupEmail()}
-                className="border border-outline-variant/30 px-4 py-2 font-label-sm uppercase hover:border-primary"
+                onClick={() => setVaultFilter(value)}
+                className={
+                  vaultFilter === value
+                    ? "bg-primary px-3 py-1 font-label-sm uppercase text-on-primary"
+                    : "border border-outline-variant/30 px-3 py-1 font-label-sm uppercase text-on-surface-variant hover:border-primary"
+                }
               >
-                {lookupLoading ? "Looking up..." : "Look up account"}
+                {label}
               </button>
-            </div>
-            {resolvedUserId && (
-              <p className="font-label-sm text-secondary">
-                Account found — ready to assign a key.
+            ))}
+          </div>
+
+          <label className="mt-4 block">
+            <span className="font-label-sm uppercase text-on-surface-variant">
+              Search by email
+            </span>
+            <input
+              type="search"
+              value={emailSearch}
+              onChange={(e) => setEmailSearch(e.target.value)}
+              placeholder="Filter customer accounts..."
+              className="mt-1 w-full border border-outline-variant/30 bg-surface-container-high px-3 py-2"
+            />
+          </label>
+
+          <div className="mt-4 max-h-64 overflow-y-auto border border-outline-variant/20">
+            {customersLoading && customers.length === 0 ? (
+              <p className="p-4 text-on-surface-variant">Loading accounts...</p>
+            ) : filteredCustomers.length === 0 ? (
+              <p className="p-4 text-on-surface-variant">
+                No customer accounts match this filter.
               </p>
+            ) : (
+              <ul className="divide-y divide-outline-variant/20">
+                {filteredCustomers.map((customer) => {
+                  const status = vaultStatusForUser(customer.userId, rows);
+                  const isSelected =
+                    selectedCustomer?.userId === customer.userId;
+                  return (
+                    <li key={customer.userId}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCustomer(customer)}
+                        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-container-high ${
+                          isSelected ? "bg-surface-container-high" : ""
+                        }`}
+                      >
+                        <span className="font-body-md text-on-surface">
+                          {customer.email}
+                        </span>
+                        <span
+                          className={`shrink-0 font-label-sm uppercase ${
+                            status === "active"
+                              ? "text-secondary"
+                              : status === "revoked"
+                                ? "text-on-surface-variant"
+                                : "text-on-surface-variant/70"
+                          }`}
+                        >
+                          {status === "active"
+                            ? "Active key"
+                            : status === "revoked"
+                              ? "Revoked"
+                              : "No key"}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
+          </div>
+
+          {customersNextToken && (
+            <button
+              type="button"
+              disabled={customersLoading}
+              onClick={() =>
+                void loadCustomers({
+                  append: true,
+                  nextToken: customersNextToken ?? undefined,
+                })
+              }
+              className="mt-2 font-label-sm uppercase text-primary hover:underline disabled:opacity-50"
+            >
+              {customersLoading ? "Loading..." : "Load more accounts"}
+            </button>
+          )}
+
+          {selectedCustomer && (
+            <p className="mt-3 font-label-sm text-secondary">
+              Selected: {selectedCustomer.email}
+            </p>
+          )}
+
+          <form onSubmit={(e) => void handleAssign(e)} className="mt-4 space-y-4">
             <label className="block max-w-xs">
               <span className="font-label-sm uppercase text-on-surface-variant">
                 Access key (A–Z, a–z, 0–9, max 20)
@@ -323,7 +442,7 @@ export function AdminVaultPage() {
             </label>
             <button
               type="submit"
-              disabled={saving || !resolvedUserId}
+              disabled={saving || !selectedCustomer}
               className="bg-primary px-6 py-2 font-label-md uppercase text-on-primary disabled:opacity-50"
             >
               {saving ? "Saving..." : "Assign key"}

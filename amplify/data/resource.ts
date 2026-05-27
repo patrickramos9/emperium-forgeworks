@@ -1,11 +1,33 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { listCustomers as listCustomersFn } from "../functions/list-customers/resource";
 import { lookupCustomerByEmail as lookupCustomerByEmailFn } from "../functions/lookup-customer-by-email/resource";
 
 const schema = a.schema({
+  CustomerListItem: a.customType({
+    userId: a.string().required(),
+    email: a.string().required(),
+  }),
+
+  CustomerListResult: a.customType({
+    items: a.ref("CustomerListItem").array().required(),
+    nextToken: a.string(),
+  }),
+
   CustomerLookupResult: a.customType({
     userId: a.string().required(),
     email: a.string().required(),
   }),
+
+  listCustomers: a
+    .query()
+    .arguments({
+      emailFilter: a.string(),
+      nextToken: a.string(),
+      limit: a.integer(),
+    })
+    .returns(a.ref("CustomerListResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(listCustomersFn)),
 
   lookupCustomerByEmail: a
     .query()

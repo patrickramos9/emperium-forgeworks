@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
+import { useVaultNavAccess } from "@/hooks/useVaultNavAccess";
 import { AccountMenu } from "./AccountMenu";
 import { Icon } from "./Icon";
 
@@ -14,6 +15,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function Header() {
   const { itemCount } = useCart();
+  const showVaultNav = useVaultNavAccess();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
@@ -41,9 +43,11 @@ export function Header() {
             <span className="cursor-not-allowed font-display-lg text-headline-md uppercase tracking-widest text-on-surface-variant/40">
               Gallery
             </span>
-            <NavLink to="/vault" className={navLinkClass}>
-              Vault
-            </NavLink>
+            {showVaultNav && (
+              <NavLink to="/vault" className={navLinkClass}>
+                Vault
+              </NavLink>
+            )}
             <NavLink to="/about" className={navLinkClass}>
               About
             </NavLink>
