@@ -13,8 +13,13 @@ export async function resolveImageUrl(
   if (!isStoragePath(path)) return ref;
 
   await configureAmplify();
-  const { url } = await getUrl({ path });
-  return url.toString();
+  try {
+    const { url } = await getUrl({ path });
+    return url.toString();
+  } catch (err) {
+    console.warn("[resolveImageUrl] Failed for", path, err);
+    return undefined;
+  }
 }
 
 export async function resolveProductImages(product: Product): Promise<Product> {
@@ -25,9 +30,15 @@ export async function resolveProductImages(product: Product): Promise<Product> {
   const detailImage = detailRef
     ? await resolveImageUrl(detailRef)
     : undefined;
-  const images = (
-    await Promise.all(refs.map((img) => resolveImageUrl(img)))
-  ).filter(Boolean) as string[];
+  const imageResults = await Promise.allSettled(
+    refs.map((img) => resolveImageUrl(img)),
+  );
+  const images = imageResults
+    .filter(
+      (result): result is PromiseFulfilledResult<string> =>
+        result.status === "fulfilled" && Boolean(result.value),
+    )
+    .map((result) => result.value);
 
   const imageRefs =
     refs.length > 0

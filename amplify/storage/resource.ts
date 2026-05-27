@@ -5,6 +5,8 @@ export const storage = defineStorage({
   access: (allow) => ({
     "products/*": [
       allow.guest.to(["read"]),
+      /** Signed-in customers/admins browse the shop with userPool credentials. */
+      allow.authenticated.to(["read"]),
       allow.groups(["admin"]).to(["read", "write", "delete"]),
     ],
   }),
