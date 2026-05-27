@@ -11,6 +11,11 @@ export function AccountLoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get("returnTo") ?? "/account";
+  const passwordResetSuccess = searchParams.get("reset") === "success";
+  const loginReturnTo =
+    returnTo === "/account"
+      ? "/account/login"
+      : `/account/login?returnTo=${encodeURIComponent(returnTo)}`;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +102,11 @@ export function AccountLoginPage() {
           Track orders and speed up future checkouts. Guest checkout always
           remains available.
         </p>
+        {passwordResetSuccess && (
+          <p className="mb-4 text-secondary">
+            Password updated. Sign in with your new password.
+          </p>
+        )}
         <label className="mb-4 block">
           <span className="font-label-sm uppercase text-on-surface-variant">
             Email
@@ -131,6 +141,14 @@ export function AccountLoginPage() {
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>
+        <p className="mt-3 text-center text-label-sm text-on-surface-variant">
+          <Link
+            to={`/account/forgot-password?returnTo=${encodeURIComponent(loginReturnTo)}${email ? `&email=${encodeURIComponent(email)}` : ""}`}
+            className="text-primary underline"
+          >
+            Forgot password?
+          </Link>
+        </p>
         <p className="mt-4 text-center text-label-sm text-on-surface-variant">
           New here?{" "}
           <Link to="/account/register" className="text-primary underline">

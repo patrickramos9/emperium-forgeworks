@@ -1,5 +1,15 @@
 import { configureAmplify } from "@/lib/amplify";
 
+/** Matches Cognito password policy in amplify auth config. */
+export function validateCustomerPassword(password: string): string | null {
+  if (password.length < 8) return "Password must be at least 8 characters.";
+  if (!/[a-z]/.test(password)) return "Password must include a lowercase letter.";
+  if (!/[A-Z]/.test(password)) return "Password must include an uppercase letter.";
+  if (!/[0-9]/.test(password)) return "Password must include a number.";
+  if (!/[^A-Za-z0-9]/.test(password)) return "Password must include a symbol.";
+  return null;
+}
+
 export function isAlreadySignedInError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const name = "name" in err ? String(err.name) : "";

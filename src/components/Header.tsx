@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { useVaultNavAccess } from "@/hooks/useVaultNavAccess";
+import { useSiteLayout } from "@/context/AnnouncementContext";
 import { AccountMenu } from "./AccountMenu";
 import { Icon } from "./Icon";
 
@@ -16,6 +17,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function Header() {
   const { itemCount } = useCart();
   const showVaultNav = useVaultNavAccess();
+  const { headerTopClass } = useSiteLayout();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
@@ -27,7 +29,9 @@ export function Header() {
   }
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-outline-variant/20 bg-background/90 backdrop-blur-md">
+    <header
+      className={`fixed z-50 w-full border-b border-outline-variant/20 bg-background/90 backdrop-blur-md ${headerTopClass}`}
+    >
       <div className="mx-auto flex max-w-container-max items-center justify-between gap-stack-md px-margin-mobile py-4 md:px-margin-desktop">
         <div className="flex min-w-0 flex-1 items-center gap-8">
           <Link

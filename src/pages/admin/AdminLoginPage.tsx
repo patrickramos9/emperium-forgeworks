@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   adminSignOut,
   hasAdminSession,
@@ -22,6 +22,7 @@ export function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const passwordResetSuccess = searchParams.get("reset") === "success";
 
   useEffect(() => {
     if (searchParams.get("error") === "not_admin") {
@@ -233,6 +234,11 @@ export function AdminLoginPage() {
         <h1 className="mb-6 font-display-lg text-headline-lg uppercase text-primary">
           Admin Forge
         </h1>
+        {passwordResetSuccess && (
+          <p className="mb-4 text-secondary">
+            Password updated. Sign in with your new password.
+          </p>
+        )}
         <label className="mb-4 block">
           <span className="font-label-sm uppercase text-on-surface-variant">
             Email
@@ -265,6 +271,14 @@ export function AdminLoginPage() {
         >
           {loading ? "Signing in..." : "Enter"}
         </button>
+        <p className="mt-3 text-center text-label-sm text-on-surface-variant">
+          <Link
+            to={`/account/forgot-password?returnTo=${encodeURIComponent("/admin/login")}${email ? `&email=${encodeURIComponent(email)}` : ""}`}
+            className="text-primary underline"
+          >
+            Forgot password?
+          </Link>
+        </p>
         <button
           type="button"
           disabled={loading}

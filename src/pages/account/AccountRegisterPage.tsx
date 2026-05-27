@@ -1,7 +1,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { configureAmplify } from "@/lib/amplify";
-import { hasCustomerSession } from "@/lib/customerAuth";
+import {
+  hasCustomerSession,
+  validateCustomerPassword,
+} from "@/lib/customerAuth";
 
 type RegisterMode = "signUp" | "confirm";
 
@@ -32,8 +35,9 @@ export function AccountRegisterPage() {
     setError(null);
     setMessage(null);
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const passwordError = validateCustomerPassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     if (password !== confirmPassword) {

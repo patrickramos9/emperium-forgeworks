@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useSiteLayout } from "@/context/AnnouncementContext";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
 
 const STEPS = [
@@ -33,8 +34,9 @@ const STEPS = [
 ];
 
 export function AboutPage() {
+  const { mainTopPadding } = useSiteLayout();
   return (
-    <main className="pb-section-gap pt-[88px]">
+    <main className={`pb-section-gap ${mainTopPadding}`}>
       <section className="relative flex h-[614px] items-center overflow-hidden border-b border-outline-variant/10">
         <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/80 to-transparent" />
         <img

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { CONTACT_EMAIL } from "@/lib/config";
+import { useSiteLayout } from "@/context/AnnouncementContext";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
 
 const TECH_SPECS = [
@@ -53,8 +54,9 @@ const SCULPTORS = [
 ];
 
 export function HomePage() {
+  const { mainTopPadding } = useSiteLayout();
   return (
-    <main className="pb-section-gap pt-[88px]">
+    <main className={`pb-section-gap ${mainTopPadding}`}>
       {/* Hero */}
       <section className="border-b border-outline-variant/10 bg-black">
         <img

@@ -1,15 +1,23 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { requireAnnouncementModel } from "@/lib/dataModels";
+import {
+  ANNOUNCEMENT_KIND_LABELS,
+  type AnnouncementKind,
+} from "@/lib/announcements";
 
 export function AdminAnnouncementEditPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isNew = id === "new";
+  const defaultKind: AnnouncementKind =
+    searchParams.get("kind") === "system" ? "system" : "promo";
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [kind, setKind] = useState<AnnouncementKind>(defaultKind);
   const [pinned, setPinned] = useState(false);
   const [active, setActive] = useState(true);
   const [startsAt, setStartsAt] = useState("");
@@ -39,6 +47,7 @@ export function AdminAnnouncementEditPage() {
         }
         setTitle(data.title);
         setBody(data.body);
+        setKind(data.kind === "system" ? "system" : "promo");
         setPinned(data.pinned ?? false);
         setActive(data.active ?? true);
         setStartsAt(data.startsAt?.slice(0, 16) ?? "");
@@ -74,6 +83,7 @@ export function AdminAnnouncementEditPage() {
     const payload = {
       title: title.trim(),
       body: body.trim(),
+      kind,
       pinned,
       active,
       sortOrder,
@@ -122,7 +132,30 @@ export function AdminAnnouncementEditPage() {
       <h1 className="mt-4 font-display-lg text-headline-lg uppercase text-primary">
         {isNew ? "New announcement" : "Edit announcement"}
       </h1>
+      <p className="mt-2 text-body-sm text-on-surface-variant">
+        <strong>Promo</strong> — shop page card for launches and updates.{" "}
+        <strong>System banner</strong> — top bar on every page (maintenance,
+        construction, outages).
+      </p>
       <form onSubmit={(e) => void handleSubmit(e)} className="mt-stack-lg space-y-4">
+        <label className="block">
+          <span className="font-label-sm uppercase text-on-surface-variant">
+            Type
+          </span>
+          <select
+            value={kind}
+            onChange={(e) => setKind(e.target.value as AnnouncementKind)}
+            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
+          >
+            {(Object.keys(ANNOUNCEMENT_KIND_LABELS) as AnnouncementKind[]).map(
+              (value) => (
+                <option key={value} value={value}>
+                  {ANNOUNCEMENT_KIND_LABELS[value]}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">Title</span>
           <input

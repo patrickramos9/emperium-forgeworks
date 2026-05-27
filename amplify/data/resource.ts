@@ -81,6 +81,8 @@ const schema = a.schema({
     .model({
       title: a.string().required(),
       body: a.string().required(),
+      /** promo = shop card; system = site-wide top banner */
+      kind: a.enum(["promo", "system"]),
       pinned: a.boolean().default(false),
       active: a.boolean().default(true),
       startsAt: a.datetime(),

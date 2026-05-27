@@ -3,11 +3,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { hasAnnouncementModel } from "@/lib/dataModels";
+import {
+  ANNOUNCEMENT_KIND_LABELS,
+  type AnnouncementKind,
+} from "@/lib/announcements";
 import { listAllAnnouncements } from "@/lib/listAllAnnouncements";
 
 interface Row {
   id: string;
   title: string;
+  kind: AnnouncementKind;
   active: boolean;
   pinned: boolean;
 }
@@ -45,6 +50,7 @@ export function AdminAnnouncementsPage() {
         data.map((r) => ({
           id: r.id,
           title: r.title,
+          kind: r.kind === "system" ? "system" : "promo",
           active: r.active ?? true,
           pinned: r.pinned ?? false,
         })),
@@ -65,12 +71,20 @@ export function AdminAnnouncementsPage() {
         <h1 className="font-display-lg text-headline-lg uppercase text-primary">
           Announcements
         </h1>
-        <Link
-          to="/admin/announcements/new"
-          className="bg-primary px-4 py-2 font-label-md uppercase text-on-primary"
-        >
-          New announcement
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/admin/announcements/new?kind=promo"
+            className="border border-outline-variant/30 px-4 py-2 font-label-md uppercase hover:border-primary"
+          >
+            New promo
+          </Link>
+          <Link
+            to="/admin/announcements/new?kind=system"
+            className="bg-primary px-4 py-2 font-label-md uppercase text-on-primary"
+          >
+            New system banner
+          </Link>
+        </div>
       </div>
       {error && <p className="mt-4 text-error">{error}</p>}
       {loading ? (
@@ -89,7 +103,8 @@ export function AdminAnnouncementsPage() {
                   {row.title}
                 </Link>
                 <p className="font-label-sm text-on-surface-variant">
-                  {row.active ? "Active" : "Inactive"}
+                  {ANNOUNCEMENT_KIND_LABELS[row.kind]}
+                  {row.active ? " · Active" : " · Inactive"}
                   {row.pinned ? " · Pinned" : ""}
                 </p>
               </div>

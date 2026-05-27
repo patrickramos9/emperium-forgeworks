@@ -1,7 +1,10 @@
+export type AnnouncementKind = "promo" | "system";
+
 export interface Announcement {
   id: string;
   title: string;
   body: string;
+  kind: AnnouncementKind;
   pinned: boolean;
   active: boolean;
   startsAt?: string;
@@ -9,20 +12,28 @@ export interface Announcement {
   sortOrder: number;
 }
 
+export const ANNOUNCEMENT_KIND_LABELS: Record<AnnouncementKind, string> = {
+  promo: "Promo & updates",
+  system: "System banner",
+};
+
 export function mapAnnouncement(row: {
   id: string;
   title: string;
   body: string;
+  kind?: string | null;
   pinned?: boolean | null;
   active?: boolean | null;
   startsAt?: string | null;
   endsAt?: string | null;
   sortOrder?: number | null;
 }): Announcement {
+  const kind = row.kind === "system" ? "system" : "promo";
   return {
     id: row.id,
     title: row.title,
     body: row.body,
+    kind,
     pinned: row.pinned ?? false,
     active: row.active ?? true,
     startsAt: row.startsAt ?? undefined,
@@ -52,8 +63,9 @@ export function filterActiveAnnouncements(
     });
 }
 
-export function pickFeaturedAnnouncement(
+export function pickFeaturedByKind(
   announcements: Announcement[],
+  kind: AnnouncementKind,
 ): Announcement | undefined {
-  return filterActiveAnnouncements(announcements)[0];
+  return filterActiveAnnouncements(announcements).find((a) => a.kind === kind);
 }

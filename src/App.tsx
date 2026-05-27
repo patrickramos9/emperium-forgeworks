@@ -1,4 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { SiteSystemBanner } from "@/components/SiteSystemBanner";
+import { AnnouncementProvider } from "@/context/AnnouncementContext";
 import { Layout } from "@/components/Layout";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { CartProvider } from "@/context/CartContext";
@@ -18,6 +20,7 @@ import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { AdminOrderDetailPage } from "@/pages/admin/AdminOrderDetailPage";
 import { AdminComingSoonPage } from "@/pages/admin/AdminComingSoonPage";
 import { AccountLoginPage } from "@/pages/account/AccountLoginPage";
+import { AccountForgotPasswordPage } from "@/pages/account/AccountForgotPasswordPage";
 import { AccountRegisterPage } from "@/pages/account/AccountRegisterPage";
 import { AccountPage } from "@/pages/account/AccountPage";
 import { AccountOrdersPage } from "@/pages/account/AccountOrdersPage";
@@ -30,8 +33,10 @@ import { AdminAnnouncementEditPage } from "@/pages/admin/AdminAnnouncementEditPa
 export default function App() {
   return (
     <CartProvider>
-      <BrowserRouter>
-        <Routes>
+      <AnnouncementProvider>
+        <BrowserRouter>
+          <SiteSystemBanner />
+          <Routes>
           <Route element={<Layout showPowerLine />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/shop" element={<ShopPage />} />
@@ -47,6 +52,7 @@ export default function App() {
             <Route path="/account/orders" element={<AccountOrdersPage />} />
           </Route>
           <Route path="/account/login" element={<AccountLoginPage />} />
+          <Route path="/account/forgot-password" element={<AccountForgotPasswordPage />} />
           <Route path="/account/register" element={<AccountRegisterPage />} />
           <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
           <Route path="/checkout/cancel" element={<CheckoutCancelPage />} />
@@ -84,8 +90,9 @@ export default function App() {
               }
             />
           </Route>
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </AnnouncementProvider>
     </CartProvider>
   );
 }

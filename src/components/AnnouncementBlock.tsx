@@ -1,6 +1,5 @@
 import { Icon } from "@/components/Icon";
-import { useAnnouncements } from "@/hooks/useAnnouncements";
-import { pickFeaturedAnnouncement } from "@/lib/announcements";
+import { useAnnouncementContext } from "@/context/AnnouncementContext";
 
 const FALLBACK = {
   title: "Forge Announcement",
@@ -11,8 +10,7 @@ const FALLBACK = {
 };
 
 export function AnnouncementBlock({ className = "" }: { className?: string }) {
-  const { announcements, loading } = useAnnouncements();
-  const featured = pickFeaturedAnnouncement(announcements);
+  const { promoFeatured: featured, loading } = useAnnouncementContext();
 
   const title = featured?.title ?? FALLBACK.title;
   const paragraphs = featured
