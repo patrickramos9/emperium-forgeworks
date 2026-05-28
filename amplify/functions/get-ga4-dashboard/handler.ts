@@ -63,6 +63,16 @@ function toDimensionRows(rows: Ga4ReportRow[] | null | undefined): DimensionRow[
     .map(({ name, value }) => ({ name, value }));
 }
 
+function rethrowGa4Error(err: unknown, propertyId: string, clientEmail: string): never {
+  const message = err instanceof Error ? err.message : String(err);
+  if (message.includes("PERMISSION_DENIED")) {
+    throw new Error(
+      `GA4 denied access to property ${propertyId}. The GA4 web UI cannot invite service accounts — run "npm run grant:ga4-access" (see docs/ga4-admin-dashboard.md) to grant Viewer to ${clientEmail}.`,
+    );
+  }
+  throw err instanceof Error ? err : new Error(message);
+}
+
 export const handler: Schema["getGa4Dashboard"]["functionHandler"] = async (
   event,
 ) => {
@@ -78,6 +88,35 @@ export const handler: Schema["getGa4Dashboard"]["functionHandler"] = async (
     return cached.payload;
   }
 
+  try {
+    return await fetchGa4Dashboard({
+      propertyId,
+      clientEmail,
+      privateKey,
+      startDate,
+      endDate,
+      cacheKey,
+    });
+  } catch (err) {
+    rethrowGa4Error(err, propertyId, clientEmail);
+  }
+};
+
+async function fetchGa4Dashboard({
+  propertyId,
+  clientEmail,
+  privateKey,
+  startDate,
+  endDate,
+  cacheKey,
+}: {
+  propertyId: string;
+  clientEmail: string;
+  privateKey: string;
+  startDate: string;
+  endDate: string;
+  cacheKey: string;
+}): Promise<Schema["getGa4Dashboard"]["returnType"]> {
   const analytics = new BetaAnalyticsDataClient({
     credentials: {
       client_email: clientEmail,
@@ -166,4 +205,4 @@ export const handler: Schema["getGa4Dashboard"]["functionHandler"] = async (
 
   cache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
   return payload;
-};
+}

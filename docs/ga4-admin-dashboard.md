@@ -17,8 +17,26 @@ Redeploy the **backend** after changing these variables.
 ## Google Cloud setup
 
 1. Enable **Google Analytics Data API** on the GCP project that owns the service account.
-2. In **GA4 → Admin → Property access management**, add the service account email with **Viewer** (or Analyst).
-3. Confirm the numeric property ID matches `GA4_PROPERTY_ID`.
+2. Enable **Google Analytics Admin API** on the same GCP project.
+3. Grant the service account access to the GA4 property (see below — the GA4 **web UI often rejects** service account emails).
+4. Confirm the numeric property ID matches `GA4_PROPERTY_ID`.
+
+### Grant access (GA4 UI usually fails for service accounts)
+
+The Analytics “Add users” screen expects a **Google Account** (`@gmail.com` / Workspace). It often shows **“not a valid Google account”** for `*.iam.gserviceaccount.com` — that is normal.
+
+Use the one-time script instead (run as **you**, with your human Google login that is GA Administrator):
+
+```bash
+# 1) Log in (human account, not the service account)
+gcloud auth application-default login --scopes="https://www.googleapis.com/auth/analytics.manage.users,https://www.googleapis.com/auth/cloud-platform"
+
+# 2) From repo root (reads GA4_* from .env.local)
+npm install
+npm run grant:ga4-access
+```
+
+Wait a minute, then reload `/admin` → Traffic (GA4).
 
 ## Deploy
 
@@ -41,7 +59,8 @@ Redeploy the **backend** after changing these variables.
 |---------|----------------|
 | `GA4_CLIENT_EMAIL is not configured` | Env vars missing on backend build; redeploy after adding them |
 | `GA4_PRIVATE_KEY is not configured` | Same, or key pasted with real newlines instead of `\n` |
-| Permission denied / 403 from Google | Service account not added in GA4 property access |
+| Permission denied / 403 from Google | Service account not granted on property — run `npm run grant:ga4-access` (UI invite often fails) |
+| “Not a valid Google account” in GA4 UI | Expected for service accounts — use `npm run grant:ga4-access` |
 | Empty metrics, no error | Date range has no traffic yet |
 | Query not found (`getGa4Dashboard`) | Backend not deployed; push and wait for backend phase |
 

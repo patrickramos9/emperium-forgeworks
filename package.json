@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "seed": "tsx scripts/seed-products.ts",
+    "grant:ga4-access": "tsx scripts/grant-ga4-service-account-access.ts",
     "sandbox": "npx ampx sandbox --profile default"
   },
   "dependencies": {
@@ -34,6 +35,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
+    "google-auth-library": "^10.5.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite": "^6.0.5"
