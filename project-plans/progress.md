@@ -2,13 +2,13 @@
 
 Living status log. Update this file when milestones move or deploys land.
 
-**Last updated:** 2026-05-25
+**Last updated:** 2026-05-27
 
 ---
 
 ## Current phase
 
-**M8 — Content & community** — **In progress (M8a announcements started).** M7 complete (deploy pending). M3b pinned until EIN.
+**M8 — Content & community** — **In progress (M8a.1 announcements complete; M8a.2 notifications pending).** M7 complete. M3b pinned until EIN.
 
 | Area | Status |
 |------|--------|
@@ -17,13 +17,14 @@ Living status log. Update this file when milestones move or deploys land.
 | Storefront live catalog + PDP | ✅ |
 | Cart UX (M3a) | ✅ Deployed |
 | Customer accounts (M4) | ✅ Deployed |
-| Admin portal + stats (M5) | ✅ Deployed |
+| Admin portal + stats (M5) | ✅ Deployed (GA4 live) |
 | Auth/catalog ops fixes | ✅ Admin group, shop catalog, idle timeout |
 | Stripe + Google Pay (M3b) | ⏳ Blocked on EIN |
 | M7a Storefront cleanup | ✅ Done |
 | M7b Hidden Vault | ✅ Done (backend deploy + `VAULT_ACCESS_KEY` secret) |
-| M8a Announcements | 🟡 In progress |
-| M8b Reviews / M8c Sculptors / notifications | ⚪ Not started |
+| M8a.1 Announcements | ✅ Done |
+| M8a.2 Notifications | ⚪ Not started |
+| M8b Reviews / M8c Sculptors | ⚪ Not started |
 | Promo codes (M6) | ⚪ After M3b |
 
 ---
@@ -37,11 +38,11 @@ Living status log. Update this file when milestones move or deploys land.
 | **M3a** Cart UX | ✅ Done | Qty limits, validation, guest orders |
 | **M3b** Stripe + Google Pay | ⏳ Pinned | Waiting on EIN; mock checkout today |
 | **M4** Customer accounts | ✅ Done | Sign up/in, orders, header menu |
-| **M5** Admin portal + stats | ✅ Done | Shell, dashboard, orders UI |
+| **M5** Admin portal + stats | ✅ Done | Shell, orders UI, GA4 dashboard + product-interest insights |
 | **M6** Promo codes | ⚪ Not started | Cart/checkout discounts |
 | **M7a** Storefront cleanup | ✅ Done | No Forge on cards; About-only; copy |
 | **M7b** Hidden Vault | ✅ Done | `vaultOnly`, `/vault`, Lambda verify, admin |
-| **M8** Content & community | ⚪ Not started | Reviews, sculptors, notifications |
+| **M8** Content & community | 🟡 In progress | Announcements complete; notifications/reviews/sculptors pending |
 | **M9** Polish / Gallery | ⚪ Not started | SEO, gallery page, performance |
 
 Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
@@ -61,7 +62,7 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ## Recent accomplishments
 
-- **M5** — `AdminLayout`, dashboard stats, orders list/detail, Plausible placeholder, nav stubs
+- **M5** — `AdminLayout`, dashboard stats, orders list/detail, GA4 runtime analytics (cards, trends, top/low-interest products)
 - **M4** — customer sign-up/sign-in, order history, `addCustomerToGroup` Lambda, `Order.userId`
 - **M3a** — cart qty limits, validation, guest orders, minimal line-item snapshots
 - **Ops fixes** — admin must be in `admin` group; shop uses userPool when signed in + `authenticated` Product read; 8h admin idle sign-out
@@ -75,7 +76,7 @@ Completed 2026-05-23 (production smoke-test passed):
 | Item | Status |
 |------|--------|
 | Payment provider | Mock until **M3b** (Stripe + Google Pay); **blocked on EIN** |
-| Visitor analytics | Dashboard placeholder only — set `VITE_PLAUSIBLE_DOMAIN` when ready |
+| Visitor analytics | GA4 Data API live in admin dashboard |
 | Sales stats in admin | Mock orders drive dashboard until **M3b** |
 | Cognito sessions | Access token ~1h (auto-refresh); refresh token ~30d; **admin 8h idle** sign-out |
 | Shop + admin same browser | Signed-in admin uses userPool on `/shop`; deploy `authenticated` Product read |
@@ -90,9 +91,9 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ### M8 (next; uses M5 admin shell)
 
-6. Announcements + **notification badge** on account avatar  
-7. Order **reviews** + home **Voices From The Void** + `/reviews` page  
-8. Admin **Sculptors** CRUD + public `/sculptors/:slug` pages  
+6. **M8a.2** Notifications model + unread badge on account avatar  
+7. **M8b** Order reviews + home **Voices From The Void** + `/reviews` page  
+8. **M8c** Admin sculptors CRUD + public `/sculptors/:slug` pages  
 
 ### Later
 
@@ -121,6 +122,8 @@ See [milestones.md](./milestones.md) for full scope per phase.
 
 | Date | Update |
 |------|--------|
+| 2026-05-27 | **M5 traffic stats upgraded** — GA4 Data API dashboard live (trend + product-interest insights) |
+| 2026-05-27 | **M8 split** — M8a.1 announcements marked done; M8a.2 notifications tracked separately |
 | 2026-05-24 | **M7 complete** — storefront cleanup + Hidden Vault (`vaultOnly`, `/vault`, verify Lambda) |
 | 2026-05-25 | **M7/M8 scope expanded** — cleanup tasks, reviews, sculptors, notifications |
 | 2026-05-25 | **Plan refresh** — M3a/M4/M5 marked done; auth/shop fixes logged |

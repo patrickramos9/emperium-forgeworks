@@ -109,7 +109,7 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 | Admin shell | Sidebar/nav: Dashboard, Products, Orders; stubs for Promos, Vault, Settings |
 | Products | List/edit in layout (unchanged CRUD) |
 | Stats — sales | Revenue, order count, AOV, recent orders (mock labeled) |
-| Stats — traffic | `VITE_PLAUSIBLE_DOMAIN` placeholder + external link |
+| Stats — traffic | GA4 Data API dashboard (cards, trend, top/low-interest products) |
 | Orders UI | List + detail; status update (admin `update` on `Order`) |
 | Ops fixes | Admin group guard; 8h idle timeout; catalog auth for signed-in users |
 
@@ -175,12 +175,20 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 
 **Depends on:** M5 admin shell (recommended).
 
-### M8a — Announcements & notifications
+### M8a.1 — Announcements ✅
 
 | Task | Notes |
 |------|--------|
 | **Announcement** model | Title, body, dates, pinned, active — home + shop blocks |
 | Admin publish/edit | Under M5 shell |
+| Announcement rendering | Promo cards + system banner from runtime data |
+
+**Exit criteria:** Admin can publish/edit announcements that render on storefront. **Met.**
+
+### M8a.2 — Notifications (pending)
+
+| Task | Notes |
+|------|--------|
 | **Notification** model | Lightweight inbox (e.g. system + admin broadcasts) |
 | Avatar badge | Unread count on account avatar in [`Header.tsx`](src/components/Header.tsx) / [`AccountMenu.tsx`](src/components/AccountMenu.tsx) |
 
