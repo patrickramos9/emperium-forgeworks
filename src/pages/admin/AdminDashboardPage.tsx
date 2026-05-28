@@ -32,6 +32,20 @@ function compactRows(
   );
 }
 
+function compactTrend(
+  points:
+    | ({ date: string; sessions: number; users: number; pageViews: number } | null | undefined)[]
+    | null
+    | undefined,
+): { date: string; sessions: number; users: number; pageViews: number }[] {
+  return (points ?? []).filter(
+    (
+      point,
+    ): point is { date: string; sessions: number; users: number; pageViews: number } =>
+      Boolean(point?.date),
+  );
+}
+
 function compactMetrics(
   metrics:
     | ({ key: string; label: string; value: string } | null | undefined)[]
@@ -276,6 +290,17 @@ export function AdminDashboardPage() {
               ))}
             </div>
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              <TrendList points={compactTrend(ga4.trend)} />
+              <DimensionList
+                title="Most viewed products"
+                rows={compactRows(ga4.topProducts)}
+                valueLabel="Views"
+              />
+              <DimensionList
+                title="Least viewed products"
+                rows={compactRows(ga4.lowProducts)}
+                valueLabel="Views"
+              />
               <DimensionList
                 title="Top pages"
                   rows={compactRows(ga4.topPages)}
@@ -367,6 +392,53 @@ function DimensionList({
           ))
         ) : (
           <li className="text-on-surface-variant">No data</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function TrendList({
+  points,
+}: {
+  points: { date: string; sessions: number; users: number; pageViews: number }[];
+}) {
+  const maxPageViews = points.reduce(
+    (max, point) => Math.max(max, point.pageViews),
+    0,
+  );
+  const recent = points.slice(-14).reverse();
+
+  return (
+    <div className="border border-outline-variant/20 bg-surface p-4 iron-bevel">
+      <h3 className="font-label-sm uppercase text-on-surface">
+        14-day trend (sessions / users / views)
+      </h3>
+      <ul className="mt-3 space-y-2 text-body-sm">
+        {recent.length ? (
+          recent.map((point) => {
+            const widthPct =
+              maxPageViews > 0 ? Math.max(6, (point.pageViews / maxPageViews) * 100) : 6;
+            return (
+              <li key={point.date} className="space-y-1">
+                <div className="flex items-center justify-between gap-4 text-on-surface">
+                  <span className="text-on-surface-variant">{point.date}</span>
+                  <span className="whitespace-nowrap text-on-surface-variant">
+                    {point.sessions.toLocaleString()} / {point.users.toLocaleString()} /{" "}
+                    {point.pageViews.toLocaleString()}
+                  </span>
+                </div>
+                <div className="h-2 w-full bg-surface-container-high">
+                  <div
+                    className="h-full bg-primary/70"
+                    style={{ width: `${widthPct}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })
+        ) : (
+          <li className="text-on-surface-variant">No trend data</li>
         )}
       </ul>
     </div>

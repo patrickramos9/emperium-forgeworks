@@ -3,6 +3,7 @@ import type { Schema } from "../../data/resource";
 
 type MetricRow = { key: string; label: string; value: string };
 type DimensionRow = { name: string; value: string };
+type TrendPoint = { date: string; sessions: number; users: number; pageViews: number };
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const cache = new Map<
@@ -61,6 +62,51 @@ function toDimensionRows(rows: Ga4ReportRow[] | null | undefined): DimensionRow[
     })
     .filter((row) => row.rawValue > 0)
     .map(({ name, value }) => ({ name, value }));
+}
+
+function decodeDate(yyyymmdd: string | null | undefined): string {
+  const raw = (yyyymmdd ?? "").trim();
+  if (!/^\d{8}$/.test(raw)) return raw || "Unknown";
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+}
+
+function parseProductSlug(path: string): string | null {
+  const normalized = path.split("?")[0]?.split("#")[0] ?? path;
+  const match =
+    normalized.match(/^\/product\/([^/]+)$/i) ??
+    normalized.match(/^\/vault\/product\/([^/]+)$/i);
+  if (!match?.[1]) return null;
+  return decodeURIComponent(match[1]).trim().toLowerCase();
+}
+
+function toProductInterestRows(
+  rows: Ga4ReportRow[] | null | undefined,
+): { topProducts: DimensionRow[]; lowProducts: DimensionRow[] } {
+  const bySlug = new Map<string, number>();
+  for (const row of rows ?? []) {
+    const path = row.dimensionValues?.[0]?.value ?? "";
+    const slug = parseProductSlug(path);
+    if (!slug) continue;
+    bySlug.set(slug, (bySlug.get(slug) ?? 0) + asNumber(row.metricValues?.[0]?.value));
+  }
+
+  const ranked = Array.from(bySlug.entries())
+    .map(([slug, views]) => ({ slug, views }))
+    .filter((row) => row.views > 0);
+
+  const topProducts = ranked
+    .slice()
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 8)
+    .map(({ slug, views }) => ({ name: slug, value: formatInteger(views) }));
+
+  const lowProducts = ranked
+    .slice()
+    .sort((a, b) => a.views - b.views)
+    .slice(0, 8)
+    .map(({ slug, views }) => ({ name: slug, value: formatInteger(views) }));
+
+  return { topProducts, lowProducts };
 }
 
 function rethrowGa4Error(err: unknown, propertyId: string, clientEmail: string): never {
@@ -156,8 +202,34 @@ async function fetchGa4Dashboard({
     { key: "conversions", label: "Conversions", value: formatInteger(asNumber(values[9]?.value)) },
   ];
 
-  const [pagesResponse, sourcesResponse, devicesResponse, countriesResponse] =
+  const [
+    trendResponse,
+    pagePathsResponse,
+    pagesResponse,
+    sourcesResponse,
+    devicesResponse,
+    countriesResponse,
+  ] =
     await Promise.all([
+      analytics.runReport({
+        property,
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: "date" }],
+        metrics: [
+          { name: "sessions" },
+          { name: "activeUsers" },
+          { name: "screenPageViews" },
+        ],
+        orderBys: [{ dimension: { dimensionName: "date" }, desc: false }],
+      }),
+      analytics.runReport({
+        property,
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: "pagePath" }],
+        metrics: [{ name: "screenPageViews" }],
+        orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+        limit: 250,
+      }),
       analytics.runReport({
         property,
         dateRanges: [{ startDate, endDate }],
@@ -192,10 +264,21 @@ async function fetchGa4Dashboard({
       }),
     ]);
 
+  const trend: TrendPoint[] = (trendResponse[0]?.rows ?? []).map((row) => ({
+    date: decodeDate(row.dimensionValues?.[0]?.value),
+    sessions: asNumber(row.metricValues?.[0]?.value),
+    users: asNumber(row.metricValues?.[1]?.value),
+    pageViews: asNumber(row.metricValues?.[2]?.value),
+  }));
+  const { topProducts, lowProducts } = toProductInterestRows(pagePathsResponse[0]?.rows);
+
   const payload: Schema["getGa4Dashboard"]["returnType"] = {
     startDate,
     endDate,
     metrics,
+    trend,
+    topProducts,
+    lowProducts,
     topPages: toDimensionRows(pagesResponse[0]?.rows),
     topSources: toDimensionRows(sourcesResponse[0]?.rows),
     topDevices: toDimensionRows(devicesResponse[0]?.rows),

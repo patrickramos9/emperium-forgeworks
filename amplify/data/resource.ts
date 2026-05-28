@@ -30,10 +30,20 @@ const schema = a.schema({
     value: a.string().required(),
   }),
 
+  Ga4DashboardTrendPoint: a.customType({
+    date: a.string().required(),
+    sessions: a.integer().required(),
+    users: a.integer().required(),
+    pageViews: a.integer().required(),
+  }),
+
   Ga4DashboardResult: a.customType({
     startDate: a.string().required(),
     endDate: a.string().required(),
     metrics: a.ref("Ga4DashboardMetric").array().required(),
+    trend: a.ref("Ga4DashboardTrendPoint").array().required(),
+    topProducts: a.ref("Ga4DashboardDimensionRow").array().required(),
+    lowProducts: a.ref("Ga4DashboardDimensionRow").array().required(),
     topPages: a.ref("Ga4DashboardDimensionRow").array().required(),
     topSources: a.ref("Ga4DashboardDimensionRow").array().required(),
     topDevices: a.ref("Ga4DashboardDimensionRow").array().required(),
