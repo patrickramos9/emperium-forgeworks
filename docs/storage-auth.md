@@ -15,9 +15,7 @@ If `products/*` only allows `guest` + `admin`, signed-in customers load products
 
 ## Permanent frontend rule
 
-**All storefront reads** of `products/*` go through `getPublicCatalogImageUrl()` in `src/lib/storefrontStorage.ts`. It always uses the identity pool **guest** role, which is allowed to read the public catalog regardless of sign-in.
-
-Do **not** call `getUrl()` directly for catalog images elsewhere.
+**All storefront reads** of `products/*` go through `getPublicCatalogImageUrl()` in `src/lib/storefrontStorage.ts` (wraps Amplify `getUrl`). Do **not** import `@aws-sdk/credential-providers` in the frontend — it is Node-only and breaks the Vite build.
 
 Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin group needs `write` on `products/*`).
 
@@ -25,9 +23,9 @@ Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin gro
 
 `products/*` must grant read to every role that might call Storage:
 
-- `guest` — storefront image URLs (via guest IAM helper)
+- `guest` — signed-out shoppers
 - `authenticated` — users not yet in a group
-- `customer` group — normal signed-in shoppers (default `getUrl` if used)
+- `customer` group — normal signed-in shoppers (**required**)
 - `admin` group — admin gallery upload/delete
 
 After changing storage, **redeploy the Amplify backend** and commit the updated `amplify_outputs.json`.
@@ -41,4 +39,4 @@ After changing storage, **redeploy the Amplify backend** and commit the updated 
 1. Signed in as a **customer** (not only guest)?
 2. Does `amplify_outputs.json` → `storage.buckets[0].paths["products/*"]` include `groupscustomer` with `get`/`list`?
 3. Was the backend deployed after the last storage change?
-4. Is the site build using current `storefrontStorage.ts` (guest `getUrl`)?
+4. Did the latest deploy include an updated `amplify_outputs.json` with `groupscustomer` read?
