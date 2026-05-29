@@ -33,6 +33,9 @@ import { AdminAnnouncementsPage } from "@/pages/admin/AdminAnnouncementsPage";
 import { AdminAnnouncementEditPage } from "@/pages/admin/AdminAnnouncementEditPage";
 import { AdminNotificationsPage } from "@/pages/admin/AdminNotificationsPage";
 import { AdminNotificationEditPage } from "@/pages/admin/AdminNotificationEditPage";
+import { AdminReviewsPage } from "@/pages/admin/AdminReviewsPage";
+import { ReviewsPage } from "@/pages/ReviewsPage";
+import { AccountReviewPage } from "@/pages/account/AccountReviewPage";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -68,9 +71,14 @@ export default function App() {
             <Route path="/process" element={<Navigate to="/about" replace />} />
             <Route path="/process/*" element={<Navigate to="/about" replace />} />
             <Route path="/shipping-returns" element={<ShippingReturnsPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<AccountOrdersPage />} />
+            <Route
+              path="/account/orders/:orderId/review"
+              element={<AccountReviewPage />}
+            />
             <Route path="/account/notifications" element={<AccountNotificationsPage />} />
           </Route>
           <Route path="/account/login" element={<AccountLoginPage />} />
@@ -95,6 +103,7 @@ export default function App() {
               path="notifications/:id"
               element={<AdminNotificationEditPage />}
             />
+            <Route path="reviews" element={<AdminReviewsPage />} />
             <Route
               path="promos"
               element={

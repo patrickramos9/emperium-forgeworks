@@ -184,6 +184,26 @@ const schema = a.schema({
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read", "create", "update"]),
       allow.group("admin").to(["read"]),
     ]),
+
+  /** One review per order; `orderId` is the primary key. */
+  Review: a
+    .model({
+      orderId: a.id().required(),
+      userId: a.string().required(),
+      rating: a.integer().required(),
+      text: a.string().required(),
+      /** Public byline; omit to show a generic label. */
+      displayName: a.string(),
+      /** Admin must approve before the review appears on the storefront. */
+      approved: a.boolean().default(false),
+    })
+    .identifier(["orderId"])
+    .authorization((allow) => [
+      allow.guest().to(["read"]),
+      allow.authenticated().to(["read", "create"]),
+      allow.ownerDefinedIn("userId").identityClaim("sub").to(["read", "create"]),
+      allow.group("admin"),
+    ]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

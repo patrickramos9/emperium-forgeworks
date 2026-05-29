@@ -75,6 +75,7 @@ We want to **minimize sensitive customer data** stored in our systems.
 
 - Legacy UI reference: `legacy/stitch_export/` (HTML mocks + `screen.png` + Etsy hero banner)
 - Design tokens: `legacy/stitch_export/obsidian_forge/DESIGN.md`
+- **Architecture & API docs:** [`project-plans/site-design/`](./site-design/README.md)
 
 ---
 
@@ -85,7 +86,9 @@ We want to **minimize sensitive customer data** stored in our systems.
 3. **Stripe + Google Pay:** Real payments when EIN unblocks **M3b** (pinned)  
 4. **M7a cleanup** — shop/About copy and nav (Enter the Lair, no card quick-add)  
 5. **M7b Hidden Vault** — exclusive catalog behind access code  
-6. **M8** — announcements, order reviews, sculptors admin, notification badge on avatar  
+6. **M8** — announcements ✅, notifications ✅, order reviews, sculptors admin, notification badge on avatar  
+7. **M10–M12** — admin–customer chat, print progress tracker, notification preferences  
+8. **M11b** *(optional)* — Raspberry Pi printer bridge for Saturn 4 Ultra (SDCP on LAN)  
 
 Each feature ships via **commit → push → Amplify build** unless backend schema changes require sandbox/pipeline deploy.
 

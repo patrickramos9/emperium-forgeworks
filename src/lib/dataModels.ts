@@ -38,3 +38,15 @@ export function requireNotificationModel(client: AmplifyDataClient) {
 export function hasNotificationModel(client: AmplifyDataClient): boolean {
   return Boolean(client.models.Notification);
 }
+
+export function requireReviewModel(client: AmplifyDataClient) {
+  const model = client.models.Review;
+  if (!model) {
+    throw new Error(`Reviews are not available in this environment. ${DEPLOY_HINT}`);
+  }
+  return model;
+}
+
+export function hasReviewModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.Review);
+}

@@ -2,7 +2,7 @@
 
 Roadmap in priority order. Each milestone should be shippable independently where possible (incremental deploys).
 
-**Last updated:** 2026-05-25 (M7 cleanup + M8 scope)
+**Last updated:** 2026-05-28 (M8a.2 notifications complete; M10–M12 added)
 
 ---
 
@@ -169,7 +169,7 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 
 ---
 
-## M8 — Runtime content, reviews, sculptors & notifications 🎯 *next*
+## M8 — Runtime content, reviews, sculptors & notifications 🎯 *in progress*
 
 **Goal:** Replace hardcoded marketing content with admin-managed data; social proof from real orders; sculptor pages for partners.
 
@@ -185,14 +185,21 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 
 **Exit criteria:** Admin can publish/edit announcements that render on storefront. **Met.**
 
-### M8a.2 — Notifications (pending)
+### M8a.2 — Notifications ✅
 
 | Task | Notes |
 |------|--------|
-| **Notification** model | Lightweight inbox (e.g. system + admin broadcasts) |
-| Avatar badge | Unread count on account avatar in [`Header.tsx`](src/components/Header.tsx) / [`AccountMenu.tsx`](src/components/AccountMenu.tsx) |
+| **Notification** model | Lightweight inbox (system + admin broadcasts) |
+| **NotificationRead** model | Per-user read state |
+| Admin publish/edit | `/admin/notifications` — CRUD, schedule, sort order |
+| Customer inbox | `/account/notifications` — list, mark read |
+| Avatar badge | Unread count on account avatar in [`AccountMenu.tsx`](src/components/AccountMenu.tsx) |
+| Per-user targeting | Optional `userId` on `Notification` — broadcast when unset |
+| Vault grant trigger | Auto system notification when admin grants or re-enables Hidden Vault access |
 
-### M8b — Customer reviews (“Voices From The Void”)
+**Exit criteria:** Admin can publish notifications; signed-in customers see inbox + unread badge; targeted messages reach only the intended user. **Met** (production verified).
+
+### M8b — Customer reviews (“Voices From The Void”) ✅
 
 | Task | Notes |
 |------|--------|
@@ -201,6 +208,9 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 | Review form | Post-purchase only (paid orders); one review per order |
 | Home — runtime | Load approved reviews under **Voices From The Void** (rename section from hardcoded testimonials in [`HomePage.tsx`](src/pages/HomePage.tsx)) |
 | Reviews index | **See all reviews** link beside subtitle → `/reviews` (full list page) |
+| Admin moderation | [`AdminReviewsPage.tsx`](src/pages/admin/AdminReviewsPage.tsx) — approve / unapprove / delete |
+
+**Exit criteria:** Admin can publish announcements and sculptors; customers can review orders; home shows live reviews + sculptor links; notification badge reflects unread count. **Reviews met** (sculptors pending M8c).
 
 ### M8c — Sculptors (admin + public pages)
 
@@ -231,6 +241,103 @@ Split into cart work (can ship now) and live payments (blocked until business ca
 
 ---
 
+## M10 — Admin–customer chat
+
+**Goal:** Direct messaging between admins and individual customers — either party can start a conversation.
+
+| Task | Notes |
+|------|--------|
+| **Conversation** model | Links admin + customer (`userId`); metadata (subject, last message, unread counts) |
+| **Message** model | Body, sender role (`admin` \| `customer`), timestamps; append-only thread |
+| Customer UI | Inbox under account — start new thread or reply; unread badge (extend or separate from notifications) |
+| Admin UI | Customer-scoped threads under admin shell — open from order detail or customer lookup; admin can initiate |
+| Real-time (optional v1) | Polling acceptable for v1; AppSync subscriptions or similar later if needed |
+| Auth | Customer owner-scoped read/write on own threads; admin full access |
+
+**Exit criteria:** A customer can message the forge and see replies; an admin can open or start a thread with a specific customer; both sides see conversation history.
+
+**Depends on:** M4 customer accounts; M5 admin shell.
+
+---
+
+## M11 — Print progress tracker
+
+**Goal:** Give customers visibility into where their order is in the full fulfillment pipeline — from queue through fabrication (aligned with **The Ritual of Fabrication** on [`AboutPage.tsx`](src/pages/AboutPage.tsx)) to shipment.
+
+| Stage | Label |
+|-------|--------|
+| 0 | **Queued** — order received; awaiting fabrication slot |
+| 1 | **3D Printing** — Initialization |
+| 2 | **Chemical Wash** — Purification |
+| 3 | **Support Removal** — Extraction |
+| 4 | **UV Curing** — Hardening |
+| 5 | **Shipped** — dispatched to customer |
+
+| Task | Notes |
+|------|--------|
+| **PrintJob** (or order-level) model | Link to `Order` / line items; current stage enum (six stages above); stage timestamps; optional admin notes |
+| Admin workflow | Advance stage per order (or per line item) from orders UI; new orders enter at **Queued** |
+| Customer UI | Progress stepper on order detail — all six stages; current highlighted, prior complete |
+| Stage notifications | Each advance creates a targeted **system** notification (M8a.2) for the order owner |
+| Copy / branding | Fabrication steps reuse About ritual names; **Queued** and **Shipped** use forge-appropriate tone |
+
+**Exit criteria:** Admin advances an order from **Queued** through fabrication to **Shipped**; customer sees live six-step progress on their order; each stage change delivers an inbox notification.
+
+**Depends on:** M4 order history; M8a.2 notifications.
+
+### M11b — Raspberry Pi printer bridge (optional, recommended)
+
+**Goal:** Automate **3D Printing** stage updates from a **Saturn 4 Ultra** (or other SDCP v3 Elegoo) on the shop LAN — without exposing the printer to the public internet.
+
+**Why a Pi:** The printer speaks **SDCP** locally (UDP discovery on port 3000, WebSocket status on port 3030). Amplify/Lambda cannot reach a private LAN IP; a always-on **Raspberry Pi** on the same network acts as a trusted outbound agent.
+
+```text
+Saturn 4 Ultra (192.168.x.x)
+    ↕ SDCP WebSocket (layer %, idle/printing, filename, errors)
+Raspberry Pi — “forge-bridge” service
+    ↕ HTTPS (API key or service token)
+Amplify API → PrintJob stage + customer notification (M8a.2)
+```
+
+| Task | Notes |
+|------|--------|
+| **Pi setup** | Raspberry Pi 4/5 on shop Wi‑Fi/Ethernet; static IP or DHCP reservation for Pi + printer |
+| **Bridge service** | Small daemon (Python or Node) — SDCP client ([`elegoo-link`](https://github.com/ELEGOO-3D/elegoo-link), [`sdcp`](https://github.com/blakejrobinson/sdcp), or community libs); reconnect + heartbeat |
+| **Order mapping** | Link active print to store `Order` / `PrintJob` — e.g. match Chitubox filename, admin-assigned job ID, or QR at print start |
+| **Auto stage rules** | **Queued → 3D Printing** when SDCP reports print started; **3D Printing → Chemical Wash** when print completes successfully (optional confirm in admin UI) |
+| **Manual stages unchanged** | Wash, support removal, UV cure, **Shipped** remain admin-driven (printer has no visibility) |
+| **Backend endpoint** | Authenticated `PATCH` (or custom mutation) for bridge only — rotate API key; idempotent stage updates |
+| **Ops** | `systemd` unit, logs, alert if Pi or printer offline; secrets in `/etc/forge-bridge.env` (not in git) |
+| **Security** | Pi initiates outbound HTTPS only; never port-forward 3030; separate bridge credential from admin Cognito |
+
+**Exit criteria:** Starting a print on the Saturn advances the linked order to **3D Printing** without admin clicks; completing a print can advance to **Chemical Wash** (if enabled); failures surface in admin logs; wash→ship stages still manual.
+
+**Depends on:** M11 core (PrintJob model + stage API); shop LAN + Saturn 4 Ultra on SDCP v3 firmware.
+
+**Out of scope for M11b:** Multi-printer farm orchestration; cloud MQTT via Elegoo account; auto **Shipped** from carriers.
+
+**Future product opportunity:** Package the Pi bridge as a **B2B offering** for other resin print shops — preconfigured hardware + forge-bridge software, multi-printer support, and a lightweight admin pairing UI. Emperium Forgeworks dogfoods it first (M11b); productization (billing, onboarding, white-label) is a separate milestone after the in-house bridge is stable.
+
+---
+
+## M12 — Notification preferences
+
+**Goal:** Let signed-in customers control which notification categories they receive.
+
+| Task | Notes |
+|------|--------|
+| **NotificationPreference** model | Per `userId` — toggles by channel or kind (e.g. `system`, `order`, `marketing`, `print_progress`, `chat`) |
+| Account settings UI | Section on account or dedicated `/account/settings` — opt in/out per category |
+| Delivery respect | `listCustomerNotifications` / triggers skip disabled kinds; print tracker and future automations honor prefs |
+| Defaults | All categories on by default; transactional (order/print) may stay mandatory — decide at implementation |
+| Admin broadcasts | Marketing opt-out must be respected; system/security messages policy TBD |
+
+**Exit criteria:** Customer can disable specific notification types; disabled types no longer appear in inbox or drive badge count; new automations (M11, M10) check preferences before creating notifications.
+
+**Depends on:** M8a.2 notifications.
+
+---
+
 ## Dependency sketch
 
 ```text
@@ -239,6 +346,7 @@ M1 → M2 → M3a ─┬→ M4
                 ├→ M6 (needs M3b)
                 └→ M3b (Stripe + Google Pay) ⏳ EIN
          M2 → M7a (cleanup) → M7b (vault)
+         M4 + M8a.2 → M10 (chat), M11 (print tracker), M11b (Pi bridge, optional), M12 (notification prefs)
 ```
 
 | Phase | Depends on |
@@ -252,6 +360,10 @@ M1 → M2 → M3a ─┬→ M4
 | M7b | M2; M3a or M3b for checkout |
 | M8 | M5 admin shell; M4 for reviews |
 | M9 | — |
+| M10 | M4, M5 |
+| M11 | M4, M8a.2 |
+| M11b | M11 core; Raspberry Pi on shop LAN; Saturn 4 Ultra (SDCP v3) |
+| M12 | M8a.2 |
 
 ---
 
@@ -267,3 +379,8 @@ M1 → M2 → M3a ─┬→ M4
 | M6 | Vault, customer accounts |
 | M7a | Vault, reviews, sculptors |
 | M7b | Promo codes (core vault only) |
+| M8a.2 | Chat, print tracker, notification prefs (see M10–M12) |
+| M10 | Real-time push (optional v1); email fallback |
+| M11 | Per-line-item tracking; carrier tracking integration |
+| M11b | Multi-printer scheduling; Elegoo cloud relay |
+| M12 | Email/SMS channels (in-app prefs only for v1) |

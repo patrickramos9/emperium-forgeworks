@@ -1,8 +1,16 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { ReviewCard } from "@/components/ReviewCard";
 import { CONTACT_EMAIL } from "@/lib/config";
+import { getGuestDataClient } from "@/lib/amplifyDataClient";
+import { hasReviewModel } from "@/lib/dataModels";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
+import {
+  listApprovedReviews,
+  type ReviewRecord,
+} from "@/services/reviewService";
 
 const TECH_SPECS = [
   {
@@ -19,19 +27,6 @@ const TECH_SPECS = [
     label: "TECH SPEC 03",
     title: "Licensed Art",
     body: "Official sculpts from master studios including NSMiniatures — cosmic horrors and elite warriors.",
-  },
-];
-
-const TESTIMONIALS = [
-  {
-    quote:
-      "unbelievably clean prints! Will definitely be ordering some more from this shop!",
-    author: "Christian",
-  },
-  {
-    quote:
-      "The Eldritch Dragon is a centerpiece on my table. Arrived perfectly packed.",
-    author: "Alex M.",
   },
 ];
 
@@ -55,6 +50,21 @@ const SCULPTORS = [
 
 export function HomePage() {
   const { mainTopPadding } = useSiteLayout();
+  const [reviews, setReviews] = useState<ReviewRecord[]>([]);
+
+  useEffect(() => {
+    async function loadReviews() {
+      const client = await getGuestDataClient();
+      if (!client || !hasReviewModel(client)) return;
+      try {
+        setReviews(await listApprovedReviews(client, 4));
+      } catch {
+        // Home page falls back gracefully when reviews are unavailable.
+      }
+    }
+    void loadReviews();
+  }, []);
+
   return (
     <main className={`pb-section-gap ${mainTopPadding}`}>
       {/* Hero */}
@@ -190,37 +200,27 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
-        <h2 className="mb-stack-lg border-b-2 border-primary pb-2 font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
-          Voices from the Forge
-        </h2>
-        <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
-          {TESTIMONIALS.map((t) => (
-            <blockquote
-              key={t.author}
-              className="border border-outline-variant/10 bg-surface-container-low p-stack-lg iron-bevel"
+      {/* Reviews */}
+      {reviews.length > 0 && (
+        <section className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
+          <div className="mb-stack-lg flex flex-wrap items-end justify-between gap-4 border-b-2 border-primary pb-2">
+            <h2 className="font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
+              Voices From The Void
+            </h2>
+            <Link
+              to="/reviews"
+              className="font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
             >
-              <div className="mb-3 flex gap-0.5 text-plasma-glow">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Icon key={i} name="star" className="text-sm" filled />
-                ))}
-              </div>
-              <p className="font-body-lg italic text-on-surface-variant">
-                &ldquo;{t.quote}&rdquo;
-              </p>
-              <footer className="mt-4 flex items-center justify-between">
-                <cite className="font-label-md uppercase not-italic text-on-surface">
-                  {t.author}
-                </cite>
-                <span className="bg-secondary-container/30 px-2 py-1 font-label-sm uppercase tracking-widest text-secondary">
-                  Verified Purchase
-                </span>
-              </footer>
-            </blockquote>
-          ))}
-        </div>
-      </section>
+              See all reviews
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
+            {reviews.map((review) => (
+              <ReviewCard key={review.orderId} review={review} compact />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Sculptors */}
       <section className="mx-auto max-w-container-max px-margin-mobile pb-section-gap md:px-margin-desktop">

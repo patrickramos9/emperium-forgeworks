@@ -2,13 +2,13 @@
 
 Living status log. Update this file when milestones move or deploys land.
 
-**Last updated:** 2026-05-27
+**Last updated:** 2026-05-28
 
 ---
 
 ## Current phase
 
-**M8 — Content & community** — **In progress (M8a.1 announcements complete; M8a.2 notifications pending).** M7 complete. M3b pinned until EIN.
+**M8 — Content & community** — **In progress (M8a + M8b complete; M8c sculptors next).** M7 complete. M3b pinned until EIN.
 
 | Area | Status |
 |------|--------|
@@ -23,8 +23,13 @@ Living status log. Update this file when milestones move or deploys land.
 | M7a Storefront cleanup | ✅ Done |
 | M7b Hidden Vault | ✅ Done (backend deploy + `VAULT_ACCESS_KEY` secret) |
 | M8a.1 Announcements | ✅ Done |
-| M8a.2 Notifications | ⚪ Not started |
-| M8b Reviews / M8c Sculptors | ⚪ Not started |
+| M8a.2 Notifications | ✅ Done (inbox, badge, targeting, vault grant trigger) |
+| M8b Reviews | ✅ Done |
+| M8c Sculptors | ⚪ Not started |
+| M10 Admin–customer chat | ⚪ Not started |
+| M11 Print progress tracker | ⚪ Not started |
+| M11b Pi printer bridge (Saturn / SDCP) | ⚪ Optional after M11 |
+| M12 Notification preferences | ⚪ Not started |
 | Promo codes (M6) | ⚪ After M3b |
 
 ---
@@ -42,8 +47,12 @@ Living status log. Update this file when milestones move or deploys land.
 | **M6** Promo codes | ⚪ Not started | Cart/checkout discounts |
 | **M7a** Storefront cleanup | ✅ Done | No Forge on cards; About-only; copy |
 | **M7b** Hidden Vault | ✅ Done | `vaultOnly`, `/vault`, Lambda verify, admin |
-| **M8** Content & community | 🟡 In progress | Announcements complete; notifications/reviews/sculptors pending |
+| **M8** Content & community | 🟡 In progress | Reviews done; sculptors pending |
 | **M9** Polish / Gallery | ⚪ Not started | SEO, gallery page, performance |
+| **M10** Admin–customer chat | ⚪ Not started | Either party can initiate |
+| **M11** Print progress tracker | ⚪ Not started | Queued → fabrication → Shipped + notifications |
+| **M11b** Pi printer bridge | ⚪ Optional | Saturn 4 Ultra SDCP → Raspberry Pi → store API |
+| **M12** Notification preferences | ⚪ Not started | Per-category opt-out |
 
 Legend: ✅ Done · 🟡 In progress · ⏳ Blocked / waiting · ⚪ Not started
 
@@ -62,6 +71,8 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ## Recent accomplishments
 
+- **M8b** — Review model, account review flow, `/reviews`, home **Voices From The Void**, admin moderation
+- **M8a.2** — customer notification inbox, unread badge, admin CRUD, per-user targeting, vault-grant auto-notification (production verified)
 - **M5** — `AdminLayout`, dashboard stats, orders list/detail, GA4 runtime analytics (cards, trends, top/low-interest products)
 - **M4** — customer sign-up/sign-in, order history, `addCustomerToGroup` Lambda, `Order.userId`
 - **M3a** — cart qty limits, validation, guest orders, minimal line-item snapshots
@@ -83,6 +94,8 @@ Completed 2026-05-23 (production smoke-test passed):
 | Product images + IAM | Catalog images use **guest IAM** (`storefrontStorage.ts`); `npm run check:storage` catches outputs drift — see [docs/storage-auth.md](../docs/storage-auth.md) |
 | Vault access model | Shared key / access code — **M7** |
 | Gallery page | Deferred to **M9** |
+| Print automation | **M11b** — Raspberry Pi on shop LAN bridges Saturn 4 Ultra (SDCP) to stage API; wash/cure/ship stay manual |
+| Pi bridge as product | Future B2B — sell preconfigured Pi + forge-bridge to other print shops after in-house M11b is proven |
 | PII | Prefer Stripe for receipts; minimal `Order` in DynamoDB |
 
 ---
@@ -91,15 +104,17 @@ Completed 2026-05-23 (production smoke-test passed):
 
 ### M8 (next; uses M5 admin shell)
 
-6. **M8a.2** Notifications model + unread badge on account avatar  
-7. **M8b** Order reviews + home **Voices From The Void** + `/reviews` page  
-8. **M8c** Admin sculptors CRUD + public `/sculptors/:slug` pages  
+8. **M8c** Admin sculptors CRUD + public `/sculptors/:slug` pages + home integration  
 
-### Later
+### After M8
 
 9. **M3b** — Stripe + Google Pay when EIN ready  
 10. **M6** — promo codes  
-11. **M9** — Gallery, SEO, performance  
+11. **M10** — admin–customer chat (either party initiates)  
+12. **M11** — print progress tracker (Queued → fabrication → Shipped + stage notifications)  
+13. **M11b** *(optional)* — Raspberry Pi SDCP bridge for Saturn 4 Ultra auto **3D Printing** (and optional print-complete → wash)  
+14. **M12** — notification preferences (per-category opt-out)  
+15. **M9** — Gallery, SEO, performance  
 
 **Optional:** `VITE_PLAUSIBLE_DOMAIN` for admin dashboard traffic link.
 
@@ -122,6 +137,10 @@ See [milestones.md](./milestones.md) for full scope per phase.
 
 | Date | Update |
 |------|--------|
+| 2026-05-28 | **Site design docs** — `project-plans/site-design/` architecture, API, data models, auth, deployment |
+| 2026-05-28 | **M8b complete** — order reviews, Voices From The Void on home, `/reviews`, admin moderation |
+| 2026-05-28 | **M11b planned** — Raspberry Pi LAN bridge (SDCP → Saturn 4 Ultra) for automated printing-stage updates |
+| 2026-05-28 | **M8a.2 complete** — notifications inbox, badge, targeting, vault-grant trigger (prod verified); **M10–M12** added (chat, print tracker, notification prefs) |
 | 2026-05-27 | **M5 traffic stats upgraded** — GA4 Data API dashboard live (trend + product-interest insights) |
 | 2026-05-27 | **M8 split** — M8a.1 announcements marked done; M8a.2 notifications tracked separately |
 | 2026-05-24 | **M7 complete** — storefront cleanup + Hidden Vault (`vaultOnly`, `/vault`, verify Lambda) |

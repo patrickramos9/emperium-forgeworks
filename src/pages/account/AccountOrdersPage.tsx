@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatPrice } from "@/data/seedProducts";
 import { requireCustomerSession } from "@/lib/amplifyDataClient";
+import { hasReviewModel } from "@/lib/dataModels";
 import {
   formatOrderDate,
   listCustomerOrders,
@@ -10,12 +11,20 @@ import {
   parseOrderLineItems,
   type OrderRecord,
 } from "@/services/orderService";
+import { listMyReviews, type ReviewRecord } from "@/services/reviewService";
 
 export function AccountOrdersPage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [reviews, setReviews] = useState<ReviewRecord[]>([]);
+  const [reviewsEnabled, setReviewsEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const reviewByOrderId = useMemo(
+    () => new Map(reviews.map((review) => [review.orderId, review])),
+    [reviews],
+  );
 
   useEffect(() => {
     async function load() {
@@ -23,7 +32,13 @@ export function AccountOrdersPage() {
       if (!client) return;
 
       try {
-        setOrders(await listCustomerOrders(client));
+        const orderRows = await listCustomerOrders(client);
+        setOrders(orderRows);
+
+        if (hasReviewModel(client)) {
+          setReviewsEnabled(true);
+          setReviews(await listMyReviews(client));
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Could not load orders",
@@ -71,6 +86,9 @@ export function AccountOrdersPage() {
       <ul className="space-y-4">
         {orders.map((order) => {
           const items = parseOrderLineItems(order.lineItems);
+          const review = reviewByOrderId.get(order.id);
+          const canReview =
+            reviewsEnabled && order.status === "paid" && !review;
           return (
             <li
               key={order.id}
@@ -86,9 +104,24 @@ export function AccountOrdersPage() {
                     {order.paymentProvider ?? "mock"}
                   </p>
                 </div>
-                <p className="font-label-md text-primary">
-                  {formatPrice(order.totalCents)}
-                </p>
+                <div className="flex flex-col items-end gap-2">
+                  <p className="font-label-md text-primary">
+                    {formatPrice(order.totalCents)}
+                  </p>
+                  {canReview && (
+                    <Link
+                      to={`/account/orders/${order.id}/review`}
+                      className="font-label-sm uppercase text-primary hover:underline"
+                    >
+                      Review
+                    </Link>
+                  )}
+                  {review && (
+                    <span className="font-label-sm uppercase text-on-surface-variant">
+                      {review.approved ? "Review published" : "Review pending"}
+                    </span>
+                  )}
+                </div>
               </div>
               <p className="mt-2 text-label-sm text-on-surface-variant">
                 {orderLineItemsSummary(items)}
