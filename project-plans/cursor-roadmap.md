@@ -20,14 +20,14 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-05-28
+**Last updated:** 2026-05-29
 
 | Item | State |
 |------|--------|
 | **Phase** | M8 — Content & community |
 | **Next** | **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, home integration) |
 | **Blocked** | **M3b** — Stripe + Google Pay until EIN / Stripe onboarding complete |
-| **Recently shipped** | M8b Reviews — `Review` model, account review flow, `/reviews`, admin moderation, home **Voices From The Void** |
+| **Recently verified** | **M8b Reviews** — production smoke-test passed (submit → admin approve → home + `/reviews`) |
 | **Payments today** | Mock checkout only (`MockPaymentProvider`) |
 
 **Recommended build order:**  
@@ -154,7 +154,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M7b** — Hidden Vault (permission-based `VaultAccess`)
 - **M8a.1** — Announcements
 - **M8a.2** — Notifications (inbox, badge, targeting, vault-grant trigger)
-- **M8b** — Reviews (“Voices From The Void”, admin moderation)
+- **M8b** — Reviews (“Voices From The Void”, admin moderation) — **production verified**
 
 ### Next
 

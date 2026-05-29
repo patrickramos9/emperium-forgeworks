@@ -3,7 +3,7 @@
 
 Living status log. Update this file when milestones move or deploys land.
 
-**Last updated:** 2026-05-28
+**Last updated:** 2026-05-29
 
 ---
 
@@ -138,6 +138,8 @@ See [milestones.md](./milestones.md) for full scope per phase.
 
 | Date | Update |
 |------|--------|
+| 2026-05-29 | **M8b production verified** — review submit, admin approve, home + /reviews smoketest passed |
+
 | 2026-05-28 | **Site design docs** — `project-plans/site-design/` architecture, API, data models, auth, deployment |
 | 2026-05-28 | **M8b complete** — order reviews, Voices From The Void on home, `/reviews`, admin moderation |
 | 2026-05-28 | **M11b planned** — Raspberry Pi LAN bridge (SDCP → Saturn 4 Ultra) for automated printing-stage updates |
