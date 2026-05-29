@@ -121,7 +121,7 @@ emperiumforgeworks-store/
 ├── packages/shared/   # PaymentProvider contracts + mock/Stripe stubs
 ├── scripts/           # seed, storage check, GA4 grant helper
 ├── docs/              # operational runbooks
-├── project-plans/     # roadmap + this site-design folder
+├── project-plans/     # cursor-roadmap.md + reference/ + archive/
 └── legacy/            # Stitch HTML design reference (not runtime)
 ```
 
@@ -138,4 +138,4 @@ emperiumforgeworks-store/
 | M11b | Raspberry Pi SDCP bridge → stage API (shop LAN) |
 | M12 | Per-user notification preferences |
 
-See [milestones.md](../milestones.md).
+See [cursor-roadmap.md](../cursor-roadmap.md).

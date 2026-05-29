@@ -65,10 +65,9 @@ Setup details: **[docs/connect-custom-domain.md](docs/connect-custom-domain.md)*
 
 Planning docs live in **[project-plans/](project-plans/)**:
 
-- [project-context.md](project-plans/project-context.md) — business goals, architecture, privacy
-- [completed.md](project-plans/completed.md) — what’s done
-- [milestones.md](project-plans/milestones.md) — roadmap
-- [progress.md](project-plans/progress.md) — current status (update as you ship)
+- [cursor-roadmap.md](project-plans/cursor-roadmap.md) — **authoritative** roadmap, current status, AI dev rules
+- [reference/](project-plans/reference/) — architecture, API, data models, deployment
+- [archive/](project-plans/archive/) — historical plans (not used for active development)
 
 ## Project layout
 

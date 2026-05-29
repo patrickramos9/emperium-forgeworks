@@ -1,3 +1,5 @@
+﻿> **Superseded.** Use [cursor-roadmap.md](../cursor-roadmap.md) for active development.
+
 # Emperium Forgeworks — Project Context
 
 ## Business

@@ -1,3 +1,5 @@
+﻿> **Superseded.** Use [cursor-roadmap.md](../cursor-roadmap.md) for active development.
+
 # Milestones
 
 Roadmap in priority order. Each milestone should be shippable independently where possible (incremental deploys).

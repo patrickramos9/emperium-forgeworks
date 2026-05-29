@@ -122,4 +122,4 @@ npm run dev
 - Runtime announcements (**M8**)
 - Gallery page (**M9**)
 
-See [project-plans/milestones.md](../project-plans/milestones.md).
+See [project-plans/cursor-roadmap.md](../project-plans/cursor-roadmap.md).

@@ -22,13 +22,12 @@ Technical reference for **Emperium Forgeworks Store** — how the storefront, ad
 
 ---
 
-## Related docs (repo root)
+## Related docs
 
 | Path | Topic |
 |------|--------|
-| [project-plans/project-context.md](../project-context.md) | Business goals and product direction |
-| [project-plans/milestones.md](../milestones.md) | Delivery roadmap |
-| [project-plans/progress.md](../progress.md) | Current status |
+| [cursor-roadmap.md](../cursor-roadmap.md) | **Authoritative** — what to build, current status, milestone specs |
+| [archive/](../archive/) | Historical plans (not used for development) |
 | [docs/deploy-option-b.md](../../docs/deploy-option-b.md) | Fullstack Amplify deploy |
 | [docs/storage-auth.md](../../docs/storage-auth.md) | S3 / IAM for product images |
 | [docs/ga4-admin-dashboard.md](../../docs/ga4-admin-dashboard.md) | GA4 service account setup |

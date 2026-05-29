@@ -14,6 +14,8 @@ This directory contains all planning and architectural documentation for **Emper
 
 All feature work should reference this roadmap first.
 
+**Living status** is in the **Current status** section at the top of `cursor-roadmap.md` — update it when a milestone ships.
+
 ---
 
 ## Reference Documentation (Human + AI Context)
@@ -39,11 +41,10 @@ These documents represent earlier planning phases and are preserved for historic
 
 Cursor should **not** use these for implementation guidance.
 
-- `archive/milestones.md`
-- `archive/progress.md`
-- `archive/project-context.md`
-- `archive/completed.md`
-- Any other legacy planning docs
+- `archive/README.md` — what the archive is for
+- `archive/milestones.md`, `archive/progress.md`, `archive/project-context.md`, `archive/completed.md`
+
+Do not add new files at the `project-plans/` root except `cursor-roadmap.md` and this `README.md`.
 
 ---
 

@@ -1,3 +1,5 @@
+﻿> **Superseded.** Use [cursor-roadmap.md](../cursor-roadmap.md) for active development.
+
 # Completed Work
 
 What is **done** in the codebase today (storefront + backend definition). Does not include production AWS deploy unless noted.

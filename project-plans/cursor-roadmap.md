@@ -12,6 +12,29 @@ Cursor should treat this file as the **source of truth** for:
 - How to wire it into the existing architecture
 - What is in scope vs out of scope for each milestone
 
+**Reference docs (how the system works today):** `project-plans/reference/` — not directives.
+
+**Historical plans:** `project-plans/archive/` — Cursor should ignore (see `.cursorignore`).
+
+---
+
+## Current status (update when milestones ship)
+
+**Last updated:** 2026-05-28
+
+| Item | State |
+|------|--------|
+| **Phase** | M8 — Content & community |
+| **Next** | **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, home integration) |
+| **Blocked** | **M3b** — Stripe + Google Pay until EIN / Stripe onboarding complete |
+| **Recently shipped** | M8b Reviews — `Review` model, account review flow, `/reviews`, admin moderation, home **Voices From The Void** |
+| **Payments today** | Mock checkout only (`MockPaymentProvider`) |
+
+**Recommended build order:**  
+M8c → **M3b** (when unblocked) → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
+
+When a milestone ships, update this table and the **Shipped** list in §3 below.
+
 ---
 
 ## 0. Cursor operating rules
@@ -46,7 +69,7 @@ Cursor **must not**:
 - **Admin components:** `src/components/admin/**`
 - **Service layer (data orchestration):** `src/services/**`
 - **Amplify clients, auth helpers, utilities:** `src/lib/**`
-- **Design system tokens:** `tailwind.config.ts`, `design-system.md` (reference only)
+- **Design system tokens:** `tailwind.config.ts`, `project-plans/reference/design-system.md` (reference only)
 - **Backend models:** `amplify/data/resource.ts`
 - **Backend custom logic (Lambdas):** `amplify/functions/**`
 
@@ -99,7 +122,7 @@ When adding new data flows, **always** use the appropriate client helper and fol
 
 ## 2. Existing data models (reference)
 
-Cursor must treat `project-plans/data-models.md` as the canonical description of current models:
+Cursor must treat [`project-plans/reference/data-models.md`](./reference/data-models.md) as the canonical description of current models:
 
 - `Product`
 - `Order`
@@ -120,29 +143,39 @@ When adding new models (e.g., `Sculptor`, `Conversation`, `Message`, `PrintJob`,
 
 The roadmap is milestone-based. Each milestone should be **independently shippable**.
 
-Already implemented (for context only; Cursor should not change unless explicitly asked):
+### Shipped (do not change unless explicitly asked)
+
 - **M1** — Public preview
 - **M2** — Backend + admin
 - **M3a** — Cart UX
-- **M3b** — Stripe (pinned until EIN; may now be unblocked)
 - **M4** — Customer accounts
-- **M5** — Admin portal + stats
-- **M6** — Promo codes (not started)
+- **M5** — Admin portal + stats (GA4 dashboard)
 - **M7a** — Storefront cleanup
-- **M7b** — Hidden Vault
+- **M7b** — Hidden Vault (permission-based `VaultAccess`)
 - **M8a.1** — Announcements
-- **M8a.2** — Notifications
-- **M8b** — Reviews
-- **M8c** — Sculptors (planned)
-- **M9** — Polish & growth
-- **M10** — Admin–customer chat
-- **M11** — Print progress tracker
-- **M11b** — Pi printer bridge
-- **M12** — Notification preferences
-- **M13** — Marketing & growth engine (new)
-- **M14** — ForgeLink™ hardware MVP (new)
+- **M8a.2** — Notifications (inbox, badge, targeting, vault-grant trigger)
+- **M8b** — Reviews (“Voices From The Void”, admin moderation)
 
-Below: how Cursor should treat each milestone going forward.
+### Next
+
+- **M8c** — Sculptors
+
+### Blocked / waiting
+
+- **M3b** — Stripe + Google Pay (EIN / Stripe business onboarding)
+- **M6** — Promo codes (depends on M3b)
+
+### Planned (not started)
+
+- **M9** — Polish & growth (gallery, SEO, performance)
+- **M10** — Admin–customer chat
+- **M11** — Print progress tracker (Queued → fabrication → Shipped)
+- **M11b** — Raspberry Pi SDCP bridge (optional; extends M11)
+- **M12** — Notification preferences
+- **M13** — Marketing & growth engine (feed, pixels, UTM — prefer after M3b)
+- **M14** — ForgeLink™ hardware MVP (device registry; extends M11b API)
+
+§4 below has implementation specs for milestones that are not yet shipped.
 
 ---
 
@@ -363,6 +396,8 @@ Below: how Cursor should treat each milestone going forward.
 
 ### M11b — Raspberry Pi printer bridge (optional)
 
+**Depends on:** M11 (`PrintJob` model and stage API must exist first).
+
 **Goal:** Automate stage transitions for the **3D Printing** step using a Pi on the LAN.
 
 **Backend:**
@@ -461,6 +496,8 @@ Below: how Cursor should treat each milestone going forward.
 
 ### M14 — ForgeLink™ hardware MVP (new)
 
+**Depends on:** M11b (reuse the same device-authenticated `updatePrintJobStage` API; do not invent a second auth scheme).
+
 **Goal:** Prepare the platform to support a sellable Pi-based print bridge product.
 
 **Scope (in this repo):**
@@ -524,7 +561,7 @@ Below: how Cursor should treat each milestone going forward.
 - Use Amplify Data patterns already present.
 - For custom logic:
   - Add new Lambda under `amplify/functions/`.
-  - Wire via Amplify Data custom resolvers if needed (see `api-reference.md` once available).
+  - Wire via Amplify Data custom resolvers if needed (see [`reference/api-reference.md`](./reference/api-reference.md)).
 
 **Auth rules:**
 - Use `allow.guest()` for public read where appropriate.

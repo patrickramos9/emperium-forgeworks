@@ -1,3 +1,4 @@
+﻿> **Superseded.** Current status lives in [cursor-roadmap.md](../cursor-roadmap.md) (section **Current status**). This file is historical only.
 # Project Progress
 
 Living status log. Update this file when milestones move or deploys land.
