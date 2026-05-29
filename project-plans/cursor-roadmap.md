@@ -25,9 +25,10 @@ Cursor should treat this file as the **source of truth** for:
 | Item | State |
 |------|--------|
 | **Phase** | M8 — Content & community |
-| **Next** | **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, home integration) |
+| **Next** | Deploy + smoketest **M8c** Sculptors; then **M3b** when EIN ready |
 | **Blocked** | **M3b** — Stripe + Google Pay until EIN / Stripe onboarding complete |
-| **Recently verified** | **M8b Reviews** — production smoke-test passed (submit → admin approve → home + `/reviews`) |
+| **Recently verified** | **M8b Reviews** — production smoke-test passed |
+| **In progress** | **M8c** Sculptors — implemented; awaiting deploy verification |
 | **Payments today** | Mock checkout only (`MockPaymentProvider`) |
 
 **Recommended build order:**  
@@ -122,7 +123,7 @@ When adding new data flows, **always** use the appropriate client helper and fol
 
 ## 2. Existing data models (reference)
 
-Cursor must treat [`project-plans/reference/data-models.md`](./reference/data-models.md) as the canonical description of current models:
+Cursor must treat [`project-plans/reference/data-models.md`](./reference/data-models.md) (not `archive/`) as the canonical description of current models:
 
 - `Product`
 - `Order`
@@ -131,8 +132,9 @@ Cursor must treat [`project-plans/reference/data-models.md`](./reference/data-mo
 - `NotificationRead`
 - `Review`
 - `VaultAccess`
+- `Sculptor`
 
-When adding new models (e.g., `Sculptor`, `Conversation`, `Message`, `PrintJob`, `NotificationPreference`), follow the same style:
+When adding new models (e.g., `Conversation`, `Message`, `PrintJob`, `NotificationPreference`), follow the same style:
 - Define in `amplify/data/resource.ts`.
 - Use appropriate auth rules (guest read, owner read, admin CRUD, etc.).
 - Use `userId` for owner scoping where relevant.
@@ -155,10 +157,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8a.1** — Announcements
 - **M8a.2** — Notifications (inbox, badge, targeting, vault-grant trigger)
 - **M8b** — Reviews (“Voices From The Void”, admin moderation) — **production verified**
-
-### Next
-
-- **M8c** — Sculptors
+- **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, home) — *deploy + smoketest*
 
 ### Blocked / waiting
 

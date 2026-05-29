@@ -36,6 +36,9 @@ import { AdminNotificationEditPage } from "@/pages/admin/AdminNotificationEditPa
 import { AdminReviewsPage } from "@/pages/admin/AdminReviewsPage";
 import { ReviewsPage } from "@/pages/ReviewsPage";
 import { AccountReviewPage } from "@/pages/account/AccountReviewPage";
+import { SculptorDetailPage } from "@/pages/SculptorDetailPage";
+import { AdminSculptorsPage } from "@/pages/admin/AdminSculptorsPage";
+import { AdminSculptorEditPage } from "@/pages/admin/AdminSculptorEditPage";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -72,6 +75,7 @@ export default function App() {
             <Route path="/process/*" element={<Navigate to="/about" replace />} />
             <Route path="/shipping-returns" element={<ShippingReturnsPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/sculptors/:slug" element={<SculptorDetailPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<AccountOrdersPage />} />
@@ -104,6 +108,8 @@ export default function App() {
               element={<AdminNotificationEditPage />}
             />
             <Route path="reviews" element={<AdminReviewsPage />} />
+            <Route path="sculptors" element={<AdminSculptorsPage />} />
+            <Route path="sculptors/:slug" element={<AdminSculptorEditPage />} />
             <Route
               path="promos"
               element={

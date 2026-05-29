@@ -204,6 +204,28 @@ const schema = a.schema({
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read", "create"]),
       allow.group("admin"),
     ]),
+
+  Sculptor: a
+    .model({
+      slug: a.string().required(),
+      name: a.string().required(),
+      /** S3 path under `sculptors/{slug}/…` */
+      logo: a.string(),
+      description: a.string(),
+      myMiniFactoryUrl: a.url(),
+      patreonUrl: a.url(),
+      instagramUrl: a.url(),
+      facebookUrl: a.url(),
+      xUrl: a.url(),
+      active: a.boolean().default(true),
+      sortOrder: a.integer().default(0),
+    })
+    .identifier(["slug"])
+    .authorization((allow) => [
+      allow.guest().to(["read"]),
+      allow.authenticated().to(["read"]),
+      allow.group("admin"),
+    ]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

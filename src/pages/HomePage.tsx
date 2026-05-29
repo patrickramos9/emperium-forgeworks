@@ -6,11 +6,18 @@ import { CONTACT_EMAIL } from "@/lib/config";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
 import { useSiteLayout } from "@/context/AnnouncementContext";
+import { SculptorCard } from "@/components/SculptorCard";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
+import { resolveImageUrl } from "@/lib/productImageUrls";
+import { hasSculptorModel } from "@/lib/dataModels";
 import {
   listApprovedReviews,
   type ReviewRecord,
 } from "@/services/reviewService";
+import {
+  listAllSculptors,
+  type SculptorRecord,
+} from "@/services/sculptorService";
 
 const TECH_SPECS = [
   {
@@ -30,27 +37,12 @@ const TECH_SPECS = [
   },
 ];
 
-const SCULPTORS = [
-  {
-    name: "NSMiniatures",
-    status: "active" as const,
-    image: LEGACY_IMAGES.process.nsMini1,
-  },
-  {
-    name: "Abyssal Sculpts",
-    status: "soon" as const,
-    image: LEGACY_IMAGES.home.darkFantasy,
-  },
-  {
-    name: "Void Weavers",
-    status: "soon" as const,
-    image: LEGACY_IMAGES.home.eldritch,
-  },
-];
+type SculptorWithLogo = SculptorRecord & { logoUrl?: string };
 
 export function HomePage() {
   const { mainTopPadding } = useSiteLayout();
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
+  const [sculptors, setSculptors] = useState<SculptorWithLogo[]>([]);
 
   useEffect(() => {
     async function loadReviews() {
@@ -63,6 +55,26 @@ export function HomePage() {
       }
     }
     void loadReviews();
+  }, []);
+
+  useEffect(() => {
+    async function loadSculptors() {
+      const client = await getGuestDataClient();
+      if (!client || !hasSculptorModel(client)) return;
+      try {
+        const rows = await listAllSculptors(client);
+        const withLogos = await Promise.all(
+          rows.map(async (row) => ({
+            ...row,
+            logoUrl: row.logo ? await resolveImageUrl(row.logo) : undefined,
+          })),
+        );
+        setSculptors(withLogos);
+      } catch {
+        // Home page falls back gracefully when sculptors are unavailable.
+      }
+    }
+    void loadSculptors();
   }, []);
 
   return (
@@ -223,45 +235,22 @@ export function HomePage() {
       )}
 
       {/* Sculptors */}
-      <section className="mx-auto max-w-container-max px-margin-mobile pb-section-gap md:px-margin-desktop">
-        <h2 className="mb-stack-lg border-b-2 border-primary pb-2 font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
-          The Master Sculptors
-        </h2>
-        <div className="grid grid-cols-1 gap-gutter md:grid-cols-3">
-          {SCULPTORS.map((s) => (
-            <article
-              key={s.name}
-              className="group relative overflow-hidden bg-surface-container-low iron-bevel"
-            >
-              <div className="aspect-[4/3] overflow-hidden bg-black">
-                <img
-                  src={s.image}
-                  alt={s.name}
-                  className="h-full w-full object-cover grayscale brightness-90 transition-all duration-700 group-hover:grayscale-0"
-                />
-              </div>
-              <div className="p-4">
-                <span className="absolute right-4 top-4 bg-void-purple/80 px-2 py-1 font-label-sm uppercase tracking-widest text-secondary">
-                  Licensed Partner
-                </span>
-                <h3 className="font-headline-md text-on-surface">{s.name}</h3>
-                {s.status === "active" ? (
-                  <Link
-                    to="/shop"
-                    className="mt-2 inline-block font-label-md uppercase text-primary hover:text-plasma-glow"
-                  >
-                    View Collection
-                  </Link>
-                ) : (
-                  <p className="mt-2 font-label-sm uppercase tracking-widest text-on-surface-variant">
-                    Coming Soon
-                  </p>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      {sculptors.length > 0 && (
+        <section className="mx-auto max-w-container-max px-margin-mobile pb-section-gap md:px-margin-desktop">
+          <h2 className="mb-stack-lg border-b-2 border-primary pb-2 font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
+            The Master Sculptors
+          </h2>
+          <div className="grid grid-cols-1 gap-gutter md:grid-cols-3">
+            {sculptors.map((sculptor) => (
+              <SculptorCard
+                key={sculptor.slug}
+                sculptor={sculptor}
+                logoUrl={sculptor.logoUrl}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Newsletter */}
       <section className="mx-auto max-w-container-max px-margin-mobile md:px-margin-desktop">

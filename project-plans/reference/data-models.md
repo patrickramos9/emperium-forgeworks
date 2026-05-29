@@ -151,6 +151,26 @@ Announcement (standalone)
 
 ---
 
+### Sculptor
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `slug` | string | yes | Primary key — `/sculptors/:slug` |
+| `name` | string | yes | |
+| `logo` | string | | S3 path under `sculptors/{slug}/…` |
+| `description` | string | | |
+| `myMiniFactoryUrl` | url | | |
+| `patreonUrl` | url | | |
+| `instagramUrl` | url | | |
+| `facebookUrl` | url | | |
+| `xUrl` | url | | |
+| `active` | boolean | | default `true`; inactive = “Coming Soon” on home |
+| `sortOrder` | integer | | default `0` |
+
+**Auth:** guest + authenticated **read**; **admin** CRUD.
+
+---
+
 ## Custom GraphQL types (no DynamoDB table)
 
 Used only as query return shapes — see [api-reference.md](./api-reference.md).
@@ -179,5 +199,6 @@ Amplify Gen 2 generates GSIs as needed for `list` filters (e.g. `userId` on `Not
 | Orders | `src/services/orderService.ts` |
 | Notifications | `src/services/notificationService.ts` |
 | Reviews | `src/services/reviewService.ts` |
+| Sculptors | `src/services/sculptorService.ts` |
 | Admin analytics | `src/services/adminAnalyticsService.ts` |
 | Checkout | `src/services/checkoutService.ts` |

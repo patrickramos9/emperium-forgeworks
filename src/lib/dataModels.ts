@@ -50,3 +50,15 @@ export function requireReviewModel(client: AmplifyDataClient) {
 export function hasReviewModel(client: AmplifyDataClient): boolean {
   return Boolean(client.models.Review);
 }
+
+export function requireSculptorModel(client: AmplifyDataClient) {
+  const model = client.models.Sculptor;
+  if (!model) {
+    throw new Error(`Sculptors are not available in this environment. ${DEPLOY_HINT}`);
+  }
+  return model;
+}
+
+export function hasSculptorModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.Sculptor);
+}

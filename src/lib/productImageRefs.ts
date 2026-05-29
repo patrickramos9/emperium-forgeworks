@@ -1,7 +1,7 @@
-const STORAGE_PREFIX = "products/";
+const STORAGE_PREFIXES = ["products/", "sculptors/"] as const;
 
 export function isStoragePath(ref: string): boolean {
-  return ref.startsWith(STORAGE_PREFIX);
+  return STORAGE_PREFIXES.some((prefix) => ref.startsWith(prefix));
 }
 
 /** Normalize stored image values to S3 paths when possible. */

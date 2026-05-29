@@ -196,6 +196,7 @@ All routes are client-side (`react-router-dom`). No server-side rendering.
 | GET | `/process` | Redirect → `/about` | — |
 | GET | `/shipping-returns` | Policies | Public |
 | GET | `/reviews` | All approved reviews | Public |
+| GET | `/sculptors/:slug` | Sculptor profile | Public |
 | GET | `/cart` | Cart | Public |
 | GET | `/account` | Account hub | Customer |
 | GET | `/account/orders` | Order history | Customer |
@@ -232,6 +233,8 @@ All routes are client-side (`react-router-dom`). No server-side rendering.
 | `/admin/notifications` | Notification list |
 | `/admin/notifications/:id` | Edit (`new` = create) |
 | `/admin/reviews` | Review moderation |
+| `/admin/sculptors` | Sculptor list |
+| `/admin/sculptors/:slug` | Sculptor edit (`new` = create) |
 | `/admin/vault` | Vault grants |
 | `/admin/promos` | Coming soon (M6) |
 | `/admin/settings` | Coming soon |
@@ -242,8 +245,8 @@ All routes are client-side (`react-router-dom`). No server-side rendering.
 
 | Operation | Path pattern | Auth |
 |-----------|--------------|------|
-| Read (catalog URLs) | `products/*` | Guest IAM via `getPublicCatalogImageUrl()` |
-| Upload / delete | `products/*` | Admin group (product editor) |
+| Read (catalog URLs) | `products/*`, `sculptors/*` | Guest IAM via `getPublicCatalogImageUrl()` |
+| Upload / delete | `products/*`, `sculptors/*` | Admin group |
 
 Bucket name from `amplify_outputs.json` → `storage.productImages.bucket`.
 
