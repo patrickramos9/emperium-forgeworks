@@ -1,0 +1,27 @@
+# Ignore archived planning documents
+project-plans/archive/
+
+# Ignore build artifacts
+dist/
+build/
+node_modules/
+
+# Ignore environment files
+.env
+.env.*
+amplify_outputs.json
+
+# Ignore AWS build artifacts
+amplify/#current-cloud-backend/
+amplify/backend/
+amplify/hooks/
+
+# Ignore legacy design exports
+legacy/
+
+# Ignore logs
+*.log
+
+# Ignore OS/editor files
+.DS_Store
+Thumbs.db
