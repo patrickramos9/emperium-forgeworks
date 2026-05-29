@@ -7,11 +7,13 @@ import {
   type CustomerAccount,
 } from "@/lib/customerAdmin";
 import {
+  hasNotificationModel,
   hasVaultAccessModel,
   requireVaultAccessModel,
 } from "@/lib/dataModels";
 import { listAllProducts } from "@/lib/listAllProducts";
 import { listAllVaultAccess } from "@/lib/listAllVaultAccess";
+import { createVaultAccessGrantedNotification } from "@/services/notificationService";
 
 type VaultRow = {
   accessKey: string;
@@ -201,6 +203,16 @@ export function AdminVaultPage() {
       if (result.errors?.length) {
         throw new Error(result.errors.map((e) => e.message).join("; "));
       }
+      if (hasNotificationModel(client)) {
+        try {
+          await createVaultAccessGrantedNotification(
+            client,
+            selectedCustomer.userId,
+          );
+        } catch (notifyErr) {
+          console.warn("[vault] grant notification failed", notifyErr);
+        }
+      }
       setSelectedCustomer(null);
       await loadVaultData();
     } catch (err) {
@@ -256,6 +268,13 @@ export function AdminVaultPage() {
       });
       if (result.errors?.length) {
         throw new Error(result.errors.map((e) => e.message).join("; "));
+      }
+      if (hasNotificationModel(client)) {
+        try {
+          await createVaultAccessGrantedNotification(client, userId);
+        } catch (notifyErr) {
+          console.warn("[vault] re-enable notification failed", notifyErr);
+        }
       }
       await loadVaultData();
     } catch (err) {

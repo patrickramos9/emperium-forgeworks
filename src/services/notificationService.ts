@@ -35,12 +35,40 @@ export async function listAdminNotifications(
   });
 }
 
+function isVisibleToUser(row: NotificationRecord, userId: string): boolean {
+  const targetUserId = row.userId?.trim();
+  return !targetUserId || targetUserId === userId;
+}
+
 export async function listCustomerNotifications(
   client: AmplifyDataClient,
 ): Promise<NotificationRecord[]> {
+  const userId = await getCustomerUserId();
+  if (!userId) return [];
+
   const all = await listAdminNotifications(client);
   const nowIso = new Date().toISOString();
-  return all.filter((row) => isActiveNow(row, nowIso));
+  return all.filter(
+    (row) => isActiveNow(row, nowIso) && isVisibleToUser(row, userId),
+  );
+}
+
+/** Inbox message when admin grants or re-enables Hidden Vault access for a customer. */
+export async function createVaultAccessGrantedNotification(
+  client: AmplifyDataClient,
+  userId: string,
+): Promise<void> {
+  const result = await client.models.Notification.create({
+    title: "Hidden Vault access granted",
+    body: "You now have permission to browse the Hidden Vault. When signed in, open Vault from the main navigation or visit /vault.",
+    kind: "system",
+    userId,
+    active: true,
+    sortOrder: 100,
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
 }
 
 export async function listMyNotificationReads(

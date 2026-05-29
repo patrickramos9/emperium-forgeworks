@@ -161,6 +161,8 @@ const schema = a.schema({
       title: a.string().required(),
       body: a.string().required(),
       kind: a.enum(["system", "order", "marketing"]),
+      /** When set, only this Cognito user (`sub`) sees the notification. Omit for broadcast. */
+      userId: a.string(),
       active: a.boolean().default(true),
       startsAt: a.datetime(),
       endsAt: a.datetime(),

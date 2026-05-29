@@ -26,3 +26,15 @@ export function hasAnnouncementModel(client: AmplifyDataClient): boolean {
 export function hasVaultAccessModel(client: AmplifyDataClient): boolean {
   return Boolean(client.models.VaultAccess);
 }
+
+export function requireNotificationModel(client: AmplifyDataClient) {
+  const model = client.models.Notification;
+  if (!model) {
+    throw new Error(`Notifications are not available in this environment. ${DEPLOY_HINT}`);
+  }
+  return model;
+}
+
+export function hasNotificationModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.Notification);
+}
