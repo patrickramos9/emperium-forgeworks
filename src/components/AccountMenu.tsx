@@ -1,20 +1,42 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import {
   customerSignOut,
   hasCustomerSession,
 } from "@/lib/customerAuth";
+import { listCustomerNotifications, listMyNotificationReads, unreadCount } from "@/services/notificationService";
 
 export function AccountMenu() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [unread, setUnread] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    void hasCustomerSession().then(setSignedIn);
+    async function loadSessionAndBadge() {
+      const hasSession = await hasCustomerSession();
+      setSignedIn(hasSession);
+      if (!hasSession) {
+        setUnread(0);
+        return;
+      }
+      const client = await getCustomerDataClient();
+      if (!client) return;
+      try {
+        const [notifications, reads] = await Promise.all([
+          listCustomerNotifications(client),
+          listMyNotificationReads(client),
+        ]);
+        setUnread(unreadCount(notifications, reads));
+      } catch {
+        // Ignore badge load errors in nav.
+      }
+    }
+    void loadSessionAndBadge();
   }, [location.pathname]);
 
   useEffect(() => {
@@ -30,6 +52,7 @@ export function AccountMenu() {
   async function handleSignOut() {
     await customerSignOut();
     setSignedIn(false);
+    setUnread(0);
     setOpen(false);
     navigate("/");
   }
@@ -45,6 +68,11 @@ export function AccountMenu() {
         aria-haspopup="menu"
       >
         <Icon name="person" />
+        {signedIn && unread > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center bg-primary px-1 text-label-sm text-on-primary">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
       </button>
 
       {open && (
@@ -61,6 +89,14 @@ export function AccountMenu() {
                 className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
               >
                 Account
+              </Link>
+              <Link
+                role="menuitem"
+                to="/account/notifications"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Notifications{unread > 0 ? ` (${unread})` : ""}
               </Link>
               <Link
                 role="menuitem"

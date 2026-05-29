@@ -155,6 +155,33 @@ const schema = a.schema({
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
       allow.group("admin").to(["read", "update"]),
     ]),
+
+  Notification: a
+    .model({
+      title: a.string().required(),
+      body: a.string().required(),
+      kind: a.enum(["system", "order", "marketing"]),
+      active: a.boolean().default(true),
+      startsAt: a.datetime(),
+      endsAt: a.datetime(),
+      sortOrder: a.integer().default(0),
+    })
+    .authorization((allow) => [
+      allow.authenticated().to(["read"]),
+      allow.group("admin"),
+    ]),
+
+  NotificationRead: a
+    .model({
+      notificationId: a.id().required(),
+      userId: a.string().required(),
+      readAt: a.datetime().required(),
+    })
+    .identifier(["notificationId", "userId"])
+    .authorization((allow) => [
+      allow.ownerDefinedIn("userId").identityClaim("sub").to(["read", "create", "update"]),
+      allow.group("admin").to(["read"]),
+    ]),
 });
 
 export type Schema = ClientSchema<typeof schema>;

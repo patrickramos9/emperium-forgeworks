@@ -49,6 +49,12 @@ export function AccountPage() {
 
       <nav className="mt-stack-lg flex flex-col gap-4 sm:flex-row sm:flex-wrap">
         <Link
+          to="/account/notifications"
+          className="border border-outline-variant/30 bg-surface-container-low px-6 py-4 font-label-md uppercase text-primary iron-bevel hover:border-primary"
+        >
+          Notifications
+        </Link>
+        <Link
           to="/account/orders"
           className="border border-outline-variant/30 bg-surface-container-low px-6 py-4 font-label-md uppercase text-primary iron-bevel hover:border-primary"
         >

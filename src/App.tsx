@@ -25,11 +25,14 @@ import { AccountForgotPasswordPage } from "@/pages/account/AccountForgotPassword
 import { AccountRegisterPage } from "@/pages/account/AccountRegisterPage";
 import { AccountPage } from "@/pages/account/AccountPage";
 import { AccountOrdersPage } from "@/pages/account/AccountOrdersPage";
+import { AccountNotificationsPage } from "@/pages/account/AccountNotificationsPage";
 import { VaultPage } from "@/pages/VaultPage";
 import { VaultProductDetailPage } from "@/pages/VaultProductDetailPage";
 import { AdminVaultPage } from "@/pages/admin/AdminVaultPage";
 import { AdminAnnouncementsPage } from "@/pages/admin/AdminAnnouncementsPage";
 import { AdminAnnouncementEditPage } from "@/pages/admin/AdminAnnouncementEditPage";
+import { AdminNotificationsPage } from "@/pages/admin/AdminNotificationsPage";
+import { AdminNotificationEditPage } from "@/pages/admin/AdminNotificationEditPage";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -68,6 +71,7 @@ export default function App() {
             <Route path="/cart" element={<CartPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<AccountOrdersPage />} />
+            <Route path="/account/notifications" element={<AccountNotificationsPage />} />
           </Route>
           <Route path="/account/login" element={<AccountLoginPage />} />
           <Route path="/account/forgot-password" element={<AccountForgotPasswordPage />} />
@@ -85,6 +89,11 @@ export default function App() {
             <Route
               path="announcements/:id"
               element={<AdminAnnouncementEditPage />}
+            />
+            <Route path="notifications" element={<AdminNotificationsPage />} />
+            <Route
+              path="notifications/:id"
+              element={<AdminNotificationEditPage />}
             />
             <Route
               path="promos"
