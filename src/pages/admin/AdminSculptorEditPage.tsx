@@ -1,5 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  RichTextEditor,
+  normalizeRichTextForSave,
+} from "@/components/RichTextEditor";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { requireSculptorModel } from "@/lib/dataModels";
 import { resolveImageUrl } from "@/lib/productImageUrls";
@@ -8,12 +12,14 @@ import {
   validateSculptorSlug,
 } from "@/lib/sculptorSlug";
 import { uploadSculptorLogo } from "@/lib/sculptorImageUpload";
+import { saveSculptor } from "@/services/sculptorService";
 
 export function AdminSculptorEditPage() {
   const { slug: slugParam } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const isNew = slugParam === "new";
 
+  const [previousSlug, setPreviousSlug] = useState<string | null>(null);
   const [slugInput, setSlugInput] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -49,6 +55,7 @@ export function AdminSculptorEditPage() {
           navigate("/admin/sculptors");
           return;
         }
+        setPreviousSlug(data.slug);
         setSlugInput(data.slug);
         setName(data.name);
         setDescription(data.description ?? "");
@@ -72,13 +79,15 @@ export function AdminSculptorEditPage() {
     void load();
   }, [slugParam, isNew, navigate]);
 
+  function currentSlugForUpload(): string {
+    return normalizeSculptorSlug(slugInput || slugParam || "");
+  }
+
   async function handleLogoUpload(file: File) {
-    const slugForPath = isNew
-      ? normalizeSculptorSlug(slugInput)
-      : (slugParam ?? "");
+    const slugForPath = currentSlugForUpload();
     const slugError = validateSculptorSlug(slugForPath);
     if (slugError) {
-      setError(`Save a valid slug before uploading: ${slugError}`);
+      setError(`Enter a valid slug before uploading: ${slugError}`);
       return;
     }
 
@@ -106,16 +115,15 @@ export function AdminSculptorEditPage() {
       return;
     }
 
-    let Sculptor;
     try {
-      Sculptor = requireSculptorModel(client);
+      requireSculptorModel(client);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sculptors unavailable");
       setSaving(false);
       return;
     }
 
-    const slug = isNew ? normalizeSculptorSlug(slugInput) : (slugParam ?? "");
+    const slug = normalizeSculptorSlug(slugInput);
     const slugError = validateSculptorSlug(slug);
     if (slugError) {
       setError(slugError);
@@ -132,7 +140,7 @@ export function AdminSculptorEditPage() {
     const payload = {
       slug,
       name: name.trim(),
-      description: description.trim() || undefined,
+      description: normalizeRichTextForSave(description),
       logo: logo.trim() || undefined,
       myMiniFactoryUrl: myMiniFactoryUrl.trim() || undefined,
       patreonUrl: patreonUrl.trim() || undefined,
@@ -144,13 +152,12 @@ export function AdminSculptorEditPage() {
     };
 
     try {
-      const result = isNew
-        ? await Sculptor.create(payload)
-        : await Sculptor.update(payload);
-      if (result.errors?.length) {
-        throw new Error(result.errors.map((e) => e.message).join("; "));
-      }
-      navigate("/admin/sculptors");
+      const saved = await saveSculptor(client, {
+        isNew,
+        previousSlug: previousSlug ?? undefined,
+        data: payload,
+      });
+      navigate(`/admin/sculptors/${saved.slug}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -183,6 +190,8 @@ export function AdminSculptorEditPage() {
     return <p className="text-on-surface-variant">Loading...</p>;
   }
 
+  const previewSlug = normalizeSculptorSlug(slugInput) || "your-slug";
+
   return (
     <div className="mx-auto max-w-2xl">
       <Link to="/admin/sculptors" className="text-primary hover:underline">
@@ -198,18 +207,19 @@ export function AdminSculptorEditPage() {
             Slug (URL)
           </span>
           <input
-            value={isNew ? slugInput : slugParam}
+            value={slugInput}
             onChange={(e) => setSlugInput(e.target.value)}
-            readOnly={!isNew}
             required
             placeholder="nsminiatures"
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2 disabled:opacity-70"
+            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
-          {!isNew && (
-            <span className="mt-1 block text-label-sm text-on-surface-variant">
-              Public page: /sculptors/{slugParam}
-            </span>
-          )}
+          <span className="mt-1 block text-label-sm text-on-surface-variant">
+            The slug is the URL-friendly id for this sculptor — used in{" "}
+            <code className="text-on-surface">/sculptors/{previewSlug}</code>.
+            Use lowercase letters, numbers, and hyphens (e.g.{" "}
+            <code className="text-on-surface">nsminiatures</code>). You can
+            change it later; the public link updates when you save.
+          </span>
         </label>
 
         <label className="block">
@@ -224,17 +234,14 @@ export function AdminSculptorEditPage() {
           />
         </label>
 
-        <label className="block">
+        <div>
           <span className="font-label-sm uppercase text-on-surface-variant">
             Description
           </span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={6}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
-          />
-        </label>
+          <div className="mt-1">
+            <RichTextEditor value={description} onChange={setDescription} />
+          </div>
+        </div>
 
         <div>
           <span className="font-label-sm uppercase text-on-surface-variant">
@@ -290,7 +297,9 @@ export function AdminSculptorEditPage() {
             checked={active}
             onChange={(e) => setActive(e.target.checked)}
           />
-          <span className="font-label-sm uppercase">Active (visible on home)</span>
+          <span className="font-label-sm uppercase">
+            Active (public profile + home card links to sculptor page)
+          </span>
         </label>
 
         <label className="block">

@@ -1,5 +1,6 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import type { Schema } from "../../amplify/data/resource";
+import { normalizeSculptorSlug } from "@/lib/sculptorSlug";
 
 export type SculptorRecord = Schema["Sculptor"]["type"];
 
@@ -55,9 +56,105 @@ export async function getSculptorBySlug(
   client: AmplifyDataClient,
   slug: string,
 ): Promise<SculptorRecord | null> {
-  const { data, errors } = await client.models.Sculptor.get({ slug });
-  if (errors?.length) {
-    throw new Error(errors.map((e) => e.message).join("; "));
+  const trimmed = slug.trim();
+  const candidates = [
+    trimmed,
+    normalizeSculptorSlug(trimmed),
+  ].filter((value, index, array) => value && array.indexOf(value) === index);
+
+  for (const candidate of candidates) {
+    const { data, errors } = await client.models.Sculptor.get({ slug: candidate });
+    if (errors?.length) {
+      throw new Error(errors.map((e) => e.message).join("; "));
+    }
+    if (data) return data;
   }
-  return data ?? null;
+
+  return null;
+}
+
+/** Slug is the DynamoDB primary key — changing it requires recreate. */
+export async function isSculptorSlugAvailable(
+  client: AmplifyDataClient,
+  slug: string,
+  exceptSlug?: string,
+): Promise<boolean> {
+  const existing = await getSculptorBySlug(client, slug);
+  if (!existing) return true;
+  if (
+    exceptSlug &&
+    existing.slug.toLowerCase() === exceptSlug.toLowerCase()
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export type SculptorSaveInput = {
+  slug: string;
+  name: string;
+  description?: string;
+  logo?: string;
+  myMiniFactoryUrl?: string;
+  patreonUrl?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  xUrl?: string;
+  active: boolean;
+  sortOrder: number;
+};
+
+/** Create, update, or rename (slug change recreates the record). */
+export async function saveSculptor(
+  client: AmplifyDataClient,
+  options: {
+    isNew: boolean;
+    previousSlug?: string;
+    data: SculptorSaveInput;
+  },
+): Promise<SculptorRecord> {
+  const Sculptor = client.models.Sculptor;
+  const { isNew, previousSlug, data } = options;
+
+  const available = await isSculptorSlugAvailable(
+    client,
+    data.slug,
+    isNew ? undefined : previousSlug,
+  );
+  if (!available) {
+    throw new Error(`Slug "${data.slug}" is already in use.`);
+  }
+
+  if (isNew) {
+    const result = await Sculptor.create(data);
+    if (result.errors?.length) {
+      throw new Error(result.errors.map((e) => e.message).join("; "));
+    }
+    if (!result.data) throw new Error("Could not create sculptor.");
+    return result.data;
+  }
+
+  const slugChanged =
+    previousSlug && previousSlug.toLowerCase() !== data.slug.toLowerCase();
+
+  if (slugChanged) {
+    const createResult = await Sculptor.create(data);
+    if (createResult.errors?.length) {
+      throw new Error(createResult.errors.map((e) => e.message).join("; "));
+    }
+    if (!createResult.data) throw new Error("Could not rename sculptor.");
+
+    const deleteResult = await Sculptor.delete({ slug: previousSlug });
+    if (deleteResult.errors?.length) {
+      throw new Error(deleteResult.errors.map((e) => e.message).join("; "));
+    }
+    return createResult.data;
+  }
+
+  const result = await Sculptor.update(data);
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+  if (!result.data) throw new Error("Could not update sculptor.");
+  return result.data;
 }

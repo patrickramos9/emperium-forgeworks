@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasSculptorModel } from "@/lib/dataModels";
+import { RichTextContent } from "@/components/RichTextContent";
 import { resolveImageUrl } from "@/lib/productImageUrls";
 import {
   getSculptorBySlug,
@@ -132,11 +133,7 @@ export function SculptorDetailPage() {
           <h1 className="mt-2 font-display-lg text-headline-lg uppercase text-primary">
             {sculptor.name}
           </h1>
-          {sculptor.description && (
-            <p className="mt-stack-md whitespace-pre-wrap font-body-lg text-on-surface-variant">
-              {sculptor.description}
-            </p>
-          )}
+          <RichTextContent html={sculptor.description} className="mt-stack-md" />
 
           {links.length > 0 && (
             <ul className="mt-stack-lg space-y-2">

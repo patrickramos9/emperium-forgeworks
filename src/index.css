@@ -41,3 +41,19 @@
   background: rgba(45, 19, 65, 0.35);
   backdrop-filter: blur(12px);
 }
+
+.rich-text-content h2 {
+  @apply mb-3 font-headline-md text-on-surface;
+}
+
+.rich-text-content p {
+  @apply mb-3;
+}
+
+.rich-text-content ul {
+  @apply mb-3 list-disc pl-6;
+}
+
+.rich-text-content a {
+  @apply text-primary underline hover:text-plasma-glow;
+}
