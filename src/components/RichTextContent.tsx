@@ -1,5 +1,10 @@
 import DOMPurify from "dompurify";
-import { isRichTextEmpty } from "@/components/RichTextEditor";
+import {
+  isRichTextEmpty,
+  prepareRichTextForDisplay,
+  RICH_TEXT_ALLOWED_ATTR,
+  RICH_TEXT_ALLOWED_TAGS,
+} from "@/lib/richTextUtils";
 
 type RichTextContentProps = {
   html: string | null | undefined;
@@ -10,8 +15,10 @@ type RichTextContentProps = {
 export function RichTextContent({ html, className = "" }: RichTextContentProps) {
   if (isRichTextEmpty(html)) return null;
 
-  const clean = DOMPurify.sanitize(html ?? "", {
-    USE_PROFILES: { html: true },
+  const prepared = prepareRichTextForDisplay(html ?? "");
+  const clean = DOMPurify.sanitize(prepared, {
+    ALLOWED_TAGS: [...RICH_TEXT_ALLOWED_TAGS],
+    ALLOWED_ATTR: [...RICH_TEXT_ALLOWED_ATTR],
   });
 
   return (

@@ -42,16 +42,44 @@
   backdrop-filter: blur(12px);
 }
 
-.rich-text-content h2 {
+.rich-text-content h1,
+.rich-text-editor h1 {
+  @apply mb-3 font-display-lg text-headline-md uppercase text-on-surface;
+}
+
+.rich-text-content h2,
+.rich-text-editor h2 {
   @apply mb-3 font-headline-md text-on-surface;
 }
 
-.rich-text-content p {
+.rich-text-content h3,
+.rich-text-editor h3 {
+  @apply mb-3 font-headline-sm text-on-surface;
+}
+
+.rich-text-content p,
+.rich-text-editor p {
   @apply mb-3;
 }
 
-.rich-text-content ul {
+.rich-text-content ul,
+.rich-text-editor ul {
   @apply mb-3 list-disc pl-6;
+}
+
+.rich-text-content ol,
+.rich-text-editor ol {
+  @apply mb-3 list-decimal pl-6;
+}
+
+.rich-text-content blockquote,
+.rich-text-editor blockquote {
+  @apply mb-3 border-l-2 border-primary pl-4 italic text-on-surface-variant;
+}
+
+.rich-text-content mark,
+.rich-text-editor mark {
+  @apply rounded-sm px-0.5;
 }
 
 .rich-text-content a {
