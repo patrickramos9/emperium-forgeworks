@@ -54,7 +54,7 @@
 
 .rich-text-content h3,
 .rich-text-editor h3 {
-  @apply mb-3 font-headline-sm text-on-surface;
+  @apply mb-3 font-headline-md text-body-lg text-on-surface;
 }
 
 .rich-text-content p,
