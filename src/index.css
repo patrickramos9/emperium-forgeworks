@@ -77,11 +77,6 @@
   @apply mb-3 border-l-2 border-primary pl-4 italic text-on-surface-variant;
 }
 
-.rich-text-content mark,
-.rich-text-editor mark {
-  @apply rounded-sm px-0.5;
-}
-
 .rich-text-content a {
   @apply text-primary underline hover:text-plasma-glow;
 }

@@ -19,6 +19,8 @@ export function RichTextContent({ html, className = "" }: RichTextContentProps) 
   const clean = DOMPurify.sanitize(prepared, {
     ALLOWED_TAGS: [...RICH_TEXT_ALLOWED_TAGS],
     ALLOWED_ATTR: [...RICH_TEXT_ALLOWED_ATTR],
+    // Keep inline font colors from TipTap (`style="color: …"`).
+    ADD_ATTR: ["style"],
   });
 
   return (

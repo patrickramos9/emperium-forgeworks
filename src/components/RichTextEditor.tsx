@@ -1,10 +1,9 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import Highlight from "@tiptap/extension-highlight";
 import {
   isRichTextEmpty,
   normalizeRichTextForSave,
@@ -17,6 +16,33 @@ type RichTextEditorProps = {
   value: string;
   onChange: (html: string) => void;
 };
+
+const TEXT_COLOR_SWATCHES = [
+  { label: "Primary", value: "#ffb694" },
+  { label: "Secondary", value: "#e2b6ff" },
+  { label: "Plasma", value: "#ff9d00" },
+  { label: "Light", value: "#e5e2e1" },
+  { label: "Muted", value: "#e2bfb0" },
+] as const;
+
+const DEFAULT_TEXT_COLOR = "#e5e2e1";
+
+function toHexColor(value: string | undefined, fallback: string): string {
+  if (!value) return fallback;
+  if (value.startsWith("#")) {
+    return value.length === 4
+      ? `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`
+      : value;
+  }
+  const rgbMatch = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (rgbMatch) {
+    const hex = [rgbMatch[1], rgbMatch[2], rgbMatch[3]]
+      .map((part) => Number(part).toString(16).padStart(2, "0"))
+      .join("");
+    return `#${hex}`;
+  }
+  return fallback;
+}
 
 function ToolbarButton({
   active,
@@ -33,6 +59,7 @@ function ToolbarButton({
     <button
       type="button"
       title={title}
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       className={[
         "px-2 py-1 font-label-sm uppercase",
@@ -46,42 +73,86 @@ function ToolbarButton({
   );
 }
 
-function ColorInput({
-  title,
-  value,
-  onChange,
+function TextColorControls({
+  currentColor,
+  onPickColor,
+  onResetColor,
 }: {
-  title: string;
-  value: string;
-  onChange: (color: string) => void;
+  currentColor: string;
+  onPickColor: (color: string) => void;
+  onResetColor: () => void;
 }) {
   return (
-    <label
-      title={title}
-      className="flex cursor-pointer items-center gap-1 px-1 py-1 font-label-sm uppercase text-on-surface-variant hover:text-on-surface"
+    <div
+      className="flex flex-wrap items-center gap-1 border-l border-outline-variant/20 pl-1"
+      title="Select text, then choose a font color"
     >
-      <input
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-6 w-8 cursor-pointer border border-outline-variant/30 bg-surface-container-low"
-      />
-      <span>{title}</span>
-    </label>
+      <span className="px-1 font-label-sm uppercase text-on-surface-variant">
+        Text color
+      </span>
+      {TEXT_COLOR_SWATCHES.map((swatch) => (
+        <button
+          key={swatch.value}
+          type="button"
+          title={swatch.label}
+          aria-label={`${swatch.label} text color`}
+          onClick={() => onPickColor(swatch.value)}
+          className={[
+            "h-6 w-6 border",
+            currentColor.toLowerCase() === swatch.value.toLowerCase()
+              ? "border-primary ring-1 ring-primary"
+              : "border-outline-variant/40",
+          ].join(" ")}
+          style={{ backgroundColor: swatch.value }}
+        />
+      ))}
+      <label className="flex cursor-pointer items-center gap-1 px-1 font-label-sm uppercase text-on-surface-variant hover:text-on-surface">
+        <input
+          type="color"
+          value={currentColor}
+          onChange={(e) => onPickColor(e.target.value)}
+          className="h-6 w-8 cursor-pointer border border-outline-variant/30 bg-surface-container-low"
+        />
+        <span>Custom</span>
+      </label>
+      <button
+        type="button"
+        title="Reset to default text color"
+        onClick={onResetColor}
+        className="px-2 py-1 font-label-sm uppercase text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+      >
+        Reset
+      </button>
+    </div>
   );
 }
 
 export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
-  const editor = useEditor({
-    extensions: [
+  const lastEmittedHtml = useRef<string | null>(null);
+
+  const extensions = useMemo(
+    () => [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
       Underline,
       TextStyle,
-      Color,
-      Highlight.configure({ multicolor: true }),
+      Color.configure({ types: ["textStyle"] }),
     ],
+    [],
+  );
+
+  const handleUpdate = useCallback(
+    ({ editor: ed }: { editor: { getHTML: () => string } }) => {
+      const html = ed.getHTML();
+      lastEmittedHtml.current = html;
+      onChange(html);
+    },
+    [onChange],
+  );
+
+  const editor = useEditor({
+    extensions,
     content: prepareRichTextForDisplay(value || ""),
     editorProps: {
       attributes: {
@@ -89,17 +160,19 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           "rich-text-editor min-h-[160px] px-3 py-2 font-body-md text-on-surface focus:outline-none",
       },
     },
-    onUpdate: ({ editor: ed }) => {
-      onChange(ed.getHTML());
-    },
+    onUpdate: handleUpdate,
   });
 
+  // Only sync when value changes externally (e.g. loading a record), not on each keystroke.
   useEffect(() => {
     if (!editor) return;
+    if (value === lastEmittedHtml.current) return;
+
     const prepared = prepareRichTextForDisplay(value || "");
     const current = editor.getHTML();
     if (prepared !== current) {
       editor.commands.setContent(prepared || "", { emitUpdate: false });
+      lastEmittedHtml.current = prepared || "";
     }
   }, [editor, value]);
 
@@ -111,10 +184,18 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     );
   }
 
-  const currentColor =
-    (editor.getAttributes("textStyle").color as string | undefined) ?? "#e8e0ec";
-  const currentHighlight =
-    (editor.getAttributes("highlight").color as string | undefined) ?? "#ff9d00";
+  const currentColor = toHexColor(
+    editor.getAttributes("textStyle").color as string | undefined,
+    DEFAULT_TEXT_COLOR,
+  );
+
+  function applyTextColor(color: string) {
+    editor.chain().focus().setColor(color).run();
+  }
+
+  function resetTextColor() {
+    editor.chain().focus().unsetColor().run();
+  }
 
   return (
     <div className="border border-outline-variant/30 bg-surface-container-low">
@@ -189,17 +270,10 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
         >
           Quote
         </ToolbarButton>
-        <ColorInput
-          title="Color"
-          value={currentColor}
-          onChange={(color) => editor.chain().focus().setColor(color).run()}
-        />
-        <ColorInput
-          title="Highlight"
-          value={currentHighlight}
-          onChange={(color) =>
-            editor.chain().focus().toggleHighlight({ color }).run()
-          }
+        <TextColorControls
+          currentColor={currentColor}
+          onPickColor={applyTextColor}
+          onResetColor={resetTextColor}
         />
         <ToolbarButton
           title="Clear formatting"
