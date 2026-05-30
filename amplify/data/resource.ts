@@ -211,6 +211,8 @@ const schema = a.schema({
       name: a.string().required(),
       /** S3 path under `sculptors/{slug}/…` */
       logo: a.string(),
+      /** Ordered S3 paths under `sculptors/{slug}/gallery/…` for the profile carousel. */
+      galleryImages: a.string().array(),
       description: a.string(),
       myMiniFactoryUrl: a.url(),
       patreonUrl: a.url(),

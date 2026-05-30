@@ -13,6 +13,7 @@ import {
 } from "@/lib/sculptorSlug";
 import { uploadSculptorLogo } from "@/lib/sculptorImageUpload";
 import { saveSculptor } from "@/services/sculptorService";
+import { AdminSculptorGalleryEditor } from "@/components/admin/AdminSculptorGalleryEditor";
 
 export function AdminSculptorEditPage() {
   const { slug: slugParam } = useParams<{ slug: string }>();
@@ -25,6 +26,7 @@ export function AdminSculptorEditPage() {
   const [description, setDescription] = useState("");
   const [logo, setLogo] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | undefined>();
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [myMiniFactoryUrl, setMyMiniFactoryUrl] = useState("");
   const [patreonUrl, setPatreonUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
@@ -35,6 +37,7 @@ export function AdminSculptorEditPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,6 +63,11 @@ export function AdminSculptorEditPage() {
         setName(data.name);
         setDescription(data.description ?? "");
         setLogo(data.logo ?? "");
+        setGalleryImages(
+          (data.galleryImages ?? []).filter(
+            (path): path is string => Boolean(path),
+          ),
+        );
         setMyMiniFactoryUrl(data.myMiniFactoryUrl ?? "");
         setPatreonUrl(data.patreonUrl ?? "");
         setInstagramUrl(data.instagramUrl ?? "");
@@ -142,6 +150,7 @@ export function AdminSculptorEditPage() {
       name: name.trim(),
       description: normalizeRichTextForSave(description),
       logo: logo.trim() || undefined,
+      galleryImages: galleryImages.length > 0 ? galleryImages : undefined,
       myMiniFactoryUrl: myMiniFactoryUrl.trim() || undefined,
       patreonUrl: patreonUrl.trim() || undefined,
       instagramUrl: instagramUrl.trim() || undefined,
@@ -269,6 +278,15 @@ export function AdminSculptorEditPage() {
           )}
         </div>
 
+        <AdminSculptorGalleryEditor
+          images={galleryImages}
+          onChange={setGalleryImages}
+          sculptorSlug={currentSlugForUpload()}
+          disabled={saving}
+          onUploadingChange={setGalleryUploading}
+          onError={setError}
+        />
+
         {(
           [
             ["MyMiniFactory URL", myMiniFactoryUrl, setMyMiniFactoryUrl],
@@ -319,7 +337,7 @@ export function AdminSculptorEditPage() {
         <div className="flex flex-wrap gap-4">
           <button
             type="submit"
-            disabled={saving || uploading}
+            disabled={saving || uploading || galleryUploading}
             className="bg-primary px-6 py-3 font-label-md uppercase text-on-primary disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save"}

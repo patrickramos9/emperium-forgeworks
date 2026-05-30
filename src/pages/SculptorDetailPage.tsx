@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasSculptorModel } from "@/lib/dataModels";
@@ -37,6 +38,7 @@ export function SculptorDetailPage() {
   const { mainTopPadding } = useSiteLayout();
   const [sculptor, setSculptor] = useState<SculptorRecord | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | undefined>();
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +67,15 @@ export function SculptorDetailPage() {
         setSculptor(row);
         if (row.logo) {
           setLogoUrl(await resolveImageUrl(row.logo));
+        }
+        const paths = (row.galleryImages ?? []).filter(
+          (path): path is string => Boolean(path),
+        );
+        if (paths.length > 0) {
+          const resolved = await Promise.all(paths.map((path) => resolveImageUrl(path)));
+          setGalleryUrls(resolved.filter((url): url is string => Boolean(url)));
+        } else {
+          setGalleryUrls([]);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load sculptor");
@@ -160,6 +171,22 @@ export function SculptorDetailPage() {
           </Link>
         </div>
       </div>
+
+      {galleryUrls.length > 0 && (
+        <section className="mt-section-gap">
+          <h2 className="font-headline-md text-on-surface">Featured Work</h2>
+          <p className="mt-2 font-body-md text-on-surface-variant">
+            A selection of sculpts and miniatures from {sculptor.name}.
+          </p>
+          <div className="mt-stack-md max-w-4xl">
+            <ProductImageGallery
+              images={galleryUrls}
+              alt={`${sculptor.name} portfolio`}
+              resetKey={sculptor.slug}
+            />
+          </div>
+        </section>
+      )}
     </main>
   );
 }

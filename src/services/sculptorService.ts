@@ -95,6 +95,7 @@ export type SculptorSaveInput = {
   name: string;
   description?: string;
   logo?: string;
+  galleryImages?: string[];
   myMiniFactoryUrl?: string;
   patreonUrl?: string;
   instagramUrl?: string;
