@@ -25,9 +25,13 @@ Option A (frontend-only) is documented in [deploy-option-a.md](deploy-option-a.m
 
 | Name | Value |
 |------|--------|
-| `VITE_APP_ENV` | `local` (mock checkout until M3 Stripe) |
+| `VITE_APP_ENV` | `deployment` for live Stripe checkout; `local` for mock |
 | `VITE_SITE_DOMAIN` | `emperiumforgeworks.com` |
 | `VITE_SITE_URL` | `https://emperiumforgeworks.com` |
+| `STRIPE_SECRET_KEY` | Backend Lambdas — Stripe secret API key |
+| `STRIPE_WEBHOOK_SECRET` | Backend `stripe-webhook` Lambda — signing secret |
+
+See [stripe-setup.md](stripe-setup.md) for webhook URL and test-mode notes.
 
 **GA4 admin dashboard (backend Lambda):**
 
@@ -114,12 +118,8 @@ npm run dev
 
 ## What Option B does not include yet
 
-- Stripe live checkout (**M3**)
-- Customer accounts (**M4**)
-- Admin dashboard + stats (**M5**)
+- Customer accounts polish beyond current M4 scope
 - Promo codes (**M6**)
-- Hidden Vault (**M7**)
-- Runtime announcements (**M8**)
-- Gallery page (**M9**)
+- Admin–customer chat (**M10**)
 
 See [project-plans/cursor-roadmap.md](../project-plans/cursor-roadmap.md).

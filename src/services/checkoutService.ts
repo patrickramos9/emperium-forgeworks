@@ -4,7 +4,7 @@ import {
   type CheckoutLineItem,
 } from "@emperium/shared";
 import type { CartLine } from "@/context/CartContext";
-import { SITE_URL } from "@/lib/config";
+import { SITE_URL, APP_ENV } from "@/lib/config";
 import { configureAmplify, isAmplifyConfigured } from "@/lib/amplify";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { getCustomerUserId } from "@/lib/customerAuth";
@@ -55,6 +55,46 @@ async function saveMockOrder(
   }
 }
 
+async function startStripeCheckout(items: CartLine[]) {
+  const client = await getGuestDataClient();
+  if (!client) {
+    throw new Error("Checkout is unavailable — backend not configured.");
+  }
+
+  if (!client.mutations.createStripeCheckoutSession) {
+    throw new Error(
+      "Stripe checkout is not deployed. Redeploy the Amplify backend.",
+    );
+  }
+
+  const base = SITE_URL.replace(/\/$/, "");
+  const lineItems = toLineItems(items).map((item) => ({
+    productId: item.productId,
+    slug: item.slug,
+    variantId: item.variantId,
+    quantity: item.quantity,
+    title: item.title,
+    priceCents: item.priceCents,
+    imageUrl: item.imageUrl,
+  }));
+
+  const { data, errors } = await client.mutations.createStripeCheckoutSession({
+    lineItems,
+    successUrl: `${base}/checkout/success?session={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `${base}/checkout/cancel`,
+  });
+
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  if (!data?.redirectUrl) {
+    throw new Error("Stripe checkout could not be started.");
+  }
+
+  window.location.href = data.redirectUrl;
+  return data;
+}
+
 export async function startCheckout(items: CartLine[]) {
   if (!items.length) {
     throw new Error("Cart is empty");
@@ -62,9 +102,12 @@ export async function startCheckout(items: CartLine[]) {
 
   await configureAmplify();
 
+  if (APP_ENV === "deployment") {
+    return startStripeCheckout(items);
+  }
+
   const config = loadConfig({
-    appEnv:
-      import.meta.env.VITE_APP_ENV === "deployment" ? "deployment" : "local",
+    appEnv: "local",
     siteUrl: SITE_URL,
     stripeSecretKey: undefined,
   });
@@ -86,4 +129,8 @@ export async function startCheckout(items: CartLine[]) {
 
   window.location.href = session.redirectUrl;
   return session;
+}
+
+export function isLiveCheckoutEnabled(): boolean {
+  return APP_ENV === "deployment";
 }

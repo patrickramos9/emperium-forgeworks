@@ -2,6 +2,8 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { listCustomers as listCustomersFn } from "../functions/list-customers/resource";
 import { lookupCustomerByEmail as lookupCustomerByEmailFn } from "../functions/lookup-customer-by-email/resource";
 import { getGa4Dashboard as getGa4DashboardFn } from "../functions/get-ga4-dashboard/resource";
+import { createStripeCheckout as createStripeCheckoutFn } from "../functions/create-stripe-checkout/resource";
+import { stripeWebhook as stripeWebhookFn } from "../functions/stripe-webhook/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -51,6 +53,22 @@ const schema = a.schema({
     fetchedAt: a.datetime().required(),
   }),
 
+  CheckoutCartLine: a.customType({
+    productId: a.string().required(),
+    slug: a.string().required(),
+    variantId: a.string(),
+    quantity: a.integer().required(),
+    title: a.string().required(),
+    priceCents: a.integer().required(),
+    imageUrl: a.string(),
+  }),
+
+  CheckoutSessionResult: a.customType({
+    sessionId: a.string().required(),
+    redirectUrl: a.string().required(),
+    paymentProvider: a.string().required(),
+  }),
+
   listCustomers: a
     .query()
     .arguments({
@@ -78,6 +96,17 @@ const schema = a.schema({
     .returns(a.ref("Ga4DashboardResult"))
     .authorization((allow) => [allow.group("admin")])
     .handler(a.handler.function(getGa4DashboardFn)),
+
+  createStripeCheckoutSession: a
+    .mutation()
+    .arguments({
+      lineItems: a.ref("CheckoutCartLine").array().required(),
+      successUrl: a.string(),
+      cancelUrl: a.string(),
+    })
+    .returns(a.ref("CheckoutSessionResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(createStripeCheckoutFn)),
 
   VaultAccess: a
     .model({
@@ -234,7 +263,11 @@ const schema = a.schema({
         .to(["read", "update"]),
       allow.group("admin"),
     ]),
-});
+})
+.authorization((allow) => [
+  allow.resource(createStripeCheckoutFn),
+  allow.resource(stripeWebhookFn),
+]);
 
 export type Schema = ClientSchema<typeof schema>;
 

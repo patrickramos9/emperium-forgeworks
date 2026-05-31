@@ -20,19 +20,19 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-05-31
 
 | Item | State |
 |------|--------|
-| **Phase** | M8 — Content & community |
-| **Next** | **M8d** — Sculptor self-service editor (partner sub-admin) |
-| **Blocked** | **M3b** — Stripe + Google Pay until EIN / Stripe onboarding complete |
-| **Recently verified** | **M8c** Sculptors — production smoke-test passed |
-| **In progress** | **M8d** — Sculptor self-service editor |
-| **Payments today** | Mock checkout only (`MockPaymentProvider`) |
+| **Phase** | Payments (M3b) |
+| **Next** | Deploy + smoketest **M3b** Stripe; configure webhook in Stripe Dashboard |
+| **Blocked** | — |
+| **Recently verified** | **M8d** Sculptor partner portal — production smoke-test passed |
+| **In progress** | **M3b** — Stripe + Google Pay (implementation shipped; deploy + webhook setup) |
+| **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
 
 **Recommended build order:**  
-M8c → **M8d** (sculptor self-service editor) → **M3b** (when unblocked) → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
+M8 (done) → **M3b** (when unblocked) → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -159,15 +159,11 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8a.2** — Notifications (inbox, badge, targeting, vault-grant trigger)
 - **M8b** — Reviews (“Voices From The Void”, admin moderation) — **production verified**
 - **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, portfolio carousel, rich text) — **production verified**
+- **M8d** — Sculptor partner portal (`/partner/sculptor`, admin-granted `editorUserId`) — **production verified**
 
 ### Blocked / waiting
 
-- **M3b** — Stripe + Google Pay (EIN / Stripe business onboarding)
-- **M6** — Promo codes (depends on M3b)
-
-### In progress
-
-- **M8d** — Sculptor self-service editor (partner sub-admin; admin-granted access)
+- **M6** — Promo codes (depends on M3b verification)
 
 ### Planned (not started)
 - **M9** — Polish & growth (gallery, SEO, performance)
@@ -185,6 +181,8 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 ## 4. Milestones — implementation specs for Cursor
 
 ### M3b — Live payments (Stripe + Google Pay)
+
+**Status:** Implemented — deploy backend, set Amplify secrets, register Stripe webhook, set `VITE_APP_ENV=deployment`, then smoketest.
 
 **Goal:** Replace mock checkout with real Stripe payments while preserving the `PaymentProvider` abstraction.
 
@@ -289,13 +287,13 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - Follow existing admin patterns (`AdminLayout`, list + detail pages).
 - Use `services` module for sculptor data access.
 
-**Follow-on:** **M8d** — sculptor self-service editing (implemented; awaiting deploy verification).
+**Follow-on:** **M8d** — sculptor self-service editing — **shipped** (see below).
 
 ---
 
 ### M8d — Sculptor self-service editor (partner sub-admin)
 
-**Status:** Implemented — deploy backend + frontend, then smoketest.
+**Status:** **Production verified.**
 
 **Depends on:** M8c (shipped sculptor profiles + admin CRUD).
 

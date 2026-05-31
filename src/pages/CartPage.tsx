@@ -4,6 +4,7 @@ import { MockCheckoutBanner } from "@/components/MockCheckoutBanner";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
 import { useProducts } from "@/hooks/useProducts";
+import { IS_LOCAL } from "@/lib/config";
 import { validateCartLines } from "@/lib/validateCart";
 import { startCheckout } from "@/services/checkoutService";
 
@@ -180,7 +181,9 @@ export function CartPage() {
           Subtotal: {formatPrice(subtotalCents)}
         </p>
         <p className="mt-1 text-right text-label-sm text-on-surface-variant">
-          Shipping calculated at checkout (when live payments launch).
+          {IS_LOCAL
+            ? "Mock checkout locally — no charge."
+            : "Secure checkout via Stripe (cards, Apple Pay, Google Pay)."}
         </p>
         {error && <p className="mt-2 text-right text-error">{error}</p>}
         <div className="mt-4 flex flex-wrap justify-end gap-4">

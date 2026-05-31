@@ -14,6 +14,13 @@ export interface CheckoutSessionResult {
   paymentProvider: "mock" | "stripe";
 }
 
+export interface CreateCheckoutSessionOptions {
+  customerEmail?: string;
+  successUrl?: string;
+  cancelUrl?: string;
+  metadata?: Record<string, string>;
+}
+
 export interface CreateOrderInput {
   externalSessionId: string;
   paymentProvider: "mock" | "stripe";
@@ -26,6 +33,6 @@ export interface PaymentProvider {
   readonly name: "mock" | "stripe";
   createCheckoutSession(
     items: CheckoutLineItem[],
-    options?: { customerEmail?: string },
+    options?: CreateCheckoutSessionOptions,
   ): Promise<CheckoutSessionResult>;
 }

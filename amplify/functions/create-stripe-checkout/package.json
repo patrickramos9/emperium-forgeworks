@@ -1,0 +1,7 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@emperium/shared": "*",
+    "aws-amplify": "^6.12.0"
+  }
+}

@@ -40,7 +40,9 @@ npm run seed
 | `VITE_APP_ENV` | Behavior |
 |----------------|----------|
 | `local` (default) | Mock checkout — creates order when Amplify is connected, no Stripe |
-| `deployment` + `STRIPE_SECRET_KEY` | Real Stripe Checkout (implement webhook in Lambda when ready) |
+| `deployment` | Stripe Checkout via `createStripeCheckoutSession` Lambda + webhook |
+
+See [docs/stripe-setup.md](docs/stripe-setup.md).
 
 ## Deploy
 
