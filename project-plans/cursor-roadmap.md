@@ -20,7 +20,7 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-05-29
+**Last updated:** 2026-05-30
 
 | Item | State |
 |------|--------|
@@ -32,7 +32,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Payments today** | Mock checkout only (`MockPaymentProvider`) |
 
 **Recommended build order:**  
-M8c → **M3b** (when unblocked) → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
+M8c → **M8d** (sculptor self-service editor) → **M3b** (when unblocked) → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -166,6 +166,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 ### Planned (not started)
 
+- **M8d** — Sculptor self-service editor (partner sub-admin; admin-granted access to edit own profile)
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M10** — Admin–customer chat
 - **M11** — Print progress tracker (Queued → fabrication → Shipped)
@@ -254,18 +255,19 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 **Goal:** Admin-managed sculptor profiles + public pages.
 
 **Data model:**
-- Add `Sculptor` model:
-  - `id` (PK)
+- `Sculptor` model (PK: `slug`):
   - `slug: string`
   - `name: string`
-  - `logo: string` (S3 key)
-  - `description: string`
+  - `logo: string` (S3 key under `sculptors/{slug}/…`)
+  - `galleryImages: string[]` (S3 keys under `sculptors/{slug}/gallery/…`)
+  - `description: string` (rich text HTML)
   - `myMiniFactoryUrl?: string`
   - `patreonUrl?: string`
   - `instagramUrl?: string`
   - `facebookUrl?: string`
   - `xUrl?: string`
   - `active: boolean`
+  - `sortOrder: int`
 
 **Auth:**
 - Guest + authenticated read.
@@ -273,15 +275,66 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 **Frontend:**
 - Admin:
-  - `/admin/sculptors` list + CRUD page.
-  - Logo upload via S3 (reuse product image pattern).
+  - `/admin/sculptors` list + edit page.
+  - Logo + portfolio gallery upload via S3 (reuse product gallery patterns).
+  - Rich text description editor.
 - Public:
-  - `/sculptors/:slug` page.
-  - Home page: replace hardcoded sculptors with live list.
+  - `/sculptors/:slug` page (portfolio carousel + bio).
+  - Home page: live sculptor cards from DB.
 
 **Cursor rules:**
 - Follow existing admin patterns (`AdminLayout`, list + detail pages).
 - Use `services` module for sculptor data access.
+
+**Follow-on:** **M8d** — sculptor self-service editing (see below).
+
+---
+
+### M8d — Sculptor self-service editor (partner sub-admin)
+
+**Depends on:** M8c (shipped sculptor profiles + admin CRUD).
+
+**Goal:** A licensed sculptor can edit **their own** public profile using the same fields and UX as admin sculptor edit, without access to the full admin portal or other sculptors’ data. An **admin grants** edit access per sculptor.
+
+**Permission model (v1):**
+- Add optional `editorUserId: string` on `Sculptor` — Cognito `sub` of the user allowed to edit that profile.
+- Admin assigns or revokes access from the sculptor admin edit page (lookup customer by email, same pattern as vault/notifications targeting).
+- Auth rules on `Sculptor`:
+  - Guest + authenticated: read (unchanged).
+  - Admin: full CRUD (unchanged).
+  - Owner: `allow.ownerDefinedIn("editorUserId").identityClaim("sub").to(["read", "update"])` — only when `editorUserId` is set.
+
+**Fields sculptors may edit (self-service):**
+- `name`, `description`, `logo`, `galleryImages`, social URLs (`myMiniFactoryUrl`, `patreonUrl`, `instagramUrl`, `facebookUrl`, `xUrl`).
+
+**Fields admin-only (not exposed on partner UI):**
+- `slug`, `active`, `sortOrder`, `editorUserId` (grant/revoke).
+
+**Frontend:**
+- **Partner portal** (new, not under `/admin`):
+  - Route e.g. `/partner/sculptor` (or `/sculptor/edit`) — single edit page for the logged-in sculptor’s assigned profile.
+  - `SculptorPartnerLayout` — minimal shell (brand header, sign out, link to public profile); **no** admin nav.
+  - Reuse existing editor building blocks: `RichTextEditor`, `AdminSculptorGalleryEditor`, logo upload helpers, `saveSculptor` (or a scoped `updateOwnSculptor` service that rejects admin-only fields).
+  - Gate route: user must be signed in and `editorUserId` must match their `sub` for exactly one `Sculptor` row; otherwise show “no access” / contact admin.
+- **Admin:**
+  - On `/admin/sculptors/:slug` — section **Partner access**: assign user by email (sets `editorUserId`), revoke (clears field), show current assignee.
+
+**Backend / services:**
+- `sculptorService.ts`:
+  - `getSculptorForEditor(client, userId)` — fetch the one profile this user may edit.
+  - `updateOwnSculptor(client, userId, data)` — update allowed fields only; verify `editorUserId === userId`.
+- Optional Lambda: add user to a `sculptor` Cognito group on grant (for nav/routing hints only); **authorization must still use `editorUserId` on the model**, not group alone.
+
+**Cursor rules:**
+- Do **not** duplicate the full admin sculptor form — extract shared `SculptorProfileForm` (or similar) used by admin and partner pages; admin wrapper adds slug/active/sort/access controls.
+- Partner users must **not** reach `/admin/*` routes (existing admin guard unchanged).
+- Slug rename stays admin-only (PK recreate logic stays in admin save path).
+- Follow existing patterns: `requireAdminSession`, customer session helpers, `resolveImageUrl`, storage under `sculptors/*`.
+
+**Acceptance:**
+- Admin grants sculptor A access; sculptor A signs in and edits bio/gallery/logo; changes appear on `/sculptors/:slug`.
+- Sculptor A cannot edit sculptor B’s profile or access admin pages.
+- Admin can revoke access; former editor loses partner route.
 
 ---
 
@@ -565,6 +618,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 **Auth rules:**
 - Use `allow.guest()` for public read where appropriate.
 - Use `ownerDefinedIn("userId")` for customer-owned data.
+- Use `ownerDefinedIn("editorUserId")` for sculptor partner self-service (M8d).
 - Use `group("admin")` for admin-only operations.
 
 ---
