@@ -1,11 +1,13 @@
 import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
+import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import Stripe from "stripe";
 import type { Schema } from "../../data/resource";
-import { env } from "$amplify/env/create-stripe-checkout";
 
-const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
+const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
+  process.env as DataClientEnv,
+);
 Amplify.configure(resourceConfig, libraryOptions);
 
 const dataClient = generateClient<Schema>();
@@ -21,9 +23,11 @@ type CheckoutLineItem = {
 };
 
 function lineItemsFromArgs(
-  items: Schema["CheckoutCartLine"]["type"][],
+  items: (Schema["CheckoutCartLine"]["type"] | null | undefined)[],
 ): CheckoutLineItem[] {
-  return items.map((item) => ({
+  return items
+    .filter((item): item is Schema["CheckoutCartLine"]["type"] => item != null)
+    .map((item) => ({
     productId: item.productId,
     slug: item.slug,
     variantId: item.variantId ?? undefined,

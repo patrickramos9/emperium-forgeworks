@@ -1,11 +1,13 @@
 import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
+import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import Stripe from "stripe";
 import type { Schema } from "../../data/resource";
-import { env } from "$amplify/env/stripe-webhook";
 
-const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env);
+const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
+  process.env as DataClientEnv,
+);
 Amplify.configure(resourceConfig, libraryOptions);
 
 const dataClient = generateClient<Schema>();
