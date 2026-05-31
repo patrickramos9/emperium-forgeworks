@@ -55,7 +55,9 @@ function fulfillmentFromSession(session: Stripe.Checkout.Session) {
     email: customer?.email ?? undefined,
     customerName: customer?.name ?? shippingAddress?.name ?? undefined,
     customerPhone: customer?.phone ?? undefined,
-    ...(shippingAddress ? { shippingAddress } : {}),
+    ...(shippingAddress
+      ? { shippingAddress: JSON.stringify(shippingAddress) }
+      : {}),
   };
 }
 
