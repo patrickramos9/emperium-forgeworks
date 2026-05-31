@@ -5,6 +5,53 @@ import { formatPrice } from "@/data/seedProducts";
 
 export type OrderRecord = Schema["Order"]["type"];
 
+export type ShippingAddressSnapshot = {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+};
+
+export function parseShippingAddress(
+  shippingAddress: OrderRecord["shippingAddress"],
+): ShippingAddressSnapshot | null {
+  if (!shippingAddress) return null;
+
+  try {
+    const parsed =
+      typeof shippingAddress === "string"
+        ? JSON.parse(shippingAddress)
+        : shippingAddress;
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed as ShippingAddressSnapshot;
+  } catch {
+    return null;
+  }
+}
+
+export function formatShippingAddress(
+  address: ShippingAddressSnapshot | null,
+): string {
+  if (!address?.line1) return "—";
+
+  const cityLine = [address.city, address.state, address.postalCode]
+    .filter(Boolean)
+    .join(", ");
+
+  return [
+    address.name,
+    address.line1,
+    address.line2,
+    cityLine,
+    address.country,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export function parseOrderLineItems(
   lineItems: OrderRecord["lineItems"],
 ): OrderLineItemSnapshot[] {

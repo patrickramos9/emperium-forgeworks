@@ -173,8 +173,11 @@ const schema = a.schema({
       paymentProvider: a.enum(["mock", "stripe"]),
       status: a.enum(["pending", "paid", "failed"]),
       userId: a.string(),
-      /** Deprecated — not collected; kept for schema compatibility. */
       email: a.string(),
+      customerName: a.string(),
+      customerPhone: a.string(),
+      /** Ship-to address from Stripe Checkout (`shipping_details`). */
+      shippingAddress: a.json(),
       lineItems: a.json(),
       totalCents: a.integer().required(),
     })

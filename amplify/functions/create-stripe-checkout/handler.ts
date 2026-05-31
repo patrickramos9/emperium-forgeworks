@@ -65,6 +65,10 @@ async function createStripeCheckoutSession(
     success_url: options.successUrl,
     cancel_url: options.cancelUrl,
     metadata: options.metadata,
+    shipping_address_collection: {
+      allowed_countries: ["US"],
+    },
+    phone_number_collection: { enabled: true },
   });
 
   if (!session.url) {

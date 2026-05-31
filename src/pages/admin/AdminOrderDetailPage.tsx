@@ -4,9 +4,11 @@ import { formatPrice } from "@/data/seedProducts";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import {
   formatOrderDate,
+  formatShippingAddress,
   getOrderById,
   orderStatusLabel,
   parseOrderLineItems,
+  parseShippingAddress,
   updateOrderStatus,
   type OrderRecord,
   type OrderStatus,
@@ -85,6 +87,8 @@ export function AdminOrderDetailPage() {
   }
 
   const items = parseOrderLineItems(order.lineItems);
+  const shipping = parseShippingAddress(order.shippingAddress);
+  const shippingLines = formatShippingAddress(shipping).split("\n");
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -114,7 +118,34 @@ export function AdminOrderDetailPage() {
         {order.userId && (
           <DetailRow label="Customer ID" value={order.userId} />
         )}
+        {order.email && <DetailRow label="Email" value={order.email} />}
+        {order.customerName && (
+          <DetailRow label="Name" value={order.customerName} />
+        )}
+        {order.customerPhone && (
+          <DetailRow label="Phone" value={order.customerPhone} />
+        )}
       </dl>
+
+      <section className="mt-stack-lg">
+        <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
+          Ship to
+        </h2>
+        <div className="mt-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
+          {shipping?.line1 ? (
+            <address className="space-y-0.5 whitespace-pre-line not-italic text-on-surface">
+              {shippingLines.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </address>
+          ) : (
+            <p className="text-on-surface-variant">
+              No shipping address recorded (order placed before shipping
+              collection was enabled).
+            </p>
+          )}
+        </div>
+      </section>
 
       <section className="mt-stack-lg">
         <h2 className="font-headline-md text-headline-md uppercase text-on-surface">

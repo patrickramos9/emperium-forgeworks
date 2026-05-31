@@ -16,6 +16,49 @@ function response(statusCode: number, body: string) {
   return { statusCode, body };
 }
 
+type ShippingAddressSnapshot = {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+};
+
+function shippingFromSession(
+  session: Stripe.Checkout.Session,
+): ShippingAddressSnapshot | undefined {
+  const shipping = session.collected_information?.shipping_details;
+  const address = shipping?.address;
+  if (!address?.line1) return undefined;
+
+  return {
+    name: shipping?.name ?? undefined,
+    line1: address.line1 ?? undefined,
+    line2: address.line2 ?? undefined,
+    city: address.city ?? undefined,
+    state: address.state ?? undefined,
+    postalCode: address.postal_code ?? undefined,
+    country: address.country ?? undefined,
+  };
+}
+
+function fulfillmentFromSession(session: Stripe.Checkout.Session) {
+  const shippingAddress = shippingFromSession(session);
+  const customer = session.customer_details;
+
+  return {
+    status: "paid" as const,
+    paymentProvider: "stripe" as const,
+    externalSessionId: session.id,
+    email: customer?.email ?? undefined,
+    customerName: customer?.name ?? shippingAddress?.name ?? undefined,
+    customerPhone: customer?.phone ?? undefined,
+    ...(shippingAddress ? { shippingAddress } : {}),
+  };
+}
+
 export const handler = async (event: {
   headers?: Record<string, string | undefined>;
   body?: string | null;
@@ -63,9 +106,7 @@ export const handler = async (event: {
 
     const updateResult = await dataClient.models.Order.update({
       id: orderId,
-      status: "paid",
-      paymentProvider: "stripe",
-      externalSessionId: session.id,
+      ...fulfillmentFromSession(session),
     });
 
     if (updateResult.errors?.length) {
