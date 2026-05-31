@@ -1,11 +1,7 @@
 import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
-import {
-  StripePaymentProvider,
-  loadConfig,
-  type CheckoutLineItem,
-} from "@emperium/shared";
+import Stripe from "stripe";
 import type { Schema } from "../../data/resource";
 import { env } from "$amplify/env/create-stripe-checkout";
 
@@ -13,6 +9,16 @@ const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(env)
 Amplify.configure(resourceConfig, libraryOptions);
 
 const dataClient = generateClient<Schema>();
+
+type CheckoutLineItem = {
+  productId: string;
+  slug: string;
+  variantId?: string;
+  quantity: number;
+  title: string;
+  priceCents: number;
+  imageUrl?: string;
+};
 
 function lineItemsFromArgs(
   items: Schema["CheckoutCartLine"]["type"][],
@@ -28,8 +34,53 @@ function lineItemsFromArgs(
   }));
 }
 
+async function createStripeCheckoutSession(
+  stripe: Stripe,
+  items: CheckoutLineItem[],
+  options: {
+    successUrl: string;
+    cancelUrl: string;
+    metadata?: Record<string, string>;
+  },
+) {
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    line_items: items.map((item) => ({
+      quantity: item.quantity,
+      price_data: {
+        currency: "usd",
+        unit_amount: item.priceCents,
+        product_data: {
+          name: item.title,
+          ...(item.imageUrl?.startsWith("http")
+            ? { images: [item.imageUrl] }
+            : {}),
+        },
+      },
+    })),
+    success_url: options.successUrl,
+    cancel_url: options.cancelUrl,
+    metadata: options.metadata,
+  });
+
+  if (!session.url) {
+    throw new Error("Stripe did not return a checkout URL.");
+  }
+
+  return {
+    sessionId: session.id,
+    redirectUrl: session.url,
+    paymentProvider: "stripe" as const,
+  };
+}
+
 export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
   async (event) => {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+
     const lineItems = lineItemsFromArgs(event.arguments.lineItems);
     if (!lineItems.length) {
       throw new Error("Cart is empty");
@@ -83,16 +134,9 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     }
 
     const orderId = createResult.data.id;
+    const stripe = new Stripe(secretKey);
 
-    const provider = new StripePaymentProvider(
-      loadConfig({
-        appEnv: "deployment",
-        siteUrl,
-        stripeSecretKey: process.env.STRIPE_SECRET_KEY,
-      }),
-    );
-
-    const session = await provider.createCheckoutSession(lineItems, {
+    const session = await createStripeCheckoutSession(stripe, lineItems, {
       successUrl,
       cancelUrl,
       metadata: { orderId },
