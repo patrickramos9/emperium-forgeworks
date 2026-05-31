@@ -122,28 +122,42 @@ export function SculptorDetailPage() {
         ← Home
       </Link>
 
-      <div className="mt-stack-lg grid grid-cols-1 gap-gutter lg:grid-cols-2">
-        <div className="aspect-square overflow-hidden bg-black iron-bevel">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt={sculptor.name}
-              className="h-full w-full object-cover"
+      <div
+        className={`mt-stack-lg grid grid-cols-1 items-start gap-gutter ${
+          galleryUrls.length > 0 ? "lg:grid-cols-2" : ""
+        }`}
+      >
+        {galleryUrls.length > 0 && (
+          <div>
+            <p className="mb-2 font-label-sm uppercase text-on-surface-variant">
+              Featured Work
+            </p>
+            <ProductImageGallery
+              images={galleryUrls}
+              alt={`${sculptor.name} portfolio`}
+              resetKey={sculptor.slug}
             />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-iron-gray text-on-surface-variant">
-              No logo uploaded
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div>
+        <div className={galleryUrls.length > 0 ? "" : "max-w-2xl"}>
           <p className="font-label-sm uppercase tracking-widest text-secondary">
             Licensed Partner
           </p>
-          <h1 className="mt-2 font-display-lg text-headline-lg uppercase text-primary">
-            {sculptor.name}
-          </h1>
+          <div className="mt-2 flex items-center gap-4">
+            {logoUrl && (
+              <div className="h-16 w-16 shrink-0 overflow-hidden bg-black iron-bevel sm:h-20 sm:w-20">
+                <img
+                  src={logoUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
+            <h1 className="font-display-lg text-headline-lg uppercase text-primary">
+              {sculptor.name}
+            </h1>
+          </div>
           <RichTextContent html={sculptor.description} className="mt-stack-md" />
 
           {links.length > 0 && (
@@ -171,22 +185,6 @@ export function SculptorDetailPage() {
           </Link>
         </div>
       </div>
-
-      {galleryUrls.length > 0 && (
-        <section className="mt-section-gap">
-          <h2 className="font-headline-md text-on-surface">Featured Work</h2>
-          <p className="mt-2 font-body-md text-on-surface-variant">
-            A selection of sculpts and miniatures from {sculptor.name}.
-          </p>
-          <div className="mt-stack-md max-w-4xl">
-            <ProductImageGallery
-              images={galleryUrls}
-              alt={`${sculptor.name} portfolio`}
-              resetKey={sculptor.slug}
-            />
-          </div>
-        </section>
-      )}
     </main>
   );
 }
