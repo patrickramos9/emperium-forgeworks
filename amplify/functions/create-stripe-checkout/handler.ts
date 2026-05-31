@@ -65,9 +65,19 @@ async function createStripeCheckoutSession(
     success_url: options.successUrl,
     cancel_url: options.cancelUrl,
     metadata: options.metadata,
+    billing_address_collection: "required",
     shipping_address_collection: {
       allowed_countries: ["US"],
     },
+    shipping_options: [
+      {
+        shipping_rate_data: {
+          type: "fixed_amount",
+          fixed_amount: { amount: 0, currency: "usd" },
+          display_name: "Standard shipping",
+        },
+      },
+    ],
     phone_number_collection: { enabled: true },
   });
 
