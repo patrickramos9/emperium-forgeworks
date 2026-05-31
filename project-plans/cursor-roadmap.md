@@ -25,10 +25,10 @@ Cursor should treat this file as the **source of truth** for:
 | Item | State |
 |------|--------|
 | **Phase** | M8 — Content & community |
-| **Next** | Deploy + smoketest **M8c** Sculptors; then **M3b** when EIN ready |
+| **Next** | **M8d** — Sculptor self-service editor (partner sub-admin) |
 | **Blocked** | **M3b** — Stripe + Google Pay until EIN / Stripe onboarding complete |
-| **Recently verified** | **M8b Reviews** — production smoke-test passed |
-| **In progress** | **M8c** Sculptors — implemented; awaiting deploy verification |
+| **Recently verified** | **M8c** Sculptors — production smoke-test passed |
+| **In progress** | **M8d** — Sculptor self-service editor |
 | **Payments today** | Mock checkout only (`MockPaymentProvider`) |
 
 **Recommended build order:**  
@@ -91,6 +91,7 @@ When adding new functionality, **prefer extending existing patterns**:
   - Cart + checkout (`/cart`, `/checkout/success`)
   - Customer account (`/account/*`)
   - Admin portal (`/admin/*`)
+  - Partner portal (`/partner/*`) — M8d sculptor self-service
 
 - **Backend (Amplify Gen 2)**
   - Cognito User Pool + Identity Pool
@@ -157,16 +158,18 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8a.1** — Announcements
 - **M8a.2** — Notifications (inbox, badge, targeting, vault-grant trigger)
 - **M8b** — Reviews (“Voices From The Void”, admin moderation) — **production verified**
-- **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, home) — *deploy + smoketest*
+- **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, portfolio carousel, rich text) — **production verified**
 
 ### Blocked / waiting
 
 - **M3b** — Stripe + Google Pay (EIN / Stripe business onboarding)
 - **M6** — Promo codes (depends on M3b)
 
-### Planned (not started)
+### In progress
 
-- **M8d** — Sculptor self-service editor (partner sub-admin; admin-granted access to edit own profile)
+- **M8d** — Sculptor self-service editor (partner sub-admin; admin-granted access)
+
+### Planned (not started)
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M10** — Admin–customer chat
 - **M11** — Print progress tracker (Queued → fabrication → Shipped)
@@ -286,11 +289,13 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - Follow existing admin patterns (`AdminLayout`, list + detail pages).
 - Use `services` module for sculptor data access.
 
-**Follow-on:** **M8d** — sculptor self-service editing (see below).
+**Follow-on:** **M8d** — sculptor self-service editing (implemented; awaiting deploy verification).
 
 ---
 
 ### M8d — Sculptor self-service editor (partner sub-admin)
+
+**Status:** Implemented — deploy backend + frontend, then smoketest.
 
 **Depends on:** M8c (shipped sculptor profiles + admin CRUD).
 

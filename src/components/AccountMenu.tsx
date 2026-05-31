@@ -7,6 +7,8 @@ import {
   hasCustomerSession,
 } from "@/lib/customerAuth";
 import { listCustomerNotifications, listMyNotificationReads, unreadCount } from "@/services/notificationService";
+import { hasSculptorModel } from "@/lib/dataModels";
+import { getSculptorForEditor } from "@/services/sculptorService";
 
 export function AccountMenu() {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [hasPartnerAccess, setHasPartnerAccess] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,6 +25,7 @@ export function AccountMenu() {
       setSignedIn(hasSession);
       if (!hasSession) {
         setUnread(0);
+        setHasPartnerAccess(false);
         return;
       }
       const client = await getCustomerDataClient();
@@ -32,6 +36,16 @@ export function AccountMenu() {
           listMyNotificationReads(client),
         ]);
         setUnread(unreadCount(notifications, reads));
+
+        if (hasSculptorModel(client)) {
+          const { fetchAuthSession } = await import("aws-amplify/auth");
+          const session = await fetchAuthSession();
+          const sub = session.tokens?.idToken?.payload?.sub;
+          if (typeof sub === "string") {
+            const row = await getSculptorForEditor(client, sub);
+            setHasPartnerAccess(Boolean(row));
+          }
+        }
       } catch {
         // Ignore badge load errors in nav.
       }
@@ -53,6 +67,7 @@ export function AccountMenu() {
     await customerSignOut();
     setSignedIn(false);
     setUnread(0);
+    setHasPartnerAccess(false);
     setOpen(false);
     navigate("/");
   }
@@ -106,6 +121,16 @@ export function AccountMenu() {
               >
                 Orders
               </Link>
+              {hasPartnerAccess && (
+                <Link
+                  role="menuitem"
+                  to="/partner/sculptor"
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+                >
+                  Sculptor profile
+                </Link>
+              )}
               <button
                 type="button"
                 role="menuitem"

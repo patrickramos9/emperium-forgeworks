@@ -221,11 +221,17 @@ const schema = a.schema({
       xUrl: a.url(),
       active: a.boolean().default(true),
       sortOrder: a.integer().default(0),
+      /** Cognito sub of the user allowed to edit this profile (M8d partner portal). */
+      editorUserId: a.string(),
     })
     .identifier(["slug"])
     .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.authenticated().to(["read"]),
+      allow
+        .ownerDefinedIn("editorUserId")
+        .identityClaim("sub")
+        .to(["read", "update"]),
       allow.group("admin"),
     ]),
 });

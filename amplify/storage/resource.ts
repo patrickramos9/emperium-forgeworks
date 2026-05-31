@@ -18,8 +18,8 @@ export const storage = defineStorage({
     ],
     "sculptors/*": [
       allow.guest.to(["read"]),
-      allow.authenticated.to(["read"]),
-      allow.groups(["customer"]).to(["read"]),
+      allow.authenticated.to(["read", "write", "delete"]),
+      allow.groups(["customer"]).to(["read", "write", "delete"]),
       allow.groups(["admin"]).to(["read", "write", "delete"]),
     ],
   }),

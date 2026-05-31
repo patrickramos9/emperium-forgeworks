@@ -19,6 +19,8 @@ If `products/*` only allows `guest` + `admin`, signed-in customers load products
 
 Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin group needs `write` on `products/*`).
 
+Partner sculptor uploads use `uploadData()` under `sculptors/{slug}/…` — **`customer`** and **`authenticated`** roles need `write` on `sculptors/*` (see `amplify/storage/resource.ts`).
+
 ## Backend rules (`amplify/storage/resource.ts`)
 
 `products/*` must grant read to every role that might call Storage:

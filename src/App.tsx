@@ -39,6 +39,8 @@ import { AccountReviewPage } from "@/pages/account/AccountReviewPage";
 import { SculptorDetailPage } from "@/pages/SculptorDetailPage";
 import { AdminSculptorsPage } from "@/pages/admin/AdminSculptorsPage";
 import { AdminSculptorEditPage } from "@/pages/admin/AdminSculptorEditPage";
+import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayout";
+import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -91,6 +93,9 @@ export default function App() {
           <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
           <Route path="/checkout/cancel" element={<CheckoutCancelPage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/partner" element={<SculptorPartnerLayout />}>
+            <Route path="sculptor" element={<PartnerSculptorEditPage />} />
+          </Route>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboardPage />} />
             <Route path="products" element={<AdminProductsPage />} />
