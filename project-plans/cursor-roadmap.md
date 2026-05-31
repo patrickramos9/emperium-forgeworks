@@ -25,14 +25,14 @@ Cursor should treat this file as the **source of truth** for:
 | Item | State |
 |------|--------|
 | **Phase** | Payments (M3b) |
-| **Next** | Deploy + smoketest **M3b** Stripe; configure webhook in Stripe Dashboard |
+| **Next** | Finish **M3b** smoketest (live webhook + order `paid`); then **M15 Shipping** or **M6** |
 | **Blocked** | — |
 | **Recently verified** | **M8d** Sculptor partner portal — production smoke-test passed |
-| **In progress** | **M3b** — Stripe + Google Pay (implementation shipped; deploy + webhook setup) |
+| **In progress** | **M3b** — Stripe live checkout; interim ship-to address collection (free $0 rate) until **M15** |
 | **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
 
 **Recommended build order:**  
-M8 (done) → **M3b** (when unblocked) → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
+M8 (done) → **M3b** (verify) → **M15 Shipping** → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -135,7 +135,7 @@ Cursor must treat [`project-plans/reference/data-models.md`](./reference/data-mo
 - `VaultAccess`
 - `Sculptor`
 
-When adding new models (e.g., `Conversation`, `Message`, `PrintJob`, `NotificationPreference`), follow the same style:
+When adding new models (e.g., `Conversation`, `Message`, `PrintJob`, `NotificationPreference`, `ShippingProfile`), follow the same style:
 - Define in `amplify/data/resource.ts`.
 - Use appropriate auth rules (guest read, owner read, admin CRUD, etc.).
 - Use `userId` for owner scoping where relevant.
@@ -163,9 +163,10 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 ### Blocked / waiting
 
-- **M6** — Promo codes (depends on M3b verification)
+- **M6** — Promo codes (depends on M3b verification; promo + shipping rules interact — prefer after **M15** or implement promo before free-shipping thresholds)
 
 ### Planned (not started)
+- **M15** — Shipping (admin shipping profiles, paid rates, order shipping totals)
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M10** — Admin–customer chat
 - **M11** — Print progress tracker (Queued → fabrication → Shipped)
@@ -208,6 +209,8 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - Do not store card data.
 - Keep `Order` minimal as currently designed.
 
+**Interim (pre-M15):** Address + phone collection on Stripe Checkout and basic fulfillment fields on `Order` may ship under M3b. **Paid shipping, profile management, and order shipping totals** belong to **M15 — Shipping** (do not hardcode production rates in the Lambda long-term).
+
 **Cursor rules:**
 - Do not change `PaymentProvider` interface shape.
 - Do not change existing mock behavior.
@@ -248,6 +251,120 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 **Cursor rules:**
 - Do not overcomplicate v1 with multi-code stacking.
 - Single promo code per order is sufficient.
+
+---
+
+### M15 — Shipping
+
+**Status:** Planned — not started. **Depends on M3b** (Stripe Checkout + webhook). Admin-managed **shipping profiles** are the primary configuration surface; avoid env-var or hardcoded rates in production.
+
+**Goal:** Charge for shipping at checkout using **admin-defined shipping profiles**, persist the chosen rate on the order, and show full fulfillment totals in admin.
+
+**Design principle:** Patrick configures shipping in **Admin → Shipping** (profiles), not in code or Amplify env vars. Checkout reads active profiles from DynamoDB and maps them to Stripe `shipping_options`.
+
+#### Shipping profile (admin CRUD)
+
+**Data model — `ShippingProfile`** in `amplify/data/resource.ts`:
+
+| Field | Type | Notes |
+|-------|------|--------|
+| `id` | auto | Primary key |
+| `name` | string | Shown on Stripe checkout (e.g. “Standard shipping”) |
+| `description` | string? | Optional subtitle / delivery estimate copy |
+| `kind` | enum | `flat` \| `free_over_threshold` (v1); reserve `weight_tier` for v2 |
+| `amountCents` | int | Flat rate when `kind = flat`, or rate when subtotal below threshold |
+| `freeThresholdCents` | int? | When `kind = free_over_threshold`, shipping is $0 if cart subtotal ≥ this |
+| `allowedCountries` | string[] | ISO 3166-1 alpha-2 (v1 default `["US"]`) |
+| `active` | boolean | Inactive profiles hidden from checkout |
+| `sortOrder` | int | Display order on checkout |
+| `minDeliveryDays` | int? | Optional estimate (Stripe `delivery_estimate`) |
+| `maxDeliveryDays` | int? | Optional estimate |
+
+**Auth:** `allow.group("admin")` for CRUD; guest/authenticated read of **active** profiles only if needed client-side (prefer server-side read in checkout Lambda only).
+
+**Optional v2 — product assignment:**
+
+- `Product.shippingProfileId` (optional FK) — product uses assigned profile’s rate logic; unset → store **default profile** (one profile flagged `isDefault: boolean` or lowest `sortOrder` active flat profile).
+- Defer product assignment until v1 flat multi-profile checkout works.
+
+#### Rate strategies (all driven by profiles)
+
+| Strategy | How admin configures it | Checkout behavior |
+|----------|-------------------------|-------------------|
+| **Flat rate** | Profile `kind = flat`, `amountCents = 899` | One Stripe `shipping_option` at $8.99 |
+| **Multiple tiers** | Multiple active profiles (Standard, Express, …) | Each profile → one `shipping_option`; customer picks |
+| **Free over $X** | Profile `kind = free_over_threshold` | Lambda computes subtotal; if above threshold, option shows $0 else `amountCents` |
+| **Weight-based** | v2 — add `weightOz` on `Product` + profile weight brackets | Lambda sums cart weight, selects matching profile or bracket |
+
+Do **not** implement weight-based until v1 profiles + admin UI ship unless explicitly scoped as M15b.
+
+#### Backend
+
+**Checkout Lambda (`create-stripe-checkout`):**
+
+- Load **active** `ShippingProfile` rows (sort by `sortOrder`).
+- Filter by `allowedCountries` if country known pre-checkout (v1: US-only collection matches US profiles).
+- For each applicable profile, compute `amountCents` (apply `free_over_threshold` against cart subtotal).
+- Build Stripe `shipping_options[]` from profiles (`shipping_rate_data`, not hardcoded).
+- Keep `shipping_address_collection` + `billing_address_collection: required`.
+
+**Webhook Lambda (`stripe-webhook`):**
+
+- On `checkout.session.completed`, persist from session:
+  - `shippingCents` — from `shipping_cost.amount_total` or `total_details.amount_shipping`
+  - `shippingProfileName` or `shippingRateId` — label for admin (match to profile `name` where possible)
+  - `totalCents` — **update to Stripe session `amount_total`** (products + shipping) or store `subtotalCents` + `shippingCents` separately (prefer explicit fields)
+
+**Order model extensions:**
+
+| Field | Type | Notes |
+|-------|------|--------|
+| `subtotalCents` | int? | Product line total (already computable from line items; optional denormalize) |
+| `shippingCents` | int? | Charged shipping |
+| `shippingLabel` | string? | e.g. “Standard shipping” |
+| `shippingAddress` | json | Already added (M3b interim) |
+| `customerName`, `customerPhone`, `email` | string | Already added (M3b interim) |
+
+#### Frontend — Admin
+
+- **`/admin/shipping`** — list profiles (name, kind, rate, active, sort).
+- **`/admin/shipping/new`** and **`/admin/shipping/:id/edit`** — create/edit profile form.
+- **`AdminLayout`** nav link — “Shipping”.
+- **`src/services/shippingProfileService.ts`** — CRUD via admin client.
+- **Order detail** — show subtotal, shipping line, total charged, ship-to address.
+
+#### Frontend — Storefront
+
+- No cart UI change required for v1 (Stripe hosts rate picker when multiple `shipping_options`).
+- Optional later: show estimated shipping on cart from default profile (read-only hint).
+
+#### Mock checkout (local)
+
+- Mock path may ignore shipping or apply default profile in `checkoutService` for parity — keep minimal for v1.
+
+#### Docs
+
+- Update `docs/stripe-setup.md` with “shipping configured via Admin → Shipping profiles”.
+- Update `project-plans/reference/data-models.md` when model ships.
+
+**Cursor rules:**
+
+- **Profiles are the source of truth** — no production shipping amounts hardcoded in Lambda after M15.
+- Reuse admin CRUD patterns from Announcements / Sculptors (list + edit pages, `requireAdminSession`).
+- Stripe remains the payment + address UI; we do not build a custom address form on the cart for v1.
+- M6 promo codes must apply to **subtotal before shipping** unless product requirements say otherwise; document interaction when both ship.
+
+**Acceptance:**
+
+- Admin creates “Standard” ($8.99) and “Express” ($19.99) profiles; both appear on Stripe checkout.
+- Admin creates “Free over $100” profile; cart $99 → shipping charged; cart $100+ → $0 shipping option.
+- Paid order in admin shows ship-to address, shipping label, shipping cents, and total including shipping.
+- Inactive profile does not appear at checkout.
+
+**Phasing (optional sub-labels):**
+
+- **M15 v1** — `ShippingProfile` model, admin CRUD, checkout + webhook totals, flat + multi-tier + free-over-threshold.
+- **M15 v2** — `Product.shippingProfileId`, weight fields, weight-based brackets.
 
 ---
 
