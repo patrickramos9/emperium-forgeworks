@@ -24,15 +24,15 @@ Cursor should treat this file as the **source of truth** for:
 
 | Item | State |
 |------|--------|
-| **Phase** | Payments (M3b) |
-| **Next** | Finish **M3b** smoketest (live webhook + order `paid`); then **M15 Shipping** or **M6** |
+| **Phase** | Shipping (M15) |
+| **Next** | **M15** — admin shipping profiles + paid rates at checkout |
 | **Blocked** | — |
-| **Recently verified** | **M8d** Sculptor partner portal — production smoke-test passed |
-| **In progress** | **M3b** — Stripe live checkout; interim ship-to address collection (free $0 rate) until **M15** |
+| **Recently verified** | **M3b** — Stripe live checkout, live webhook, order `paid` + fulfillment fields — production verified |
+| **In progress** | **M15 Shipping** — admin profiles, checkout rates, order shipping totals |
 | **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
 
 **Recommended build order:**  
-M8 (done) → **M3b** (verify) → **M15 Shipping** → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
+M8 (done) → **M3b** (done) → **M15 Shipping** → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -106,7 +106,7 @@ When adding new functionality, **prefer extending existing patterns**:
 
 - **Integrations**
   - GA4 (gtag + Data API)
-  - Stripe (planned)
+  - Stripe (live — M3b verified)
   - Raspberry Pi bridge (planned, external agent calling API)
 
 ### 1.2 Data access patterns
@@ -160,13 +160,17 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8b** — Reviews (“Voices From The Void”, admin moderation) — **production verified**
 - **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, portfolio carousel, rich text) — **production verified**
 - **M8d** — Sculptor partner portal (`/partner/sculptor`, admin-granted `editorUserId`) — **production verified**
+- **M3b** — Live Stripe Checkout + webhook (`Order` paid, ship-to address, email/phone) — **production verified**
 
 ### Blocked / waiting
 
-- **M6** — Promo codes (depends on M3b verification; promo + shipping rules interact — prefer after **M15** or implement promo before free-shipping thresholds)
+- **M6** — Promo codes (prefer after **M15** — promo + free-shipping thresholds interact)
+
+### In progress
+
+- **M15** — Shipping (admin shipping profiles, paid rates, order shipping totals)
 
 ### Planned (not started)
-- **M15** — Shipping (admin shipping profiles, paid rates, order shipping totals)
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M10** — Admin–customer chat
 - **M11** — Print progress tracker (Queued → fabrication → Shipped)
@@ -183,7 +187,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 ### M3b — Live payments (Stripe + Google Pay)
 
-**Status:** Implemented — deploy backend, set Amplify secrets, register Stripe webhook, set `VITE_APP_ENV=deployment`, then smoketest.
+**Status:** **Production verified** (2026-05-31) — live Checkout, live-mode webhook, orders auto-`paid`, fulfillment fields on `Order`.
 
 **Goal:** Replace mock checkout with real Stripe payments while preserving the `PaymentProvider` abstraction.
 
@@ -256,115 +260,80 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 ### M15 — Shipping
 
-**Status:** Planned — not started. **Depends on M3b** (Stripe Checkout + webhook). Admin-managed **shipping profiles** are the primary configuration surface; avoid env-var or hardcoded rates in production.
+**Status:** In progress — Etsy-style per-product profiles; no hardcoded rates.
 
-**Goal:** Charge for shipping at checkout using **admin-defined shipping profiles**, persist the chosen rate on the order, and show full fulfillment totals in admin.
+**Goal:** All shipping rules live in **Admin → Shipping profiles**. Each **product** picks a profile when edited (like Etsy listings). Checkout computes shipping from those assignments only — **nothing hardcoded in Lambda or env vars**.
 
-**Design principle:** Patrick configures shipping in **Admin → Shipping** (profiles), not in code or Amplify env vars. Checkout reads active profiles from DynamoDB and maps them to Stripe `shipping_options`.
+#### Design principles
 
-#### Shipping profile (admin CRUD)
+1. **Profiles are admin-configured** — flat rate, free over order subtotal, or weight tiers.
+2. **Products assign a profile** — `Product.shippingProfileId` on product edit; blank → store **default** profile (`ShippingProfile.isDefault`).
+3. **No hardcoded fallback** — if no active profiles or a product cannot resolve a profile, checkout fails with a clear admin-facing error (not silent $0 shipping).
+4. **Multi-item carts (Option B)** — Etsy-like combine rule:
+   - Keep the **highest first-item** shipping charge among combined (non-weight-tier) profile groups.
+   - Charge **additional-item** rates for all remaining items.
+   - Weight-tier profiles are added separately.
+   - Expose a single shipping line on Stripe Checkout.
 
-**Data model — `ShippingProfile`** in `amplify/data/resource.ts`:
+#### Shipping profile (`ShippingProfile`)
 
 | Field | Type | Notes |
 |-------|------|--------|
-| `id` | auto | Primary key |
-| `name` | string | Shown on Stripe checkout (e.g. “Standard shipping”) |
-| `description` | string? | Optional subtitle / delivery estimate copy |
-| `kind` | enum | `flat` \| `free_over_threshold` (v1); reserve `weight_tier` for v2 |
-| `amountCents` | int | Flat rate when `kind = flat`, or rate when subtotal below threshold |
-| `freeThresholdCents` | int? | When `kind = free_over_threshold`, shipping is $0 if cart subtotal ≥ this |
-| `allowedCountries` | string[] | ISO 3166-1 alpha-2 (v1 default `["US"]`) |
-| `active` | boolean | Inactive profiles hidden from checkout |
-| `sortOrder` | int | Display order on checkout |
-| `minDeliveryDays` | int? | Optional estimate (Stripe `delivery_estimate`) |
-| `maxDeliveryDays` | int? | Optional estimate |
+| `name` | string | Label on checkout / admin |
+| `kind` | enum | `flat` \| `free_over_threshold` \| `weight_tier` |
+| `amountCents` | int | First-item amount (or below-threshold first-item amount) |
+| `additionalItemCents` | int | Additional-item amount after the first |
+| `freeThresholdCents` | int? | `free_over_threshold`: order subtotal ≥ this → $0 |
+| `weightTiers` | json? | `weight_tier`: `[{ maxWeightOz, amountCents }, …]` |
+| `allowedCountries` | string[] | ISO codes for Stripe address collection |
+| `isDefault` | boolean | Fallback when product has no assignment (one per store) |
+| `active` | boolean | Inactive profiles cannot be used |
+| `sortOrder`, delivery estimates | | Admin ordering / Stripe estimates |
 
-**Auth:** `allow.group("admin")` for CRUD; guest/authenticated read of **active** profiles only if needed client-side (prefer server-side read in checkout Lambda only).
+#### Product assignment (Etsy-style)
 
-**Optional v2 — product assignment:**
+| Field | Type | Notes |
+|-------|------|--------|
+| `Product.shippingProfileId` | string? | Chosen on **Admin → Products → Edit** |
+| `Product.weightOz` | int? | Required when assigned profile uses `weight_tier` |
 
-- `Product.shippingProfileId` (optional FK) — product uses assigned profile’s rate logic; unset → store **default profile** (one profile flagged `isDefault: boolean` or lowest `sortOrder` active flat profile).
-- Defer product assignment until v1 flat multi-profile checkout works.
+#### Rate kinds (all admin-created)
 
-#### Rate strategies (all driven by profiles)
-
-| Strategy | How admin configures it | Checkout behavior |
-|----------|-------------------------|-------------------|
-| **Flat rate** | Profile `kind = flat`, `amountCents = 899` | One Stripe `shipping_option` at $8.99 |
-| **Multiple tiers** | Multiple active profiles (Standard, Express, …) | Each profile → one `shipping_option`; customer picks |
-| **Free over $X** | Profile `kind = free_over_threshold` | Lambda computes subtotal; if above threshold, option shows $0 else `amountCents` |
-| **Weight-based** | v2 — add `weightOz` on `Product` + profile weight brackets | Lambda sums cart weight, selects matching profile or bracket |
-
-Do **not** implement weight-based until v1 profiles + admin UI ship unless explicitly scoped as M15b.
+| Kind | Admin configures | Checkout computes |
+|------|------------------|-------------------|
+| **Flat** | `amountCents` + `additionalItemCents` | First item + each additional item |
+| **Free over $X** | `amountCents` + `additionalItemCents` + `freeThresholdCents` | $0 if **order** subtotal ≥ threshold, else first+additional |
+| **Weight tiers** | Tier table + product `weightOz` | Tier from sum of line weight in profile group |
 
 #### Backend
 
-**Checkout Lambda (`create-stripe-checkout`):**
+- **`create-stripe-checkout`**: load products → resolve profile per line → `resolveCartShipping()` → single Stripe `shipping_option` with computed total (no hardcoded rates).
+- **`stripe-webhook`**: persist `subtotalCents`, `shippingCents`, `shippingLabel`, `totalCents`.
 
-- Load **active** `ShippingProfile` rows (sort by `sortOrder`).
-- Filter by `allowedCountries` if country known pre-checkout (v1: US-only collection matches US profiles).
-- For each applicable profile, compute `amountCents` (apply `free_over_threshold` against cart subtotal).
-- Build Stripe `shipping_options[]` from profiles (`shipping_rate_data`, not hardcoded).
-- Keep `shipping_address_collection` + `billing_address_collection: required`.
+#### Admin UI
 
-**Webhook Lambda (`stripe-webhook`):**
-
-- On `checkout.session.completed`, persist from session:
-  - `shippingCents` — from `shipping_cost.amount_total` or `total_details.amount_shipping`
-  - `shippingProfileName` or `shippingRateId` — label for admin (match to profile `name` where possible)
-  - `totalCents` — **update to Stripe session `amount_total`** (products + shipping) or store `subtotalCents` + `shippingCents` separately (prefer explicit fields)
-
-**Order model extensions:**
-
-| Field | Type | Notes |
-|-------|------|--------|
-| `subtotalCents` | int? | Product line total (already computable from line items; optional denormalize) |
-| `shippingCents` | int? | Charged shipping |
-| `shippingLabel` | string? | e.g. “Standard shipping” |
-| `shippingAddress` | json | Already added (M3b interim) |
-| `customerName`, `customerPhone`, `email` | string | Already added (M3b interim) |
-
-#### Frontend — Admin
-
-- **`/admin/shipping`** — list profiles (name, kind, rate, active, sort).
-- **`/admin/shipping/new`** and **`/admin/shipping/:id/edit`** — create/edit profile form.
-- **`AdminLayout`** nav link — “Shipping”.
-- **`src/services/shippingProfileService.ts`** — CRUD via admin client.
-- **Order detail** — show subtotal, shipping line, total charged, ship-to address.
-
-#### Frontend — Storefront
-
-- No cart UI change required for v1 (Stripe hosts rate picker when multiple `shipping_options`).
-- Optional later: show estimated shipping on cart from default profile (read-only hint).
-
-#### Mock checkout (local)
-
-- Mock path may ignore shipping or apply default profile in `checkoutService` for parity — keep minimal for v1.
-
-#### Docs
-
-- Update `docs/stripe-setup.md` with “shipping configured via Admin → Shipping profiles”.
-- Update `project-plans/reference/data-models.md` when model ships.
+- **`/admin/shipping`** — CRUD profiles (all kinds + default flag + weight tiers).
+- **`/admin/products/:slug`** — **Shipping profile** dropdown + **Weight (oz)**.
+- **Order detail** — subtotal, shipping, total, ship-to.
 
 **Cursor rules:**
 
-- **Profiles are the source of truth** — no production shipping amounts hardcoded in Lambda after M15.
-- Reuse admin CRUD patterns from Announcements / Sculptors (list + edit pages, `requireAdminSession`).
-- Stripe remains the payment + address UI; we do not build a custom address form on the cart for v1.
-- M6 promo codes must apply to **subtotal before shipping** unless product requirements say otherwise; document interaction when both ship.
+- **Never hardcode shipping amounts** in Lambda after M15 ships.
+- Weight-based logic uses admin tier tables, not code constants.
+- M6 promos apply to product subtotal before shipping.
 
 **Acceptance:**
 
-- Admin creates “Standard” ($8.99) and “Express” ($19.99) profiles; both appear on Stripe checkout.
-- Admin creates “Free over $100” profile; cart $99 → shipping charged; cart $100+ → $0 shipping option.
-- Paid order in admin shows ship-to address, shipping label, shipping cents, and total including shipping.
-- Inactive profile does not appear at checkout.
+- Admin creates “Free over $100” profile, assigns to a product; cart ≥ $100 ships free.
+- Admin creates weight-tier profile; product with weight gets tiered rate.
+- Product with no assignment uses default profile.
+- Checkout errors clearly if profiles or weights are missing.
+- No `$0 Standard shipping` hardcoded fallback in code.
 
-**Phasing (optional sub-labels):**
+**Future (M15b):**
 
-- **M15 v1** — `ShippingProfile` model, admin CRUD, checkout + webhook totals, flat + multi-tier + free-over-threshold.
-- **M15 v2** — `Product.shippingProfileId`, weight fields, weight-based brackets.
+- Combined-shipping refinements (max vs sum rules for mixed profiles).
+- Cart-page shipping estimate preview.
 
 ---
 

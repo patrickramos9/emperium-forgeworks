@@ -31,7 +31,11 @@ After the first backend deploy with Stripe functions:
 1. Customer checks out → frontend calls `createStripeCheckoutSession` mutation.
 2. Lambda creates a **pending** `Order`, opens Stripe Checkout, stores `externalSessionId` = Stripe session id.
 3. Customer pays on Stripe.
-4. Stripe calls the webhook → order `status` set to **`paid`**.
+4. Stripe calls the webhook → order `status` set to **`paid`**, plus shipping and fulfillment fields.
+
+## Shipping rates (M15)
+
+Configure shipping in **Admin → Shipping** (profiles), then assign each product’s profile on **Admin → Products → Edit** (Etsy-style). Mark one profile as **store default** for products without an assignment. No rates are hardcoded in code.
 
 ## Local development
 

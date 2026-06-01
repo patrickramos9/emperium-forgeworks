@@ -142,6 +142,10 @@ const schema = a.schema({
       sortOrder: a.integer().default(0),
       /** When true, product appears only in the Hidden Vault (not public /shop). */
       vaultOnly: a.boolean().default(false),
+      /** M15 — shipping profile assigned per product (Etsy-style). Omit → store default profile. */
+      shippingProfileId: a.string(),
+      /** Item weight in ounces; required for weight-tier shipping profiles. */
+      weightOz: a.integer(),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),
@@ -167,6 +171,28 @@ const schema = a.schema({
       allow.group("admin"),
     ]),
 
+  ShippingProfile: a
+    .model({
+      name: a.string().required(),
+      description: a.string(),
+      kind: a.enum(["flat", "free_over_threshold", "weight_tier"]),
+      /** First item shipping amount (USD cents). */
+      amountCents: a.integer().required(),
+      /** Additional item amount after the first item (USD cents). */
+      additionalItemCents: a.integer().default(0),
+      freeThresholdCents: a.integer(),
+      /** For kind=weight_tier: [{ maxWeightOz, amountCents }, …] sorted by maxWeightOz. */
+      weightTiers: a.json(),
+      allowedCountries: a.string().array(),
+      active: a.boolean().default(true),
+      /** Fallback for products with no shippingProfileId (exactly one should be true). */
+      isDefault: a.boolean().default(false),
+      sortOrder: a.integer().default(0),
+      minDeliveryDays: a.integer(),
+      maxDeliveryDays: a.integer(),
+    })
+    .authorization((allow) => [allow.group("admin")]),
+
   Order: a
     .model({
       externalSessionId: a.string().required(),
@@ -178,6 +204,9 @@ const schema = a.schema({
       customerPhone: a.string(),
       /** Ship-to address from Stripe Checkout (`shipping_details`). */
       shippingAddress: a.json(),
+      subtotalCents: a.integer(),
+      shippingCents: a.integer(),
+      shippingLabel: a.string(),
       lineItems: a.json(),
       totalCents: a.integer().required(),
     })

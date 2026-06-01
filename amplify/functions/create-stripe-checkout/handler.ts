@@ -4,6 +4,12 @@ import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtim
 import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import Stripe from "stripe";
 import type { Schema } from "../../data/resource";
+import {
+  buildStripeShippingOptions,
+  lineItemsFromArgs,
+  resolveCartShipping,
+  type CheckoutLineItem,
+} from "./shippingCalc.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -12,41 +18,81 @@ Amplify.configure(resourceConfig, libraryOptions);
 
 const dataClient = generateClient<Schema>();
 
-type CheckoutLineItem = {
-  productId: string;
-  slug: string;
-  variantId?: string;
-  quantity: number;
-  title: string;
-  priceCents: number;
-  imageUrl?: string;
-};
+type ShippingProfileRecord = Schema["ShippingProfile"]["type"];
+type ProductRecord = Schema["Product"]["type"];
 
-function lineItemsFromArgs(
-  items: (Schema["CheckoutCartLine"]["type"] | null | undefined)[],
-): CheckoutLineItem[] {
-  return items
-    .filter((item): item is Schema["CheckoutCartLine"]["type"] => item != null)
-    .map((item) => ({
-    productId: item.productId,
-    slug: item.slug,
-    variantId: item.variantId ?? undefined,
-    quantity: item.quantity,
-    title: item.title,
-    priceCents: item.priceCents,
-    imageUrl: item.imageUrl ?? undefined,
-  }));
+async function loadShippingProfiles(): Promise<ShippingProfileRecord[]> {
+  const rows: ShippingProfileRecord[] = [];
+  let nextToken: string | undefined;
+
+  do {
+    const response = await dataClient.models.ShippingProfile.list({
+      limit: 50,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row) rows.push(row);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  return rows;
+}
+
+async function loadProductsById(
+  productIds: string[],
+): Promise<Map<string, ProductRecord>> {
+  const map = new Map<string, ProductRecord>();
+  const unique = [...new Set(productIds)];
+
+  await Promise.all(
+    unique.map(async (id) => {
+      const { data, errors } = await dataClient.models.Product.get({ id });
+      if (errors?.length) {
+        throw new Error(errors.map((e) => e.message).join("; "));
+      }
+      if (data) map.set(id, data);
+    }),
+  );
+
+  return map;
 }
 
 async function createStripeCheckoutSession(
   stripe: Stripe,
   items: CheckoutLineItem[],
+  subtotalCents: number,
+  shipping: ReturnType<typeof resolveCartShipping>,
   options: {
     successUrl: string;
     cancelUrl: string;
     metadata?: Record<string, string>;
   },
 ) {
+  const shippingOptions = buildStripeShippingOptions(shipping);
+  const primaryProfile = shipping.profileIds.length
+    ? await dataClient.models.ShippingProfile.get({
+        id: shipping.profileIds[0]!,
+      })
+    : null;
+  const profile = primaryProfile?.data;
+
+  if (
+    profile?.minDeliveryDays != null &&
+    profile.maxDeliveryDays != null &&
+    profile.minDeliveryDays > 0 &&
+    profile.maxDeliveryDays >= profile.minDeliveryDays &&
+    shippingOptions[0]?.shipping_rate_data
+  ) {
+    shippingOptions[0].shipping_rate_data.delivery_estimate = {
+      minimum: { unit: "business_day", value: profile.minDeliveryDays },
+      maximum: { unit: "business_day", value: profile.maxDeliveryDays },
+    };
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: items.map((item) => ({
@@ -67,17 +113,10 @@ async function createStripeCheckoutSession(
     metadata: options.metadata,
     billing_address_collection: "required",
     shipping_address_collection: {
-      allowed_countries: ["US"],
+      allowed_countries:
+        shipping.allowedCountries as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection.AllowedCountry[],
     },
-    shipping_options: [
-      {
-        shipping_rate_data: {
-          type: "fixed_amount",
-          fixed_amount: { amount: 0, currency: "usd" },
-          display_name: "Standard shipping",
-        },
-      },
-    ],
+    shipping_options: shippingOptions,
     phone_number_collection: { enabled: true },
   });
 
@@ -104,7 +143,7 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       throw new Error("Cart is empty");
     }
 
-    const totalCents = lineItems.reduce(
+    const subtotalCents = lineItems.reduce(
       (sum, item) => sum + item.priceCents * item.quantity,
       0,
     );
@@ -140,7 +179,8 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       paymentProvider: "stripe",
       status: "pending",
       lineItems: JSON.stringify(snapshots),
-      totalCents,
+      subtotalCents,
+      totalCents: subtotalCents,
       ...(userId ? { userId } : {}),
     });
 
@@ -152,13 +192,40 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     }
 
     const orderId = createResult.data.id;
-    const stripe = new Stripe(secretKey);
+    const allProfiles = await loadShippingProfiles();
+    const activeProfiles = allProfiles.filter((p) => p.active);
+    if (!activeProfiles.length) {
+      throw new Error(
+        "No active shipping profiles. Create one in Admin → Shipping.",
+      );
+    }
 
-    const session = await createStripeCheckoutSession(stripe, lineItems, {
-      successUrl,
-      cancelUrl,
-      metadata: { orderId },
-    });
+    const profileById = new Map(activeProfiles.map((p) => [p.id, p]));
+    const defaultProfile = activeProfiles.find((p) => p.isDefault) ?? null;
+
+    const productById = await loadProductsById(
+      lineItems.map((item) => item.productId),
+    );
+
+    const shipping = resolveCartShipping(
+      lineItems,
+      productById,
+      profileById,
+      defaultProfile,
+    );
+
+    const stripe = new Stripe(secretKey);
+    const session = await createStripeCheckoutSession(
+      stripe,
+      lineItems,
+      subtotalCents,
+      shipping,
+      {
+        successUrl,
+        cancelUrl,
+        metadata: { orderId },
+      },
+    );
 
     const updateResult = await dataClient.models.Order.update({
       id: orderId,

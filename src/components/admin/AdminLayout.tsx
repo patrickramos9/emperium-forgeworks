@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", to: "/admin", end: true },
   { label: "Products", to: "/admin/products" },
   { label: "Orders", to: "/admin/orders" },
+  { label: "Shipping", to: "/admin/shipping" },
   { label: "Announcements", to: "/admin/announcements" },
   { label: "Notifications", to: "/admin/notifications" },
   { label: "Reviews", to: "/admin/reviews" },

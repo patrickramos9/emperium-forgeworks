@@ -52,6 +52,8 @@ export function buildProductMutationPayload(input: {
   featured: boolean;
   sortOrder: number;
   vaultOnly?: boolean;
+  shippingProfileId?: string;
+  weightOz?: number;
   detailImage?: string;
   badges: string[];
   images: string[];
@@ -74,6 +76,12 @@ export function buildProductMutationPayload(input: {
     featured: input.featured,
     sortOrder: input.sortOrder,
     vaultOnly: input.vaultOnly ?? false,
+    ...(input.shippingProfileId?.trim()
+      ? { shippingProfileId: input.shippingProfileId.trim() }
+      : { shippingProfileId: null }),
+    ...(input.weightOz != null && input.weightOz > 0
+      ? { weightOz: input.weightOz }
+      : { weightOz: null }),
     ...(input.subtitle ? { subtitle: input.subtitle } : {}),
     ...(input.description ? { description: input.description } : {}),
     ...(input.lore ? { lore: input.lore } : {}),

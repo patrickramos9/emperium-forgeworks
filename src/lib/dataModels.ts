@@ -62,3 +62,17 @@ export function requireSculptorModel(client: AmplifyDataClient) {
 export function hasSculptorModel(client: AmplifyDataClient): boolean {
   return Boolean(client.models.Sculptor);
 }
+
+export function requireShippingProfileModel(client: AmplifyDataClient) {
+  const model = client.models.ShippingProfile;
+  if (!model) {
+    throw new Error(
+      `Shipping profiles are not available in this environment. ${DEPLOY_HINT}`,
+    );
+  }
+  return model;
+}
+
+export function hasShippingProfileModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.ShippingProfile);
+}

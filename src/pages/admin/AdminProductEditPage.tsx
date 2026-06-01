@@ -16,6 +16,11 @@ import {
 } from "@/lib/productGallery";
 import { buildProductMutationPayload } from "@/lib/productPayload";
 import type { ProductOptionGroup } from "@/lib/productVariants";
+import { hasShippingProfileModel } from "@/lib/dataModels";
+import {
+  listAllShippingProfiles,
+  type ShippingProfileRecord,
+} from "@/services/shippingProfileService";
 import {
   stripInvalidVariantImageRefs,
   validateVariantGroups,
@@ -73,6 +78,11 @@ export function AdminProductEditPage() {
   const [badgesText, setBadgesText] = useState("");
   const [variantGroups, setVariantGroups] = useState<ProductOptionGroup[]>([]);
   const [specsJson, setSpecsJson] = useState("");
+  const [shippingProfileId, setShippingProfileId] = useState("");
+  const [weightOz, setWeightOz] = useState("");
+  const [shippingProfiles, setShippingProfiles] = useState<
+    ShippingProfileRecord[]
+  >([]);
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -99,6 +109,18 @@ export function AdminProductEditPage() {
 
   useEffect(() => {
     async function load() {
+      const configured = await configureAmplify();
+      if (configured) {
+        const client = await requireAdminSession(navigate);
+        if (client && hasShippingProfileModel(client)) {
+          try {
+            setShippingProfiles(await listAllShippingProfiles(client));
+          } catch {
+            /* optional until backend deploy */
+          }
+        }
+      }
+
       if (isNew) {
         const blank = newProductDefaults();
         setTitle(blank.title);
@@ -108,7 +130,6 @@ export function AdminProductEditPage() {
         return;
       }
 
-      const configured = await configureAmplify();
       if (!configured) {
         if (seedFallback) {
           applyProduct(seedFallback);
@@ -129,6 +150,8 @@ export function AdminProductEditPage() {
         const row = data?.[0];
         if (row) {
           applyProduct(mapAmplifyProduct(row));
+          setShippingProfileId(row.shippingProfileId ?? "");
+          setWeightOz(row.weightOz != null ? String(row.weightOz) : "");
         } else if (seedFallback) {
           applyProduct({ ...seedFallback, id: seedFallback.id });
           setRecordId(null);
@@ -179,6 +202,10 @@ export function AdminProductEditPage() {
         featured,
         vaultOnly,
         sortOrder,
+        shippingProfileId: shippingProfileId || undefined,
+        weightOz: weightOz.trim()
+          ? Number.parseInt(weightOz, 10)
+          : undefined,
         detailImage,
         badges: badgesText
           .split(",")
@@ -335,6 +362,42 @@ export function AdminProductEditPage() {
               </option>
             ))}
           </select>
+        </label>
+        <label className="block">
+          <span className="font-label-sm uppercase text-on-surface-variant">
+            Shipping profile
+          </span>
+          <select
+            value={shippingProfileId}
+            onChange={(e) => setShippingProfileId(e.target.value)}
+            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
+          >
+            <option value="">Store default</option>
+            {shippingProfiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {profile.name}
+                {profile.isDefault ? " (default)" : ""}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-label-sm text-on-surface-variant">
+            Assign a profile per product (Etsy-style). Manage profiles under
+            Admin → Shipping.
+          </p>
+        </label>
+        <label className="block">
+          <span className="font-label-sm uppercase text-on-surface-variant">
+            Weight (oz)
+          </span>
+          <input
+            type="number"
+            min="0"
+            step="0.1"
+            value={weightOz}
+            onChange={(e) => setWeightOz(e.target.value)}
+            placeholder="Required for weight-tier profiles"
+            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
+          />
         </label>
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2">

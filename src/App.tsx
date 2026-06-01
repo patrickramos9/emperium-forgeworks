@@ -37,6 +37,8 @@ import { AdminReviewsPage } from "@/pages/admin/AdminReviewsPage";
 import { ReviewsPage } from "@/pages/ReviewsPage";
 import { AccountReviewPage } from "@/pages/account/AccountReviewPage";
 import { SculptorDetailPage } from "@/pages/SculptorDetailPage";
+import { AdminShippingProfilesPage } from "@/pages/admin/AdminShippingProfilesPage";
+import { AdminShippingProfileEditPage } from "@/pages/admin/AdminShippingProfileEditPage";
 import { AdminSculptorsPage } from "@/pages/admin/AdminSculptorsPage";
 import { AdminSculptorEditPage } from "@/pages/admin/AdminSculptorEditPage";
 import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayout";
@@ -102,6 +104,11 @@ export default function App() {
             <Route path="products/:slug" element={<AdminProductEditPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="orders/:id" element={<AdminOrderDetailPage />} />
+            <Route path="shipping" element={<AdminShippingProfilesPage />} />
+            <Route
+              path="shipping/:id"
+              element={<AdminShippingProfileEditPage />}
+            />
             <Route path="announcements" element={<AdminAnnouncementsPage />} />
             <Route
               path="announcements/:id"

@@ -44,9 +44,28 @@ function shippingFromSession(
   };
 }
 
-function fulfillmentFromSession(session: Stripe.Checkout.Session) {
+async function fulfillmentFromSession(
+  session: Stripe.Checkout.Session,
+  stripe: Stripe,
+) {
   const shippingAddress = shippingFromSession(session);
   const customer = session.customer_details;
+  const shippingCents =
+    session.total_details?.amount_shipping ??
+    session.shipping_cost?.amount_total ??
+    0;
+
+  let shippingLabel: string | undefined;
+  const rateRef = session.shipping_cost?.shipping_rate;
+  const rateId = typeof rateRef === "string" ? rateRef : rateRef?.id;
+  if (rateId) {
+    try {
+      const rate = await stripe.shippingRates.retrieve(rateId);
+      shippingLabel = rate.display_name ?? undefined;
+    } catch (err) {
+      console.warn("Could not retrieve shipping rate", err);
+    }
+  }
 
   return {
     status: "paid" as const,
@@ -55,6 +74,10 @@ function fulfillmentFromSession(session: Stripe.Checkout.Session) {
     email: customer?.email ?? undefined,
     customerName: customer?.name ?? shippingAddress?.name ?? undefined,
     customerPhone: customer?.phone ?? undefined,
+    subtotalCents: session.amount_subtotal ?? undefined,
+    shippingCents,
+    shippingLabel,
+    totalCents: session.amount_total ?? undefined,
     ...(shippingAddress
       ? { shippingAddress: JSON.stringify(shippingAddress) }
       : {}),
@@ -108,7 +131,7 @@ export const handler = async (event: {
 
     const updateResult = await dataClient.models.Order.update({
       id: orderId,
-      ...fulfillmentFromSession(session),
+      ...(await fulfillmentFromSession(session, stripe)),
     });
 
     if (updateResult.errors?.length) {

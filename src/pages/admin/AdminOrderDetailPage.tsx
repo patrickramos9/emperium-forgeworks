@@ -110,7 +110,23 @@ export function AdminOrderDetailPage() {
           label="Provider"
           value={order.paymentProvider ?? "—"}
         />
-        <DetailRow label="Total" value={formatPrice(order.totalCents)} />
+        {order.subtotalCents != null && (
+          <DetailRow
+            label="Subtotal"
+            value={formatPrice(order.subtotalCents)}
+          />
+        )}
+        {order.shippingCents != null && (
+          <DetailRow
+            label={
+              order.shippingLabel
+                ? `Shipping (${order.shippingLabel})`
+                : "Shipping"
+            }
+            value={formatPrice(order.shippingCents)}
+          />
+        )}
+        <DetailRow label="Total charged" value={formatPrice(order.totalCents)} />
         <DetailRow
           label="Session ref"
           value={order.externalSessionId}
