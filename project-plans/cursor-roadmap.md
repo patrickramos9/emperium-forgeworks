@@ -36,6 +36,8 @@ M8 (done) → **M3b** (done) → **M15** (done) → **M6** → M11 → **M16 Ret
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
+**QA:** [docs/qa-test-plan.md](../docs/qa-test-plan.md) — manual test steps by feature.
+
 ---
 
 ## 0. Cursor operating rules

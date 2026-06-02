@@ -44,6 +44,10 @@ npm run seed
 
 See [docs/stripe-setup.md](docs/stripe-setup.md).
 
+## QA
+
+Manual regression checklist: **[docs/qa-test-plan.md](docs/qa-test-plan.md)** — feature-by-feature steps for production and local testing.
+
 ## Deploy
 
 | Mode | Guide |
