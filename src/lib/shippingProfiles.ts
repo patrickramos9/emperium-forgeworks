@@ -90,3 +90,28 @@ export function formatCountryCodes(codes: (string | null | undefined)[] | null |
   if (!sanitized.length) return "US";
   return sanitized.join(", ");
 }
+
+/** Human-readable ready-to-ship window for admin lists and product copy. */
+export function formatReadyToShip(
+  minDays: number | null | undefined,
+  maxDays: number | null | undefined,
+): string | null {
+  if (minDays == null && maxDays == null) return null;
+  if (minDays != null && maxDays != null) {
+    if (minDays === maxDays) {
+      return minDays === 1
+        ? "Ships in 1 business day"
+        : `Ships in ${minDays} business days`;
+    }
+    if (minDays > 0 && maxDays >= minDays) {
+      return `Ships in ${minDays}–${maxDays} business days`;
+    }
+  }
+  if (minDays != null && minDays > 0) {
+    return `Ships in ${minDays}+ business days`;
+  }
+  if (maxDays != null && maxDays > 0) {
+    return `Ships within ${maxDays} business days`;
+  }
+  return null;
+}

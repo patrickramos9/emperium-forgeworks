@@ -188,6 +188,10 @@ const schema = a.schema({
       /** Fallback for products with no shippingProfileId (exactly one should be true). */
       isDefault: a.boolean().default(false),
       sortOrder: a.integer().default(0),
+      /** Business days until order ships (profile-wide; use a separate profile for long lead times). */
+      minReadyToShipDays: a.integer(),
+      maxReadyToShipDays: a.integer(),
+      /** Optional transit estimate for Stripe Checkout `delivery_estimate` (admin UI backlog). */
       minDeliveryDays: a.integer(),
       maxDeliveryDays: a.integer(),
     })

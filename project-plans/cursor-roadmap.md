@@ -288,7 +288,9 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | `allowedCountries` | string[] | ISO codes for Stripe address collection |
 | `isDefault` | boolean | Fallback when product has no assignment (one per store) |
 | `active` | boolean | Inactive profiles cannot be used |
-| `sortOrder`, delivery estimates | | Admin ordering / Stripe estimates |
+| `minReadyToShipDays`, `maxReadyToShipDays` | int? | Profile-wide “ships in …” window (e.g. large-order profile) |
+| `sortOrder` | int | Admin list ordering |
+| `minDeliveryDays`, `maxDeliveryDays` | int? | **Backlog (M15b):** optional Stripe Checkout estimated **arrival** (transit after ship) |
 
 #### Product assignment (Etsy-style)
 
@@ -334,6 +336,8 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 - Combined-shipping refinements (max vs sum rules for mixed profiles).
 - Cart-page shipping estimate preview.
+- Admin UI for **estimated arrival** (`minDeliveryDays` / `maxDeliveryDays` → Stripe `delivery_estimate`).
+- Storefront / checkout copy from profile **ready to ship** (and arrival when configured).
 
 ---
 

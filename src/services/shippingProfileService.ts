@@ -18,8 +18,8 @@ export type ShippingProfileInput = {
   active: boolean;
   isDefault: boolean;
   sortOrder: number;
-  minDeliveryDays?: number;
-  maxDeliveryDays?: number;
+  minReadyToShipDays?: number;
+  maxReadyToShipDays?: number;
 };
 
 function toMutationPayload(input: ShippingProfileInput) {
@@ -38,8 +38,8 @@ function toMutationPayload(input: ShippingProfileInput) {
     active: input.active,
     isDefault: input.isDefault,
     sortOrder: input.sortOrder,
-    minDeliveryDays: input.minDeliveryDays,
-    maxDeliveryDays: input.maxDeliveryDays,
+    minReadyToShipDays: input.minReadyToShipDays,
+    maxReadyToShipDays: input.maxReadyToShipDays,
   };
 }
 

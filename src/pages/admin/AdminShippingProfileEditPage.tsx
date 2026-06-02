@@ -47,8 +47,8 @@ export function AdminShippingProfileEditPage() {
   const [weightTiers, setWeightTiers] = useState<WeightTier[]>([
     { maxWeightOz: 16, amountCents: 899 },
   ]);
-  const [minDeliveryDays, setMinDeliveryDays] = useState("");
-  const [maxDeliveryDays, setMaxDeliveryDays] = useState("");
+  const [minReadyToShipDays, setMinReadyToShipDays] = useState("");
+  const [maxReadyToShipDays, setMaxReadyToShipDays] = useState("");
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,11 +89,11 @@ export function AdminShippingProfileEditPage() {
         setIsDefault(row.isDefault ?? false);
         setWeightTiers(parseWeightTiers(row.weightTiers));
         setSortOrder(row.sortOrder ?? 0);
-        setMinDeliveryDays(
-          row.minDeliveryDays != null ? String(row.minDeliveryDays) : "",
+        setMinReadyToShipDays(
+          row.minReadyToShipDays != null ? String(row.minReadyToShipDays) : "",
         );
-        setMaxDeliveryDays(
-          row.maxDeliveryDays != null ? String(row.maxDeliveryDays) : "",
+        setMaxReadyToShipDays(
+          row.maxReadyToShipDays != null ? String(row.maxReadyToShipDays) : "",
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Load failed");
@@ -139,12 +139,32 @@ export function AdminShippingProfileEditPage() {
       kind === "free_over_threshold"
         ? dollarsToCents(freeThresholdDollars)
         : undefined;
-    const minDays = minDeliveryDays.trim()
-      ? Number.parseInt(minDeliveryDays, 10)
+    const minReady = minReadyToShipDays.trim()
+      ? Number.parseInt(minReadyToShipDays, 10)
       : undefined;
-    const maxDays = maxDeliveryDays.trim()
-      ? Number.parseInt(maxDeliveryDays, 10)
+    const maxReady = maxReadyToShipDays.trim()
+      ? Number.parseInt(maxReadyToShipDays, 10)
       : undefined;
+
+    if (
+      (minReady != null && (!Number.isFinite(minReady) || minReady < 1)) ||
+      (maxReady != null && (!Number.isFinite(maxReady) || maxReady < 1))
+    ) {
+      setError("Ready to ship days must be positive whole numbers.");
+      setSaving(false);
+      return;
+    }
+    if (
+      minReady != null &&
+      maxReady != null &&
+      Number.isFinite(minReady) &&
+      Number.isFinite(maxReady) &&
+      maxReady < minReady
+    ) {
+      setError("Max ready to ship must be greater than or equal to min.");
+      setSaving(false);
+      return;
+    }
 
     if (kind === "weight_tier" && !weightTiers.length) {
       setError("Add at least one weight tier.");
@@ -164,8 +184,8 @@ export function AdminShippingProfileEditPage() {
       active,
       isDefault,
       sortOrder,
-      minDeliveryDays: Number.isFinite(minDays) ? minDays : undefined,
-      maxDeliveryDays: Number.isFinite(maxDays) ? maxDays : undefined,
+      minReadyToShipDays: Number.isFinite(minReady) ? minReady : undefined,
+      maxReadyToShipDays: Number.isFinite(maxReady) ? maxReady : undefined,
     };
 
     try {
@@ -381,23 +401,31 @@ export function AdminShippingProfileEditPage() {
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Min delivery days (optional)">
+          <Field label="Ready to ship — min days">
             <input
               type="number"
               min="1"
-              value={minDeliveryDays}
-              onChange={(e) => setMinDeliveryDays(e.target.value)}
+              value={minReadyToShipDays}
+              onChange={(e) => setMinReadyToShipDays(e.target.value)}
               className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2"
+              placeholder="3"
             />
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              Business days until the order ships. Leave blank if not set.
+            </p>
           </Field>
-          <Field label="Max delivery days (optional)">
+          <Field label="Ready to ship — max days">
             <input
               type="number"
               min="1"
-              value={maxDeliveryDays}
-              onChange={(e) => setMaxDeliveryDays(e.target.value)}
+              value={maxReadyToShipDays}
+              onChange={(e) => setMaxReadyToShipDays(e.target.value)}
               className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2"
+              placeholder="5"
             />
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              Use a longer window on a separate profile (e.g. large orders).
+            </p>
           </Field>
         </div>
 

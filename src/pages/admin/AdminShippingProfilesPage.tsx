@@ -5,6 +5,7 @@ import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { hasShippingProfileModel } from "@/lib/dataModels";
 import {
+  formatReadyToShip,
   formatShippingProfileRate,
   parseWeightTiers,
   SHIPPING_PROFILE_KIND_LABELS,
@@ -111,6 +112,13 @@ export function AdminShippingProfilesPage() {
                     formatPrice,
                     parseWeightTiers(row.weightTiers),
                   )}
+                  {(() => {
+                    const ready = formatReadyToShip(
+                      row.minReadyToShipDays,
+                      row.maxReadyToShipDays,
+                    );
+                    return ready ? ` · ${ready}` : "";
+                  })()}
                   {row.isDefault ? " · Default" : ""}
                   {row.active ? " · Active" : " · Inactive"}
                 </p>

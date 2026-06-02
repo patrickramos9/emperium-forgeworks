@@ -35,7 +35,9 @@ After the first backend deploy with Stripe functions:
 
 ## Shipping rates (M15)
 
-Configure shipping in **Admin → Shipping** (profiles), then assign each product’s profile on **Admin → Products → Edit** (Etsy-style). Mark one profile as **store default** for products without an assignment. No rates are hardcoded in code.
+Configure shipping in **Admin → Shipping** (profiles), then assign each product’s profile on **Admin → Products → Edit** (Etsy-style). Mark one profile as **store default** for products without an assignment. Set **ready to ship** min/max days on each profile (use a separate profile for longer lead times, e.g. large orders). No rates are hardcoded in code.
+
+Optional **estimated arrival** at Stripe Checkout (transit after ship) is planned for a later milestone; schema fields exist but there is no admin UI yet.
 
 ## Local development
 
