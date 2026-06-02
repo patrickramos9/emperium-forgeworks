@@ -314,8 +314,9 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 #### Admin UI
 
-- **`/admin/shipping`** — CRUD profiles (all kinds + default flag + weight tiers).
+- **`/admin/shipping`** — CRUD profiles (all kinds + default flag + weight tiers + ready to ship).
 - **`/admin/products/:slug`** — **Shipping profile** dropdown + **Weight (oz)**.
+- **Product detail** — shipping rate + ready-to-ship from assigned profile (or store default).
 - **Order detail** — subtotal, shipping, total, ship-to.
 
 **Cursor rules:**
@@ -337,7 +338,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - Combined-shipping refinements (max vs sum rules for mixed profiles).
 - Cart-page shipping estimate preview.
 - Admin UI for **estimated arrival** (`minDeliveryDays` / `maxDeliveryDays` → Stripe `delivery_estimate`).
-- Storefront / checkout copy from profile **ready to ship** (and arrival when configured).
+- Checkout shipping line suffix for ready to ship / estimated arrival.
 
 ---
 

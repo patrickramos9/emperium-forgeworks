@@ -17,6 +17,9 @@ import {
 } from "@/lib/productVariants";
 import type { CatalogMode } from "@/lib/catalogFilter";
 import { useProduct, useProducts } from "@/hooks/useProducts";
+import { useProductShippingDisplay } from "@/hooks/useProductShippingDisplay";
+import { useShippingProfiles } from "@/hooks/useShippingProfiles";
+import { ProductShippingInfo } from "@/components/ProductShippingInfo";
 import { isVaultUnlocked } from "@/lib/vaultSession";
 
 type ProductDetailPageProps = {
@@ -37,6 +40,12 @@ export function ProductDetailPage({
   const { slug } = useParams<{ slug: string }>();
   const { product, loading } = useProduct(slug, catalogMode);
   const { products } = useProducts(catalogMode);
+  const { profiles, loading: profilesLoading } = useShippingProfiles();
+  const { shipping, loading: shippingLoading } = useProductShippingDisplay(
+    product,
+    profiles,
+    profilesLoading,
+  );
   const { addItem } = useCart();
   const [variantSelection, setVariantSelection] = useState<
     Record<string, string[]>
@@ -227,6 +236,11 @@ export function ProductDetailPage({
               {priceLabel}
             </p>
 
+            <ProductShippingInfo
+              shipping={shipping}
+              loading={shippingLoading}
+            />
+
             {activeGroups.length > 0 && (
               <VariantPicker
                 groups={activeGroups}
@@ -261,9 +275,6 @@ export function ProductDetailPage({
                   ? `Add ${selectedVariants.length} to Cart`
                   : "Add to Cart"}
               </button>
-              <p className="text-center font-label-sm text-[10px] text-on-surface-variant/60">
-                FORGED IN RESIN. SHIPS WITHIN 3-5 BUSINESS DAYS.
-              </p>
             </div>
 
             {product.lore && (

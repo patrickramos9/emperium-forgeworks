@@ -195,7 +195,11 @@ const schema = a.schema({
       minDeliveryDays: a.integer(),
       maxDeliveryDays: a.integer(),
     })
-    .authorization((allow) => [allow.group("admin")]),
+    .authorization((allow) => [
+      allow.guest().to(["read"]),
+      allow.authenticated().to(["read"]),
+      allow.group("admin"),
+    ]),
 
   Order: a
     .model({

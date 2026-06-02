@@ -115,3 +115,104 @@ export function formatReadyToShip(
   }
   return null;
 }
+
+export function shippingCentsForWeight(
+  tiers: WeightTier[],
+  totalWeightOz: number,
+): number {
+  if (!tiers.length) return 0;
+  const weight = Math.max(totalWeightOz, 0);
+  for (const tier of tiers) {
+    if (weight <= tier.maxWeightOz) return tier.amountCents;
+  }
+  return tiers[tiers.length - 1]?.amountCents ?? 0;
+}
+
+export type ProductShippingProfileLike = {
+  id?: string | null;
+  name?: string | null;
+  kind?: ShippingProfileKind | null;
+  amountCents?: number | null;
+  additionalItemCents?: number | null;
+  freeThresholdCents?: number | null;
+  weightTiers?: unknown;
+  active?: boolean | null;
+  isDefault?: boolean | null;
+  minReadyToShipDays?: number | null;
+  maxReadyToShipDays?: number | null;
+};
+
+export type ProductShippingDisplay = {
+  profileName: string;
+  rateLabel: string;
+  readyToShipLabel: string | null;
+};
+
+export function resolveProductShippingProfile<
+  T extends ProductShippingProfileLike,
+>(
+  product: { shippingProfileId?: string | null },
+  profiles: T[],
+): T | null {
+  const active = profiles.filter((profile) => profile.active !== false);
+  if (product.shippingProfileId) {
+    const assigned = active.find((profile) => profile.id === product.shippingProfileId);
+    if (assigned) return assigned;
+  }
+  return active.find((profile) => profile.isDefault) ?? null;
+}
+
+/** Single-item shipping summary for product detail pages. */
+export function formatProductShippingDisplay(
+  profile: ProductShippingProfileLike,
+  options: {
+    weightOz?: number | null;
+    formatPrice: (cents: number) => string;
+  },
+): ProductShippingDisplay {
+  const kind =
+    profile.kind === "free_over_threshold"
+      ? "free_over_threshold"
+      : profile.kind === "weight_tier"
+        ? "weight_tier"
+        : "flat";
+  const tiers = parseWeightTiers(profile.weightTiers);
+  const weightOz = options.weightOz ?? 0;
+
+  let rateLabel: string;
+  if (kind === "weight_tier") {
+    if (weightOz > 0 && tiers.length) {
+      rateLabel = `${options.formatPrice(shippingCentsForWeight(tiers, weightOz))} shipping (this item)`;
+    } else {
+      rateLabel = formatShippingProfileRate(
+        kind,
+        profile.amountCents,
+        profile.additionalItemCents,
+        profile.freeThresholdCents,
+        options.formatPrice,
+        tiers,
+      );
+    }
+  } else {
+    const base = formatShippingProfileRate(
+      kind,
+      profile.amountCents,
+      profile.additionalItemCents,
+      profile.freeThresholdCents,
+      options.formatPrice,
+    );
+    rateLabel =
+      kind === "free_over_threshold"
+        ? `${base} on your order`
+        : `${base} for the first item`;
+  }
+
+  return {
+    profileName: profile.name?.trim() || "Standard shipping",
+    rateLabel,
+    readyToShipLabel: formatReadyToShip(
+      profile.minReadyToShipDays,
+      profile.maxReadyToShipDays,
+    ),
+  };
+}

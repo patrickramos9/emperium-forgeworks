@@ -42,6 +42,10 @@ export interface Product {
   sortOrder: number;
   /** Hidden Vault exclusive — hidden from public /shop when true. */
   vaultOnly?: boolean;
+  /** M15 — assigned shipping profile; omit → store default at checkout. */
+  shippingProfileId?: string;
+  /** Weight in ounces for weight-tier shipping profiles. */
+  weightOz?: number;
 }
 
 export const SEED_PRODUCTS: Product[] = [
