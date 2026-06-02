@@ -77,7 +77,16 @@ export function parseCountryCodes(input: string): string[] {
     .filter((code) => /^[A-Z]{2}$/.test(code));
 }
 
-export function formatCountryCodes(codes: string[] | null | undefined): string {
-  if (!codes?.length) return "US";
-  return codes.join(", ");
+export function sanitizeCountryCodes(
+  codes: (string | null | undefined)[] | null | undefined,
+): string[] {
+  return (codes ?? []).filter(
+    (code): code is string => typeof code === "string" && code.length > 0,
+  );
+}
+
+export function formatCountryCodes(codes: (string | null | undefined)[] | null | undefined): string {
+  const sanitized = sanitizeCountryCodes(codes);
+  if (!sanitized.length) return "US";
+  return sanitized.join(", ");
 }
