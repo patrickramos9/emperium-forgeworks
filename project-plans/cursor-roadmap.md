@@ -20,19 +20,19 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-05-31
+**Last updated:** 2026-06-01
 
 | Item | State |
 |------|--------|
-| **Phase** | Shipping (M15) |
-| **Next** | **M15** — admin shipping profiles + paid rates at checkout |
+| **Phase** | Promo codes (M6) |
+| **Next** | **M6** — promo codes at checkout |
 | **Blocked** | — |
-| **Recently verified** | **M3b** — Stripe live checkout, live webhook, order `paid` + fulfillment fields — production verified |
-| **In progress** | **M15 Shipping** — admin profiles, checkout rates, order shipping totals |
+| **Recently verified** | **M15** — admin shipping profiles, Stripe checkout shipping, order subtotal/shipping/total on admin — smoke-tested in production |
+| **In progress** | — |
 | **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
 
 **Recommended build order:**  
-M8 (done) → **M3b** (done) → **M15 Shipping** → M6 → M10 → M11 → M11b → M14 → M12 → M13 → M9
+M8 (done) → **M3b** (done) → **M15** (done) → **M6** → M11 → **M16 Returns/refunds** → M10 → M11b → M14 → M12 → M13 → M9
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -161,19 +161,22 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, portfolio carousel, rich text) — **production verified**
 - **M8d** — Sculptor partner portal (`/partner/sculptor`, admin-granted `editorUserId`) — **production verified**
 - **M3b** — Live Stripe Checkout + webhook (`Order` paid, ship-to address, email/phone) — **production verified**
+- **M15** — Shipping profiles, product assignment, paid rates at Stripe Checkout, order shipping totals, PDP shipping info — **production smoke-tested**
 
 ### Blocked / waiting
 
-- **M6** — Promo codes (prefer after **M15** — promo + free-shipping thresholds interact)
+_(none)_
 
 ### In progress
 
-- **M15** — Shipping (admin shipping profiles, paid rates, order shipping totals)
+_(none — next: **M6**)_
 
 ### Planned (not started)
+- **M6** — Promo codes
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M10** — Admin–customer chat
 - **M11** — Print progress tracker (Queued → fabrication → Shipped)
+- **M16** — Returns, refunds & exchanges (Stripe refunds + return requests; exchanges operational)
 - **M11b** — Raspberry Pi SDCP bridge (optional; extends M11)
 - **M12** — Notification preferences
 - **M13** — Marketing & growth engine (feed, pixels, UTM — prefer after M3b)
@@ -260,7 +263,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 ### M15 — Shipping
 
-**Status:** In progress — Etsy-style per-product profiles; no hardcoded rates.
+**Status:** **Production smoke-tested** (2026-06-01) — live sale with shipping charge on admin order detail. Full QA (mixed carts, weight tiers, free-over-threshold) deferred.
 
 **Goal:** All shipping rules live in **Admin → Shipping profiles**. Each **product** picks a profile when edited (like Etsy listings). Checkout computes shipping from those assignments only — **nothing hardcoded in Lambda or env vars**.
 
@@ -339,6 +342,83 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - Cart-page shipping estimate preview.
 - Admin UI for **estimated arrival** (`minDeliveryDays` / `maxDeliveryDays` → Stripe `delivery_estimate`).
 - Checkout shipping line suffix for ready to ship / estimated arrival.
+
+---
+
+### M16 — Returns, refunds & exchanges
+
+**Status:** Planned — policy page exists (`/shipping-returns`); operations are email-only today.
+
+**Goal:** Support your published policy (30-day returns on new products, buyer pays return shipping, refund within ~2 days of receipt) with admin tools and optional customer self-service — without building a full RMA/ERP.
+
+**Why after M11:** Return eligibility starts at **delivery**. M11’s fulfillment stages (especially **Shipped** / delivered date) make the 30-day window enforceable in software. Refunds can ship earlier as admin-only if needed.
+
+#### Three concepts (different complexity)
+
+| Concept | What it is | Build approach |
+|---------|------------|----------------|
+| **Refund** | Money back via Stripe | Lambda + admin UI; webhook sync |
+| **Return** | Physical item coming back | `ReturnRequest` workflow; admin approve → receive → refund |
+| **Exchange** | Replace item / variant | Mostly **operational** — admin notes + partial refund or new checkout link; no automated swap checkout in v1 |
+
+#### Prerequisites (gap today)
+
+- `Order` stores `externalSessionId` (Checkout session) but **not** `stripePaymentIntentId` — refunds need the PaymentIntent (persist on webhook from `session.payment_intent`).
+- Order `status` is only `pending` \| `paid` \| `failed` — extend for refund/return lifecycle.
+- No customer “request return” flow on **Account → Orders** (page exists, read-only).
+
+#### Phase A — Admin Stripe refunds (M16a)
+
+**Backend:**
+- Webhook: also handle `charge.refunded` / `refund.updated` (keep `Order` in sync).
+- Admin-only mutation `createStripeRefund` Lambda:
+  - Full or partial refund (amount in cents, optional reason).
+  - Calls `stripe.refunds.create({ payment_intent, amount?, reason })`.
+- Extend `Order`:
+  - `stripePaymentIntentId: string`
+  - `refundedCents: int` (default 0)
+  - `paymentStatus: enum` — e.g. `paid` \| `partially_refunded` \| `refunded` (or derive from cents)
+  - Optional `refundNotes: string` (admin)
+
+**Admin UI (`/admin/orders/:id`):**
+- Show payment ref, amount paid, amount refunded.
+- **Issue refund** — full or partial, confirm dialog.
+- Read-only refund history from Stripe or mirrored JSON on order.
+
+**Acceptance:** Admin partial-refunds shipping on a paid order; Stripe Dashboard and order record match.
+
+#### Phase B — Return requests (M16b)
+
+**Data — `ReturnRequest` model:**
+- `orderId`, `userId?`, `email`
+- `status: enum` — `requested` \| `approved` \| `denied` \| `received` \| `closed`
+- `reason: enum` — `defective` \| `not_as_described` \| `changed_mind` \| `other`
+- `customerNotes`, `adminNotes`
+- `lineItems: json` (which items / qty)
+- `requestedAt`, `resolvedAt?`
+
+**Customer:** **Account → Orders → Request return** (only if order `paid`, within 30 days of `deliveredAt` when M11 provides it; until then admin override).
+
+**Admin:** Queue on order detail or `/admin/returns` — approve (email instructions: ship to forge address), mark **received**, trigger refund (Phase A) or link to refund button.
+
+Align copy with `ShippingReturnsPage` — contact-before-shipping is the default path; self-service **requests** replace unstructured email for tracking.
+
+#### Phase C — Exchanges (M16c, light)
+
+- Return reason **`exchange`** + admin workflow checklist (no automated inventory swap).
+- Admin: create manual **replacement order** (future) or send **one-time discount code** (M6) for difference.
+- Document in admin UI: “Exchanges are handled case-by-case — approve return, then re-ship or refund difference.”
+
+#### Out of scope (v1)
+
+- Automated return labels (EasyPost/ShipStation).
+- Restocking inventory on return.
+- Customer-initiated Stripe refunds without admin approval.
+
+**Cursor rules:**
+- All Stripe refund calls go through a **Lambda** (never expose secret key to admin SPA).
+- Refund amounts cannot exceed `totalCents - refundedCents`.
+- Mock-checkout orders: admin status/notes only (no Stripe call).
 
 ---
 
