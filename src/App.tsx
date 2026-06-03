@@ -20,6 +20,8 @@ import { AdminProductEditPage } from "@/pages/admin/AdminProductEditPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { AdminOrderDetailPage } from "@/pages/admin/AdminOrderDetailPage";
 import { AdminComingSoonPage } from "@/pages/admin/AdminComingSoonPage";
+import { AdminPromoTemplatesPage } from "@/pages/admin/AdminPromoTemplatesPage";
+import { AdminPromoTemplateEditPage } from "@/pages/admin/AdminPromoTemplateEditPage";
 import { AccountLoginPage } from "@/pages/account/AccountLoginPage";
 import { AccountForgotPasswordPage } from "@/pages/account/AccountForgotPasswordPage";
 import { AccountRegisterPage } from "@/pages/account/AccountRegisterPage";
@@ -122,16 +124,8 @@ export default function App() {
             <Route path="reviews" element={<AdminReviewsPage />} />
             <Route path="sculptors" element={<AdminSculptorsPage />} />
             <Route path="sculptors/:slug" element={<AdminSculptorEditPage />} />
-            <Route
-              path="promos"
-              element={
-                <AdminComingSoonPage
-                  title="Promo codes"
-                  milestone="M6"
-                  description="Create and manage discount codes for cart and checkout."
-                />
-              }
-            />
+            <Route path="promos" element={<AdminPromoTemplatesPage />} />
+            <Route path="promos/:id" element={<AdminPromoTemplateEditPage />} />
             <Route path="vault" element={<AdminVaultPage />} />
             <Route
               path="settings"

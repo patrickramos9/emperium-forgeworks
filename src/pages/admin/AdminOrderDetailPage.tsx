@@ -116,6 +116,19 @@ export function AdminOrderDetailPage() {
             value={formatPrice(order.subtotalCents)}
           />
         )}
+        {order.discountCents != null && order.discountCents > 0 && (
+          <DetailRow
+            label={
+              order.promoLabel
+                ? `Promo (${order.promoLabel})`
+                : "Promo discount"
+            }
+            value={`−${formatPrice(order.discountCents)}`}
+          />
+        )}
+        {order.promoSource && (
+          <DetailRow label="Promo source" value={order.promoSource} />
+        )}
         {order.shippingCents != null && (
           <DetailRow
             label={

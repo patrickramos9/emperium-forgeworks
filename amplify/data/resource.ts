@@ -101,6 +101,8 @@ const schema = a.schema({
     .mutation()
     .arguments({
       lineItems: a.ref("CheckoutCartLine").array().required(),
+      /** Best eligible grant for signed-in user; validated server-side. */
+      promoGrantId: a.id(),
       successUrl: a.string(),
       cancelUrl: a.string(),
     })
@@ -219,12 +221,50 @@ const schema = a.schema({
       shippingLabel: a.string(),
       lineItems: a.json(),
       totalCents: a.integer().required(),
+      /** Merchandise discount (before shipping). */
+      discountCents: a.integer(),
+      promoGrantId: a.id(),
+      promoSource: a.enum(["admin", "thank_you", "favorite", "abandoned_cart"]),
+      promoLabel: a.string(),
+      promoExpiresAt: a.datetime(),
     })
     .authorization((allow) => [
       allow.guest().to(["create"]),
       allow.authenticated().to(["create"]),
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
       allow.group("admin").to(["read", "update"]),
+    ]),
+
+  /** Admin-defined promo rules; grants are issued per user. */
+  PromoTemplate: a
+    .model({
+      name: a.string().required(),
+      kind: a.enum(["percent", "fixed"]),
+      percent: a.integer(),
+      amountCents: a.integer(),
+      active: a.boolean().default(true),
+      /** Days until issued grants expire; omit for indefinite. */
+      defaultExpiresInDays: a.integer(),
+      /** When true, paid orders issue a thank-you grant from this template. */
+      useForThankYou: a.boolean().default(false),
+    })
+    .authorization((allow) => [allow.group("admin")]),
+
+  /** Single-use issued offer tied to a user (M6). */
+  PromoGrant: a
+    .model({
+      templateId: a.id().required(),
+      userId: a.string().required(),
+      source: a.enum(["admin", "thank_you", "favorite", "abandoned_cart"]),
+      productId: a.string(),
+      expiresAt: a.datetime(),
+      revokedAt: a.datetime(),
+      redeemedAt: a.datetime(),
+      orderId: a.id(),
+    })
+    .authorization((allow) => [
+      allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
+      allow.group("admin"),
     ]),
 
   Notification: a

@@ -28,7 +28,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Next** | **M6** — promo templates, grants, auto-apply checkout (spec below; M6b–M6d phased) |
 | **Blocked** | — |
 | **Recently verified** | **M15** — profiles, Stripe checkout shipping, admin order totals, PDP shipping block (`shippingDisplay` snapshot) — **production verified** |
-| **In progress** | — |
+| **In progress** | **M6 core** — templates, grants, auto-apply cart/checkout, thank-you on paid order |
 | **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — feature-by-feature manual regression |
 
@@ -172,7 +172,7 @@ _(none)_
 
 ### In progress
 
-_(none — next: **M6**)_
+- **M6 core** — implemented in repo; deploy + QA pending (M6b favorites, M6c abandoned cart not started)
 
 ### Planned (not started)
 - **M6** — Promo templates, grants, auto-apply checkout, thank-you issuance, admin tools

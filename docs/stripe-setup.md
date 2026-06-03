@@ -41,6 +41,13 @@ Optional **estimated arrival** at Stripe Checkout (transit after ship) is planne
 
 **Product page shipping:** On each product save, admin copies shipping copy onto the product (`shippingDisplay`). Re-save products after changing profiles so the PDP shows shipping without relying on a second API call.
 
+## Promo grants (M6)
+
+- Configure templates in **Admin → Promo templates**. Mark one as **thank-you** to issue a grant after each paid order.
+- Issue admin grants by customer email on the template edit page.
+- Customers must **sign in**; the best eligible grant auto-applies on the cart (discount on subtotal before shipping).
+- Deactivating a template stops new grants; existing unused grants remain until used, expired, or revoked.
+
 ## Local development
 
 Keep `VITE_APP_ENV=local` in `.env.local` — checkout stays **mock** (no Stripe keys required).

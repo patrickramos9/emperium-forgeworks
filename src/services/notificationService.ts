@@ -54,6 +54,23 @@ export async function listCustomerNotifications(
 }
 
 /** Inbox message when admin grants or re-enables Hidden Vault access for a customer. */
+export async function createPromoGrantNotification(
+  client: AmplifyDataClient,
+  input: { userId: string; title: string; body: string },
+): Promise<void> {
+  const result = await client.models.Notification.create({
+    title: input.title,
+    body: input.body,
+    kind: "marketing",
+    userId: input.userId,
+    active: true,
+    sortOrder: 50,
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+}
+
 export async function createVaultAccessGrantedNotification(
   client: AmplifyDataClient,
   userId: string,

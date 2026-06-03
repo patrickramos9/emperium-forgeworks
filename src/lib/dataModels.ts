@@ -76,3 +76,31 @@ export function requireShippingProfileModel(client: AmplifyDataClient) {
 export function hasShippingProfileModel(client: AmplifyDataClient): boolean {
   return Boolean(client.models.ShippingProfile);
 }
+
+export function requirePromoTemplateModel(client: AmplifyDataClient) {
+  const model = client.models.PromoTemplate;
+  if (!model) {
+    throw new Error(
+      `Promo templates are not available in this environment. ${DEPLOY_HINT}`,
+    );
+  }
+  return model;
+}
+
+export function hasPromoTemplateModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.PromoTemplate);
+}
+
+export function requirePromoGrantModel(client: AmplifyDataClient) {
+  const model = client.models.PromoGrant;
+  if (!model) {
+    throw new Error(
+      `Promo grants are not available in this environment. ${DEPLOY_HINT}`,
+    );
+  }
+  return model;
+}
+
+export function hasPromoGrantModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.PromoGrant);
+}

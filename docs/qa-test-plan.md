@@ -2,7 +2,7 @@
 
 Feature-by-feature manual QA checklist for production (and optionally local/sandbox). Use this after deploys, before marking a milestone verified, or for periodic regression.
 
-**Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments)
+**Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
 ---
 
@@ -28,7 +28,8 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 | Role | How to get | Used for |
 |------|------------|----------|
 | **Admin** | Cognito user in `admin` group | `/admin/*` |
-| **Customer** | Register at `/account/register` | Orders, reviews, notifications |
+| **Customer A** | Register at `/account/register` | Orders, reviews, notifications, **promo grants** |
+| **Customer B** | Second account (different email) | Promo non-transferable checks |
 | **Vault customer** | Admin grants `VaultAccess` on `/admin/vault` | `/vault` catalog |
 | **Sculptor partner** | Admin sets `editorUserId` on sculptor | `/partner/sculptor` |
 
@@ -49,6 +50,7 @@ Run after every production deploy.
 - [ ] Success page loads; cart clears
 - [ ] Admin login (`/admin/login`); dashboard loads
 - [ ] Admin **Orders** shows the new order as **Paid** (Stripe) or expected mock status
+- [ ] **Promo (if configured):** signed-in customer with admin-issued grant sees discount on `/cart` (optional smoke)
 - [ ] Mobile width (~390px): nav + cart usable
 
 ---
@@ -60,7 +62,7 @@ Run after every production deploy.
 - [ ] Header: logo, shop link, cart icon with count, account menu
 - [ ] Footer links work (about, shipping, etc.)
 - [ ] **Site system banner** (`Announcement` kind=`system`) shows when active; dismiss/hide behavior OK
-- [ ] **Promo announcements** (kind=`promo`) appear on home/shop when pinned/active
+- [ ] **Announcement** cards (kind=`promo`) appear on home/shop when pinned/active — not the same as **promo grants** (M6 §17)
 - [ ] `/process` redirects to `/about`
 - [ ] Deep links and browser back/forward behave correctly
 - [ ] 404 / unknown paths: sensible fallback (no blank screen)
@@ -128,7 +130,7 @@ Run after every production deploy.
 
 ---
 
-## 4. Cart (M3a)
+## 4. Cart (M3a, M6)
 
 **Route:** `/cart`
 
@@ -136,9 +138,14 @@ Run after every production deploy.
 - [ ] Line items: title, variant label, qty, line total
 - [ ] Quantity +/- respects max; remove line works
 - [ ] Subtotal correct
+- [ ] **Signed out:** “Sign in for promotional offers” (or similar); no promo line applied
+- [ ] **Signed in, no grants:** subtotal only; no promo deduction line
+- [ ] **Signed in, active grant:** promo line shows label, **expiration date**, and −discount; **total before shipping** = subtotal − discount
 - [ ] **Mock checkout banner** visible when `VITE_APP_ENV=local`
 - [ ] Validation: out-of-stock or removed catalog product flagged before checkout
 - [ ] Clear cart works
+
+See **§17** for grant setup and checkout verification.
 
 ---
 
@@ -156,6 +163,7 @@ Run after every production deploy.
 
 - [ ] Redirect to Stripe Checkout hosted page
 - [ ] Line items and quantities correct
+- [ ] **With promo grant:** Stripe line-item totals reflect **discounted** merchandise (subtotal on Stripe ≤ cart subtotal − promo); shipping added separately
 - [ ] Shipping address collection works (US + configured countries)
 - [ ] Phone collection if enabled
 - [ ] Pay with test/live card; success redirect to `/checkout/success?session_id=…`
@@ -192,6 +200,7 @@ Run after every production deploy.
 - [ ] Inbox lists active notifications for user
 - [ ] Unread badge in account menu decrements when marked read
 - [ ] Vault-grant notification received when admin adds vault access
+- [ ] **Thank-you promo (M6):** after paid order, in-system notification about next-order offer (if thank-you template configured)
 
 ---
 
@@ -217,7 +226,7 @@ Run after every production deploy.
 
 ---
 
-## 8. Admin — orders (M2, M3b, M15)
+## 8. Admin — orders (M2, M3b, M15, M6)
 
 **Routes:** `/admin/orders`, `/admin/orders/:id`
 
@@ -225,6 +234,8 @@ Run after every production deploy.
 - [ ] Order detail: customer email, name, phone, session ref
 - [ ] Line items JSON parsed and displayed
 - [ ] Subtotal / shipping / total / shipping label (M15)
+- [ ] **Promo (M6):** orders that used a grant show **promo label**, **discount** (−), and **promo source** (e.g. `admin`, `thank_you`)
+- [ ] Paid order **without** promo: promo fields empty or absent (not required)
 - [ ] Ship-to address formatted
 - [ ] Manual status dropdown saves (fallback if webhook missed)
 - [ ] List does **not** auto-refresh — manual refresh shows new paid orders
@@ -355,7 +366,85 @@ Run after every production deploy.
 
 ---
 
-## 17. Cross-cutting / non-functional
+## 17. Admin — promo templates & grants (M6 core)
+
+**Routes:** `/admin/promos`, `/admin/promos/new`, `/admin/promos/:id`  
+**Requires:** Backend + frontend deploy with `PromoTemplate` / `PromoGrant` models.  
+**Ops reference:** [stripe-setup.md — Promo grants](./stripe-setup.md#promo-grants-m6)
+
+**Prerequisites**
+
+- [ ] Two promo templates for comparison tests (e.g. **10% off** and **$5 off**), both **active**
+- [ ] One template marked **Use for thank-you grants after paid orders** (only one should win)
+- [ ] Optional expiry: e.g. **30 days** on one template; one with **blank expiry** (indefinite)
+- [ ] **Customer A** registered; email known to admin (Cognito `listCustomers` / vault customer list pattern)
+
+### Admin — templates
+
+- [ ] **Promo templates** list loads (not “coming soon”)
+- [ ] Create **percent** template: name, %, active, expiry days
+- [ ] Create **fixed** template: name, dollar amount, active
+- [ ] Edit template; save persists
+- [ ] **Thank-you** checkbox: enabling on template B clears it on template A (only one thank-you template)
+- [ ] **Deactivate** template: still listed; marked inactive
+- [ ] Delete template (confirm)
+
+### Admin — issue & revoke grants
+
+- [ ] On template edit → **Issue grant** with **Customer A** email → success
+- [ ] Issued grant appears in grant list on template (status **open**)
+- [ ] **Revoke** open grant → status **revoked**; customer no longer sees it on cart
+- [ ] Issue to unknown email → clear error (no customer found)
+- [ ] **Non-transferable:** issue grant to Customer A; sign in as **Customer B** → Customer B does **not** see Customer A’s offer on cart
+
+### Customer — auto-apply at cart
+
+- [ ] Customer A signed in; add item(s) to cart
+- [ ] **One grant:** promo line visible with **expiration**; discount amount reasonable (10% or $5 of **merchandise subtotal**)
+- [ ] **Two eligible grants** (issue both to same user): **higher savings** wins (e.g. $5 off beats 10% on a $30 cart)
+- [ ] **Tie-break (optional):** two grants with same $ savings → **soonest expiry** wins (hard to eyeball; skip if not set up)
+- [ ] Promo applies to **subtotal only** — shipping still calculated at checkout (not free shipping unless M15 profile says so)
+- [ ] Change cart qty → discount recalculates (percent grants change; fixed cap at line subtotal)
+
+### Checkout & order (with promo)
+
+- [ ] Complete Stripe checkout as Customer A with promo applied
+- [ ] Admin order: **Paid**; **discountCents** matches cart; **promoLabel** / **promoSource** populated
+- [ ] Stripe Dashboard total ≈ admin **total charged**
+- [ ] Grant on template edit shows **redeemed** (no longer open)
+
+### Thank-you grant (post-purchase)
+
+- [ ] Thank-you template **active**
+- [ ] After paid order, Customer A gets **in-system notification** (Account → Notifications) describing next-order offer
+- [ ] New **open** grant on thank-you template for Customer A (source `thank_you`)
+- [ ] Second purchase with items in cart can auto-apply thank-you grant (if not expired/revoked)
+
+### Template deactivate vs issued grants
+
+- [ ] Issue grant while template **active**
+- [ ] **Deactivate** template before customer checks out
+- [ ] Customer with **already-issued** unused grant: promo **still** appears on cart (deactivate stops **new** issuances only)
+- [ ] **Thank-you:** with template deactivated, **new** paid order does **not** issue another thank-you grant
+
+### Guest checkout
+
+- [ ] Guest (signed out) checkout: **no** promo; no server error
+- [ ] Signed out cart may show sign-in prompt for offers
+
+### Local / mock limitations
+
+- [ ] **Local mock checkout** (`VITE_APP_ENV=local`): promo UI may show on cart, but Stripe + webhook thank-you path **not** exercised — use deployment or sandbox for full M6
+
+### Not in M6 core (skip — future milestones)
+
+- [ ] **M6b** Favorite → grant on favorite
+- [ ] **M6c** Abandoned cart → grant on return visit
+- [ ] **M6d** Abandoned-cart email
+
+---
+
+## 18. Cross-cutting / non-functional
 
 ### Responsive & browsers
 
@@ -387,7 +476,9 @@ Run after every production deploy.
 
 | Milestone | Feature | Skip for now |
 |-----------|---------|--------------|
-| **M6** | Promo codes at checkout | `/admin/promos` is coming-soon |
+| **M6b** | Favorite-item promo grants | — |
+| **M6c** | Abandoned-cart detection + in-system grant | — |
+| **M6d** | Abandoned-cart email | — |
 | **M10** | Admin–customer chat | — |
 | **M11** | Print progress tracker | — |
 | **M15b** | Cart shipping estimate preview; Stripe estimated arrival UI | — |

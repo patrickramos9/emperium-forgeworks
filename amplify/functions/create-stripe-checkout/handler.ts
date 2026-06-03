@@ -10,6 +10,8 @@ import {
   resolveCartShipping,
   type CheckoutLineItem,
 } from "./shippingCalc.js";
+import { distributeDiscountToLines } from "./promoCalc.js";
+import { resolvePromoForCheckout } from "./resolvePromo.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -174,13 +176,44 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       priceCents: item.priceCents,
     }));
 
+    let promo: Awaited<ReturnType<typeof resolvePromoForCheckout>> = null;
+    if (userId) {
+      promo = await resolvePromoForCheckout(
+        dataClient,
+        userId,
+        lineItems.map((item) => ({
+          productId: item.productId,
+          priceCents: item.priceCents,
+          quantity: item.quantity,
+        })),
+        event.arguments.promoGrantId,
+      );
+    } else if (event.arguments.promoGrantId) {
+      throw new Error("Sign in to use promotional offers.");
+    }
+
+    const discountCents = promo?.discountCents ?? 0;
+    const checkoutLines =
+      discountCents > 0
+        ? distributeDiscountToLines(lineItems, discountCents)
+        : lineItems;
+
     const createResult = await dataClient.models.Order.create({
       externalSessionId: pendingSessionId,
       paymentProvider: "stripe",
       status: "pending",
       lineItems: JSON.stringify(snapshots),
       subtotalCents,
-      totalCents: subtotalCents,
+      totalCents: Math.max(0, subtotalCents - discountCents),
+      ...(discountCents > 0
+        ? {
+            discountCents,
+            promoGrantId: promo!.grantId,
+            promoSource: promo!.source,
+            promoLabel: promo!.label,
+            ...(promo!.expiresAt ? { promoExpiresAt: promo!.expiresAt } : {}),
+          }
+        : {}),
       ...(userId ? { userId } : {}),
     });
 
@@ -208,7 +241,7 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     );
 
     const shipping = resolveCartShipping(
-      lineItems,
+      checkoutLines,
       productById,
       profileById,
       defaultProfile,
@@ -217,7 +250,7 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     const stripe = new Stripe(secretKey);
     const session = await createStripeCheckoutSession(
       stripe,
-      lineItems,
+      checkoutLines,
       subtotalCents,
       shipping,
       {

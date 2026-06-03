@@ -55,7 +55,10 @@ async function saveMockOrder(
   }
 }
 
-async function startStripeCheckout(items: CartLine[]) {
+async function startStripeCheckout(
+  items: CartLine[],
+  promoGrantId?: string,
+) {
   const client = await getGuestDataClient();
   if (!client) {
     throw new Error("Checkout is unavailable — backend not configured.");
@@ -80,6 +83,7 @@ async function startStripeCheckout(items: CartLine[]) {
 
   const { data, errors } = await client.mutations.createStripeCheckoutSession({
     lineItems,
+    ...(promoGrantId ? { promoGrantId } : {}),
     successUrl: `${base}/checkout/success?session={CHECKOUT_SESSION_ID}`,
     cancelUrl: `${base}/checkout/cancel`,
   });
@@ -95,7 +99,10 @@ async function startStripeCheckout(items: CartLine[]) {
   return data;
 }
 
-export async function startCheckout(items: CartLine[]) {
+export async function startCheckout(
+  items: CartLine[],
+  options?: { promoGrantId?: string },
+) {
   if (!items.length) {
     throw new Error("Cart is empty");
   }
@@ -103,7 +110,7 @@ export async function startCheckout(items: CartLine[]) {
   await configureAmplify();
 
   if (APP_ENV === "deployment") {
-    return startStripeCheckout(items);
+    return startStripeCheckout(items, options?.promoGrantId);
   }
 
   const config = loadConfig({

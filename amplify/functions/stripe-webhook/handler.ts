@@ -4,6 +4,7 @@ import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtim
 import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import Stripe from "stripe";
 import type { Schema } from "../../data/resource";
+import { issueThankYouGrant, redeemPromoGrantForOrder } from "./promoFulfillment.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -137,6 +138,18 @@ export const handler = async (event: {
     if (updateResult.errors?.length) {
       console.error("Order update failed", updateResult.errors);
       return response(500, "Order update failed");
+    }
+
+    const order = updateResult.data;
+    if (order) {
+      try {
+        await redeemPromoGrantForOrder(dataClient, order);
+        if (order.userId) {
+          await issueThankYouGrant(dataClient, order.userId);
+        }
+      } catch (err) {
+        console.error("Promo fulfillment failed", err);
+      }
     }
   }
 

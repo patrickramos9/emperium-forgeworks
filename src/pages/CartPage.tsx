@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { MockCheckoutBanner } from "@/components/MockCheckoutBanner";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
 import { useProducts } from "@/hooks/useProducts";
 import { IS_LOCAL } from "@/lib/config";
 import { validateCartLines } from "@/lib/validateCart";
+import { useCartPromo } from "@/hooks/useCartPromo";
 import { startCheckout } from "@/services/checkoutService";
+import { Link } from "react-router-dom";
 
 export function CartPage() {
   const {
@@ -18,8 +19,12 @@ export function CartPage() {
     clearCart,
   } = useCart();
   const { products, loading: catalogLoading } = useProducts("all");
+  const { promo, loading: promoLoading, signedIn } = useCartPromo(items);
   const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const discountCents = promo?.discountCents ?? 0;
+  const totalAfterPromo = Math.max(0, subtotalCents - discountCents);
 
   const validationIssues = useMemo(
     () => validateCartLines(items, products),
@@ -59,7 +64,9 @@ export function CartPage() {
 
     setCheckingOut(true);
     try {
-      await startCheckout(items);
+      await startCheckout(items, {
+        promoGrantId: promo?.grantId,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Checkout failed");
       setCheckingOut(false);
@@ -177,13 +184,37 @@ export function CartPage() {
       </ul>
 
       <div className="mt-stack-lg border-t border-outline-variant/20 pt-stack-lg">
-        <p className="text-right font-label-md text-xl text-primary">
-          Subtotal: {formatPrice(subtotalCents)}
-        </p>
+        <div className="space-y-2 text-right">
+          <p className="font-label-md text-on-surface">
+            Subtotal: {formatPrice(subtotalCents)}
+          </p>
+          {promoLoading && signedIn && (
+            <p className="text-label-sm text-on-surface-variant">
+              Checking offers…
+            </p>
+          )}
+          {promo && discountCents > 0 && (
+            <p className="text-label-sm text-secondary">
+              {promo.label} (expires {promo.expiresLabel}) −
+              {formatPrice(discountCents)}
+            </p>
+          )}
+          <p className="font-label-md text-xl text-primary">
+            Total before shipping: {formatPrice(totalAfterPromo)}
+          </p>
+        </div>
+        {!signedIn && (
+          <p className="mt-2 text-right text-label-sm text-on-surface-variant">
+            <Link to="/account/login" className="text-primary hover:underline">
+              Sign in
+            </Link>{" "}
+            for promotional offers.
+          </p>
+        )}
         <p className="mt-1 text-right text-label-sm text-on-surface-variant">
           {IS_LOCAL
             ? "Mock checkout locally — no charge."
-            : "Secure checkout via Stripe (cards, Apple Pay, Google Pay)."}
+            : "Secure checkout via Stripe (cards, Apple Pay, Google Pay). Shipping at checkout."}
         </p>
         {error && <p className="mt-2 text-right text-error">{error}</p>}
         <div className="mt-4 flex flex-wrap justify-end gap-4">
