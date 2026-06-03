@@ -25,7 +25,7 @@ Cursor should treat this file as the **source of truth** for:
 | Item | State |
 |------|--------|
 | **Phase** | Promo codes (M6) |
-| **Next** | **M6** — promo codes at checkout |
+| **Next** | **M6** — promo templates, grants, auto-apply checkout (spec below; M6b–M6d phased) |
 | **Blocked** | — |
 | **Recently verified** | **M15** — profiles, Stripe checkout shipping, admin order totals, PDP shipping block (`shippingDisplay` snapshot) — **production verified** |
 | **In progress** | — |
@@ -33,7 +33,7 @@ Cursor should treat this file as the **source of truth** for:
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — feature-by-feature manual regression |
 
 **Recommended build order:**  
-M8 (done) → **M3b** (done) → **M15** (done) → **M6** → M11 → **M16 Returns/refunds** → M10 → M11b → M14 → M12 → M13 → M9
+M8 (done) → **M3b** (done) → **M15** (done) → **M6** → **M6b** (favorites) → **M6c** (abandoned cart) → M11 → **M16** → M10 → M11b → M14 → M12 → **M13** (+ **M6d** abandoned-cart email) → M9
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -175,7 +175,10 @@ _(none)_
 _(none — next: **M6**)_
 
 ### Planned (not started)
-- **M6** — Promo codes
+- **M6** — Promo templates, grants, auto-apply checkout, thank-you issuance, admin tools
+- **M6b** — Favorites + favorite-item grants (re-issue after purchase)
+- **M6c** — Abandoned cart detection + in-system notification (account required)
+- **M6d** — Abandoned-cart **email** (defer; align with M13 marketing)
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M10** — Admin–customer chat
 - **M11** — Print progress tracker (Queued → fabrication → Shipped)
@@ -228,39 +231,100 @@ _(none — next: **M6**)_
 
 ---
 
-### M6 — Promo codes
+### M6 — Promo codes (templates + grants)
 
-**Goal:** Apply promo codes in cart/checkout.
+**Status:** Spec agreed (2026-06-02) — not implemented. `/admin/promos` is a placeholder.
 
-**Data model:**
-- Add `PromoCode` model in `amplify/data/resource.ts`:
-  - `code: string`
-  - `kind: enum` (`percent` | `fixed`)
-  - `valueCents: int` (for fixed) or `percent: int`
-  - `active: boolean`
-  - `expiresAt?: datetime`
-  - `maxUses?: int`
-  - `usageCount?: int`
+**Goal:** Etsy-style **issued offers** tied to accounts: auto-apply the single best eligible grant at checkout, persist on `Order`, separate from **M15 shipping**.
 
-**Backend logic:**
-- Service in `src/services/promoCodeService.ts`:
-  - `validatePromoCode(code, cartTotalCents): Promise<{ valid: boolean; adjustedTotalCents?: number; reason?: string }>`
-- Stripe integration:
-  - Either use Stripe coupons/promotion codes or pre-discount the amount before creating the session (simpler v1).
+#### Core rules (business)
 
-**Frontend:**
-- Cart page:
-  - Promo code input.
-  - Apply button.
-  - Show discount and adjusted total.
-- Error states:
-  - Invalid code.
-  - Expired.
-  - Usage limit reached.
+1. **One grant per order** — no stacking. If multiple grants are eligible, apply the one with the **greatest savings** (compare actual cents off **merchandise subtotal**, whether percent or fixed).
+2. **Tie-break** — if savings are equal, **soonest expiry** wins.
+3. **Discount base** — merchandise **subtotal before shipping**. Shipping profiles (M15) are unrelated.
+4. **Accounts required** — grants are non-transferable (`userId`; optional bind to email at issuance). Guest checkout does not receive promo benefits.
+5. **Auto-apply** — customer does not need to type a code; best grant is applied in cart and locked in `create-stripe-checkout`.
+6. **Cart UX** — show promo as a line with **expiration date** visible on the deduction row.
+7. **Template vs grant**
+   - **PromoTemplate** (admin config): kind (`percent` | `fixed`), value, `active`, default expiry rules, optional per-source config.
+   - **PromoGrant** (issued instance): one **redemption** per grant; `source`, `userId`, optional `productId` / `cartSnapshotId`, `expiresAt`, `revokedAt`, `redeemedAt`, `orderId`.
+8. **Deactivate template** — stops **new** issuances only. Already-issued unused grants remain valid until **used**, **expired**, or **admin revoked** (per buyer / ToS).
+9. **Re-issuance loop** — each grant is single-use. After redemption (or qualifying event), a **new** grant may be issued only while the template is **active** and source rules fire again (see sources below). This is not “one code forever on a SKU.”
+
+#### Grant sources
+
+| Source | When issued | Eligibility at checkout | Re-issue after use |
+|--------|-------------|-------------------------|-------------------|
+| **admin** | Admin assigns to a user on demand | Per grant scope (cart / product) | Manual only |
+| **thank_you** | On **paid** order (webhook final step) | Next order; template expiry | New grant after each **completed** purchase (while template active) |
+| **favorite** | First time user favorites product **P** (**M6b**) | Discount applies only when **P** is in cart (line-level or allocated to P’s subtotal) | If **P** still favorited after paid order → new grant (**M6b**) |
+| **abandoned_cart** | Cart idle ≥ N hours with items (**M6c**) | Cart-scoped grant for that snapshot | New grant on each new abandon event while template active (**M6c**) |
+
+- **Favorite vs abandoned cart** — different triggers; both may exist for a user but only **one** wins at checkout (best savings → soonest expiry).
+- **Unfavorite** (v1): unused grant remains until used/expired (no automatic revoke).
+
+#### Notifications
+
+- **v1:** **In-system** only (`Notification` kind `marketing` or `promo`) — favorite, thank-you, abandoned cart, admin-assigned.
+- **Later (M6d / M13):** **Email** for **abandoned cart** recovery (in-system alone does not bring users back off-site).
+
+#### Data models (Amplify)
+
+**`PromoTemplate`** (admin CRUD):
+- `name`, `kind` (`percent` | `fixed`), `percent` or `amountCents`, `active`
+- `defaultExpiresInDays` or indefinite flag
+- `source` enum or flags for which issuance paths use this template
+
+**`PromoGrant`** (system + admin):
+- `templateId`, `userId`, `source` (`admin` | `thank_you` | `favorite` | `abandoned_cart`)
+- `productId?`, `cartSnapshotId?`
+- `expiresAt`, `revokedAt?`, `redeemedAt?`, `orderId?`
+- Optional display `code` / token for admin reference (not shared between users)
+
+**`Order`** (extend):
+- `discountCents`, `promoGrantId`, `promoSource`, `promoLabel` (and/or snapshot of expiry shown at checkout)
+
+**`CartSnapshot`** (**M6c**): `userId`, line items json, `updatedAt`, `abandonedAt?`
+
+**`Favorite`** (**M6b**): `userId`, `productId`, `createdAt`
+
+#### Backend
+
+- `promoGrantService` — list eligible grants for user + cart, compute cents off subtotal, pick winner, revoke.
+- **`create-stripe-checkout`** — accept `promoGrantId` (or re-resolve server-side); discount subtotal before shipping; reject tampered amounts.
+- **`stripe-webhook`** — on paid: issue thank-you grant; favorite re-issue if still favorited; mark grant redeemed; increment usage.
+- No trust in client-side discount math.
+
+#### Admin UI
+
+- **`/admin/promos`** — CRUD templates (amount, expiry, active).
+- Issue grant to user; **revoke** one grant (abuse / ToS).
+- Order detail shows applied promo fields.
+
+#### Storefront
+
+- **Cart** — auto-applied promo line, subtotal after discount, shipping unchanged from M15, **expiry shown** on promo line.
+- **Account** — optional list of active grants / notifications linking to cart.
+- No “stacking” UI.
+
+#### Phasing
+
+| Milestone | Deliver |
+|-----------|---------|
+| **M6** | Templates, grants, admin assign/revoke, auto-apply cart + checkout, order fields, thank-you on paid webhook, in-system notifications |
+| **M6b** | `Favorite` model + UI + favorite issuance + post-purchase re-issue |
+| **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
+| **M6d** | Abandoned-cart email (with M13) |
 
 **Cursor rules:**
-- Do not overcomplicate v1 with multi-code stacking.
-- Single promo code per order is sufficient.
+- Single grant per order; never stack with shipping-profile free shipping as a “promo.”
+- Template `active: false` must not delete or invalidate outstanding grants.
+- Prefer server-side grant resolution in Lambda over client-only validation.
+
+**Acceptance (M6 core):**
+- Admin creates template, assigns grant to user; user sees discount on cart with expiry; checkout total matches Stripe; order stores promo fields.
+- Paid order issues thank-you grant; notification appears in account inbox.
+- Deactivating template stops new thank-you grants; existing unused thank-you grant still redeems.
 
 ---
 
