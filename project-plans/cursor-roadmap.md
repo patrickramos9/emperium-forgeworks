@@ -20,23 +20,22 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-01
+**Last updated:** 2026-06-02
 
 | Item | State |
 |------|--------|
 | **Phase** | Promo codes (M6) |
 | **Next** | **M6** — promo codes at checkout |
 | **Blocked** | — |
-| **Recently verified** | **M15** — admin shipping profiles, Stripe checkout shipping, order subtotal/shipping/total on admin — smoke-tested in production |
+| **Recently verified** | **M15** — profiles, Stripe checkout shipping, admin order totals, PDP shipping block (`shippingDisplay` snapshot) — **production verified** |
 | **In progress** | — |
 | **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
+| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — feature-by-feature manual regression |
 
 **Recommended build order:**  
 M8 (done) → **M3b** (done) → **M15** (done) → **M6** → M11 → **M16 Returns/refunds** → M10 → M11b → M14 → M12 → M13 → M9
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
-
-**QA:** [docs/qa-test-plan.md](../docs/qa-test-plan.md) — manual test steps by feature.
 
 ---
 
@@ -104,7 +103,8 @@ When adding new functionality, **prefer extending existing patterns**:
     - GA4 dashboard
     - Customer listing/lookup
     - Post-confirmation group assignment
-    - Future: Stripe webhooks, Pi bridge endpoints (if needed)
+    - Stripe Checkout + webhook (M3b)
+    - Future: Pi bridge endpoints (if needed)
 
 - **Integrations**
   - GA4 (gtag + Data API)
@@ -128,8 +128,9 @@ When adding new data flows, **always** use the appropriate client helper and fol
 
 Cursor must treat [`project-plans/reference/data-models.md`](./reference/data-models.md) (not `archive/`) as the canonical description of current models:
 
-- `Product`
+- `Product` (includes `shippingProfileId`, `weightOz`, `shippingDisplay` snapshot for PDP)
 - `Order`
+- `ShippingProfile` (guest/authenticated read; admin CRUD)
 - `Announcement`
 - `Notification`
 - `NotificationRead`
@@ -137,7 +138,7 @@ Cursor must treat [`project-plans/reference/data-models.md`](./reference/data-mo
 - `VaultAccess`
 - `Sculptor`
 
-When adding new models (e.g., `Conversation`, `Message`, `PrintJob`, `NotificationPreference`, `ShippingProfile`), follow the same style:
+When adding new models (e.g., `Conversation`, `Message`, `PrintJob`, `NotificationPreference`), follow the same style:
 - Define in `amplify/data/resource.ts`.
 - Use appropriate auth rules (guest read, owner read, admin CRUD, etc.).
 - Use `userId` for owner scoping where relevant.
@@ -163,7 +164,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, portfolio carousel, rich text) — **production verified**
 - **M8d** — Sculptor partner portal (`/partner/sculptor`, admin-granted `editorUserId`) — **production verified**
 - **M3b** — Live Stripe Checkout + webhook (`Order` paid, ship-to address, email/phone) — **production verified**
-- **M15** — Shipping profiles, product assignment, paid rates at Stripe Checkout, order shipping totals, PDP shipping info — **production smoke-tested**
+- **M15** — Shipping profiles, product assignment, Stripe checkout shipping, order totals, PDP shipping (`shippingDisplay` + live fallback), ready-to-ship on profiles — **production verified**
 
 ### Blocked / waiting
 
@@ -265,7 +266,7 @@ _(none — next: **M6**)_
 
 ### M15 — Shipping
 
-**Status:** **Production smoke-tested** (2026-06-01) — live sale with shipping charge on admin order detail. Full QA (mixed carts, weight tiers, free-over-threshold) deferred.
+**Status:** **Production verified** (2026-06-02) — live checkout with shipping on admin orders; PDP shipping block confirmed after `shippingDisplay` snapshot + deploy. Deeper regression (mixed carts, weight tiers, free-over-threshold) tracked in [docs/qa-test-plan.md](../docs/qa-test-plan.md).
 
 **Goal:** All shipping rules live in **Admin → Shipping profiles**. Each **product** picks a profile when edited (like Etsy listings). Checkout computes shipping from those assignments only — **nothing hardcoded in Lambda or env vars**.
 
@@ -303,6 +304,7 @@ _(none — next: **M6**)_
 |-------|------|--------|
 | `Product.shippingProfileId` | string? | Chosen on **Admin → Products → Edit** |
 | `Product.weightOz` | int? | Required when assigned profile uses `weight_tier` |
+| `Product.shippingDisplay` | json? | Cached PDP copy (`profileName`, `rateLabel`, `readyToShipLabel`) — written on **admin product save**; PDP reads snapshot first, then live profile fetch |
 
 #### Rate kinds (all admin-created)
 
@@ -320,9 +322,14 @@ _(none — next: **M6**)_
 #### Admin UI
 
 - **`/admin/shipping`** — CRUD profiles (all kinds + default flag + weight tiers + ready to ship).
-- **`/admin/products/:slug`** — **Shipping profile** dropdown + **Weight (oz)**.
-- **Product detail** — shipping rate + ready-to-ship from assigned profile (or store default).
+- **`/admin/products/:slug`** — **Shipping profile** dropdown + **Weight (oz)**; save writes `shippingDisplay` snapshot.
+- **Product detail (`/shop/:slug`)** — shipping card under price from snapshot or live profile.
 - **Order detail** — subtotal, shipping, total, ship-to.
+
+**Operations:**
+
+- After changing shipping profiles or assignments, **re-save affected products** once so PDP snapshots stay in sync.
+- Checkout uses Lambda (always loads profiles server-side); PDP uses product record + optional guest `ShippingProfile` read.
 
 **Cursor rules:**
 
