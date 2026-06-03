@@ -13,6 +13,7 @@ import {
   CART_STORAGE_VERSION,
   MAX_LINE_QTY,
 } from "@/lib/cartConstants";
+import { productPrimaryImage } from "@/lib/productImageUrls";
 
 export interface CartLine {
   key: string;
@@ -38,6 +39,7 @@ interface CartContextValue {
   removeItem: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
   clearCart: () => void;
+  enrichFromCatalog: (products: Product[]) => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -53,6 +55,16 @@ function lineKey(productId: string, variantId?: string) {
 
 function clampQuantity(quantity: number): number {
   return Math.min(MAX_LINE_QTY, Math.max(1, quantity));
+}
+
+function isBrowsableImageUrl(url: string | undefined): boolean {
+  if (!url?.trim()) return false;
+  return url.startsWith("http") || url.startsWith("/");
+}
+
+function imageUrlForProduct(product: Product): string | undefined {
+  const url = productPrimaryImage(product);
+  return url && isBrowsableImageUrl(url) ? url : undefined;
 }
 
 function loadStoredItems(): CartLine[] {
@@ -112,9 +124,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setItems((prev) => {
         const existing = prev.find((i) => i.key === key);
         if (existing) {
+          const imageUrl =
+            imageUrlForProduct(product) ?? existing.imageUrl;
           return prev.map((i) =>
             i.key === key
-              ? { ...i, quantity: clampQuantity(i.quantity + quantity) }
+              ? {
+                  ...i,
+                  quantity: clampQuantity(i.quantity + quantity),
+                  ...(!isBrowsableImageUrl(i.imageUrl) && imageUrl
+                    ? { imageUrl }
+                    : {}),
+                }
               : i,
           );
         }
@@ -127,7 +147,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             title: product.title,
             priceCents,
             quantity,
-            imageUrl: product.images[0],
+            imageUrl: imageUrlForProduct(product),
             variantId: variant?.id,
             variantLabel: variant?.label,
           },
@@ -156,6 +176,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => setItems([]), []);
 
+  const enrichFromCatalog = useCallback((products: Product[]) => {
+    if (!products.length) return;
+    const byId = new Map(products.map((p) => [p.id, p]));
+    setItems((prev) => {
+      let changed = false;
+      const next = prev.map((item) => {
+        if (isBrowsableImageUrl(item.imageUrl)) return item;
+        const product = byId.get(item.productId);
+        if (!product) return item;
+        const imageUrl = imageUrlForProduct(product);
+        if (!imageUrl || imageUrl === item.imageUrl) return item;
+        changed = true;
+        return { ...item, imageUrl };
+      });
+      return changed ? next : prev;
+    });
+  }, []);
+
   const value = useMemo(() => {
     const itemCount = items.reduce((n, i) => n + i.quantity, 0);
     const subtotalCents = items.reduce(
@@ -171,8 +209,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem,
       updateQuantity,
       clearCart,
+      enrichFromCatalog,
     };
-  }, [items, addItem, removeItem, updateQuantity, clearCart]);
+  }, [items, addItem, removeItem, updateQuantity, clearCart, enrichFromCatalog]);
 
   return (
     <CartContext.Provider value={value}>{children}</CartContext.Provider>

@@ -63,15 +63,41 @@ async function loadProductsById(
   return map;
 }
 
+function formatUsd(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(cents / 100);
+}
+
+function lineItemDescription(
+  item: CheckoutLineItem,
+  originalUnitCents: number | undefined,
+  promoLabel: string | undefined,
+): string | undefined {
+  const parts: string[] = [];
+  if (
+    originalUnitCents != null &&
+    originalUnitCents > item.priceCents
+  ) {
+    parts.push(`Was ${formatUsd(originalUnitCents)} each`);
+  }
+  if (promoLabel) parts.push(promoLabel);
+  return parts.length ? parts.join(" · ") : undefined;
+}
+
 async function createStripeCheckoutSession(
   stripe: Stripe,
   items: CheckoutLineItem[],
+  originalItems: CheckoutLineItem[],
   subtotalCents: number,
   shipping: ReturnType<typeof resolveCartShipping>,
   options: {
     successUrl: string;
     cancelUrl: string;
     metadata?: Record<string, string>;
+    promoLabel?: string;
+    discountCents?: number;
   },
 ) {
   const shippingOptions = buildStripeShippingOptions(shipping);
@@ -95,21 +121,38 @@ async function createStripeCheckoutSession(
     };
   }
 
+  const discountCents = options.discountCents ?? 0;
+  const promoSummary =
+    discountCents > 0 && options.promoLabel
+      ? `${options.promoLabel}: ${formatUsd(subtotalCents)} → ${formatUsd(
+          Math.max(0, subtotalCents - discountCents),
+        )} before shipping.`
+      : undefined;
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    line_items: items.map((item) => ({
-      quantity: item.quantity,
-      price_data: {
-        currency: "usd",
-        unit_amount: item.priceCents,
-        product_data: {
-          name: item.title,
-          ...(item.imageUrl?.startsWith("http")
-            ? { images: [item.imageUrl] }
-            : {}),
+    line_items: items.map((item, index) => {
+      const original = originalItems[index];
+      const description = lineItemDescription(
+        item,
+        original?.priceCents,
+        options.promoLabel,
+      );
+      return {
+        quantity: item.quantity,
+        price_data: {
+          currency: "usd",
+          unit_amount: item.priceCents,
+          product_data: {
+            name: item.title,
+            ...(description ? { description } : {}),
+            ...(item.imageUrl?.startsWith("http")
+              ? { images: [item.imageUrl] }
+              : {}),
+          },
         },
-      },
-    })),
+      };
+    }),
     success_url: options.successUrl,
     cancel_url: options.cancelUrl,
     metadata: options.metadata,
@@ -120,6 +163,13 @@ async function createStripeCheckoutSession(
     },
     shipping_options: shippingOptions,
     phone_number_collection: { enabled: true },
+    ...(promoSummary
+      ? {
+          custom_text: {
+            submit: { message: promoSummary },
+          },
+        }
+      : {}),
   });
 
   if (!session.url) {
@@ -251,12 +301,19 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     const session = await createStripeCheckoutSession(
       stripe,
       checkoutLines,
+      lineItems,
       subtotalCents,
       shipping,
       {
         successUrl,
         cancelUrl,
         metadata: { orderId },
+        ...(discountCents > 0 && promo
+          ? {
+              promoLabel: promo.label,
+              discountCents,
+            }
+          : {}),
       },
     );
 

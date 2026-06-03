@@ -2,7 +2,11 @@ import { FormEvent, useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { hasPromoTemplateModel } from "@/lib/dataModels";
-import { fetchCustomerAccounts } from "@/lib/customerAdmin";
+import {
+  fetchCustomerAccounts,
+  resolveCustomerLabelsForUserIds,
+  type CustomerLabel,
+} from "@/lib/customerAdmin";
 import {
   createPromoTemplate,
   deletePromoTemplate,
@@ -50,6 +54,9 @@ export function AdminPromoTemplateEditPage() {
   const [grants, setGrants] = useState<
     Awaited<ReturnType<typeof listAllPromoGrants>>
   >([]);
+  const [customerLabels, setCustomerLabels] = useState<
+    Map<string, CustomerLabel>
+  >(new Map());
 
   useEffect(() => {
     async function load() {
@@ -85,7 +92,16 @@ export function AdminPromoTemplateEditPage() {
             : "",
         );
         const allGrants = await listAllPromoGrants(client);
-        setGrants(allGrants.filter((g) => g.templateId === row.id));
+        const templateGrants = allGrants.filter((g) => g.templateId === row.id);
+        setGrants(templateGrants);
+        const userIds = [...new Set(templateGrants.map((g) => g.userId))];
+        if (userIds.length) {
+          setCustomerLabels(
+            await resolveCustomerLabelsForUserIds(client, userIds),
+          );
+        } else {
+          setCustomerLabels(new Map());
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Load failed");
       }
@@ -177,6 +193,14 @@ export function AdminPromoTemplateEditPage() {
         source: "admin",
       });
       setGrants((current) => [grant, ...current]);
+      setCustomerLabels((current) => {
+        const next = new Map(current);
+        next.set(match.userId, {
+          email: match.email,
+          displayName: match.email,
+        });
+        return next;
+      });
       setGrantEmail("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not issue grant");
@@ -356,19 +380,34 @@ export function AdminPromoTemplateEditPage() {
 
           {grants.length > 0 && (
             <ul className="space-y-2 text-body-sm">
-              {grants.slice(0, 20).map((grant) => (
+              {grants.slice(0, 20).map((grant) => {
+                const label = customerLabels.get(grant.userId);
+                const status = grant.redeemedAt
+                  ? "redeemed"
+                  : grant.revokedAt
+                    ? "revoked"
+                    : "open";
+
+                return (
                 <li
                   key={grant.id}
                   className="flex flex-wrap items-center justify-between gap-2 border border-outline-variant/10 p-2"
                 >
-                  <span className="text-on-surface-variant">
-                    {grant.source} · user {grant.userId.slice(0, 8)}…
-                    {grant.redeemedAt
-                      ? " · redeemed"
-                      : grant.revokedAt
-                        ? " · revoked"
-                        : " · open"}
-                  </span>
+                  <div className="min-w-0">
+                    <p className="font-label-md text-on-surface">
+                      {label?.displayName ?? "Unknown customer"}
+                    </p>
+                    {label?.email &&
+                      label.displayName.toLowerCase() !==
+                        label.email.toLowerCase() && (
+                        <p className="text-label-sm text-on-surface-variant">
+                          {label.email}
+                        </p>
+                      )}
+                    <p className="text-label-sm text-on-surface-variant">
+                      {grant.source} · {status}
+                    </p>
+                  </div>
                   {!grant.redeemedAt && !grant.revokedAt && (
                     <button
                       type="button"
@@ -379,7 +418,8 @@ export function AdminPromoTemplateEditPage() {
                     </button>
                   )}
                 </li>
-              ))}
+              );
+              })}
             </ul>
           )}
         </section>

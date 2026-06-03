@@ -43,6 +43,15 @@ Optional **estimated arrival** at Stripe Checkout (transit after ship) is planne
 
 ## Promo grants (M6)
 
+**Issuance today (M6 core only):**
+
+| Source | How it fires |
+|--------|----------------|
+| **admin** | On template edit → **Issue grant** with customer email |
+| **thank_you** | Stripe webhook after order is **Paid**; exactly one active template with **Use for thank-you** |
+
+**Planned later:** `favorite` (M6b), `abandoned_cart` (M6c), abandoned-cart email (M6d). The schema already has those `source` values; no triggers or UI for them yet.
+
 - Configure templates in **Admin → Promo templates**. Mark one as **thank-you** to issue a grant after each paid order.
 - Issue admin grants by customer email on the template edit page.
 - Customers must **sign in**; the best eligible grant auto-applies on the cart (discount on subtotal before shipping).

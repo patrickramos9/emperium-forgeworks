@@ -55,7 +55,15 @@ export function AdminPromoTemplatesPage() {
             Promo templates
           </h1>
           <p className="mt-1 text-body-sm text-on-surface-variant">
-            Grants are issued per customer and auto-applied at checkout (M6).
+            Grants are issued per customer and auto-applied at checkout when signed
+            in.
+          </p>
+          <p className="mt-2 max-w-2xl text-body-sm text-on-surface-variant">
+            <strong className="text-on-surface">Grant sources (today):</strong>{" "}
+            admin issue by email on a template, or automatic thank-you after a paid
+            order (mark one template “thank-you”).{" "}
+            <strong className="text-on-surface">Not built yet:</strong> favorite-item
+            (M6b), abandoned-cart in-system (M6c), abandoned-cart email (M6d).
           </p>
         </div>
         <Link

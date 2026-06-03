@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MockCheckoutBanner } from "@/components/MockCheckoutBanner";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
+import { productPrimaryImage } from "@/lib/productImageUrls";
 import { useProducts } from "@/hooks/useProducts";
 import { IS_LOCAL } from "@/lib/config";
 import { validateCartLines } from "@/lib/validateCart";
@@ -17,6 +18,7 @@ export function CartPage() {
     updateQuantity,
     removeItem,
     clearCart,
+    enrichFromCatalog,
   } = useCart();
   const { products, loading: catalogLoading } = useProducts("all");
   const { promo, loading: promoLoading, signedIn } = useCartPromo(items);
@@ -35,6 +37,17 @@ export function CartPage() {
     () => new Map(validationIssues.map((issue) => [issue.key, issue.message])),
     [validationIssues],
   );
+
+  const productById = useMemo(
+    () => new Map(products.map((p) => [p.id, p])),
+    [products],
+  );
+
+  useEffect(() => {
+    if (!catalogLoading && products.length > 0) {
+      enrichFromCatalog(products);
+    }
+  }, [catalogLoading, products, enrichFromCatalog]);
 
   const canCheckout =
     items.length > 0 &&
@@ -108,6 +121,10 @@ export function CartPage() {
         {items.map((item) => {
           const lineTotalCents = item.priceCents * item.quantity;
           const issueMessage = issuesByKey.get(item.key);
+          const catalogProduct = productById.get(item.productId);
+          const thumbUrl =
+            item.imageUrl ??
+            (catalogProduct ? productPrimaryImage(catalogProduct) : undefined);
 
           return (
             <li
@@ -118,12 +135,19 @@ export function CartPage() {
                   : "border-outline-variant/20"
               }`}
             >
-              {item.imageUrl && (
+              {thumbUrl ? (
                 <img
-                  src={item.imageUrl}
+                  src={thumbUrl}
                   alt=""
                   className="h-24 w-24 shrink-0 object-cover"
                 />
+              ) : (
+                <div
+                  className="flex h-24 w-24 shrink-0 items-center justify-center border border-outline-variant/20 bg-surface-container text-center text-label-sm text-on-surface-variant"
+                  aria-hidden
+                >
+                  —
+                </div>
               )}
               <div className="min-w-0 flex-grow">
                 <Link
@@ -185,23 +209,36 @@ export function CartPage() {
 
       <div className="mt-stack-lg border-t border-outline-variant/20 pt-stack-lg">
         <div className="space-y-2 text-right">
-          <p className="font-label-md text-on-surface">
-            Subtotal: {formatPrice(subtotalCents)}
-          </p>
           {promoLoading && signedIn && (
             <p className="text-label-sm text-on-surface-variant">
               Checking offers…
             </p>
           )}
-          {promo && discountCents > 0 && (
-            <p className="text-label-sm text-secondary">
-              {promo.label} (expires {promo.expiresLabel}) −
-              {formatPrice(discountCents)}
-            </p>
+          {discountCents > 0 && promo ? (
+            <>
+              <p className="font-label-md text-on-surface-variant">
+                <span className="line-through">
+                  Subtotal {formatPrice(subtotalCents)}
+                </span>
+              </p>
+              <p className="text-label-sm text-secondary">
+                {promo.label} (expires {promo.expiresLabel}) −
+                {formatPrice(discountCents)}
+              </p>
+              <p className="font-label-md text-xl text-primary">
+                Total before shipping: {formatPrice(totalAfterPromo)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-label-md text-on-surface">
+                Subtotal: {formatPrice(subtotalCents)}
+              </p>
+              <p className="font-label-md text-xl text-primary">
+                Total before shipping: {formatPrice(subtotalCents)}
+              </p>
+            </>
           )}
-          <p className="font-label-md text-xl text-primary">
-            Total before shipping: {formatPrice(totalAfterPromo)}
-          </p>
         </div>
         {!signedIn && (
           <p className="mt-2 text-right text-label-sm text-on-surface-variant">
