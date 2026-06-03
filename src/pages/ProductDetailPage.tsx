@@ -18,7 +18,6 @@ import {
 import type { CatalogMode } from "@/lib/catalogFilter";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 import { useProductShippingDisplay } from "@/hooks/useProductShippingDisplay";
-import { useShippingProfiles } from "@/hooks/useShippingProfiles";
 import { ProductShippingInfo } from "@/components/ProductShippingInfo";
 import { isVaultUnlocked } from "@/lib/vaultSession";
 
@@ -40,12 +39,11 @@ export function ProductDetailPage({
   const { slug } = useParams<{ slug: string }>();
   const { product, loading } = useProduct(slug, catalogMode);
   const { products } = useProducts(catalogMode);
-  const { profiles, loading: profilesLoading } = useShippingProfiles();
-  const { shipping, loading: shippingLoading } = useProductShippingDisplay(
-    product,
-    profiles,
-    profilesLoading,
-  );
+  const {
+    shipping,
+    loading: shippingLoading,
+    error: shippingError,
+  } = useProductShippingDisplay(product);
   const { addItem } = useCart();
   const [variantSelection, setVariantSelection] = useState<
     Record<string, string[]>
@@ -239,6 +237,7 @@ export function ProductDetailPage({
             <ProductShippingInfo
               shipping={shipping}
               loading={shippingLoading}
+              emptyMessage={shippingError}
             />
 
             {activeGroups.length > 0 && (

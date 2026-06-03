@@ -146,6 +146,8 @@ const schema = a.schema({
       shippingProfileId: a.string(),
       /** Item weight in ounces; required for weight-tier shipping profiles. */
       weightOz: a.integer(),
+      /** Cached PDP shipping copy from assigned/default profile (set on admin save). */
+      shippingDisplay: a.json(),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),

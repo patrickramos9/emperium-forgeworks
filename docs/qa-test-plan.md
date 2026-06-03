@@ -106,7 +106,8 @@ Run after every production deploy.
 - [ ] Shipping block under price shows profile name
 - [ ] Rate text matches profile (flat + additional, free-over-threshold, or weight tier)
 - [ ] Ready-to-ship text matches profile (e.g. “Ships in 3–5 business days”)
-- [ ] Product with no resolvable profile: link to **Shipping & returns** (no crash)
+- [ ] After assigning a profile in admin, **re-save the product** once (writes `shippingDisplay` snapshot for PDP)
+- [ ] Product with no resolvable profile: visible message + link to **Shipping & returns** (no crash)
 
 ### Checkout & orders (see §5, §8)
 

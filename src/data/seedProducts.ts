@@ -46,6 +46,8 @@ export interface Product {
   shippingProfileId?: string;
   /** Weight in ounces for weight-tier shipping profiles. */
   weightOz?: number;
+  /** Cached shipping copy for PDP (from admin save). */
+  shippingDisplay?: unknown;
 }
 
 export const SEED_PRODUCTS: Product[] = [

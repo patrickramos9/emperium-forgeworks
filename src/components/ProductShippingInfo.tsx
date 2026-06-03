@@ -5,27 +5,36 @@ import type { ProductShippingDisplay } from "@/lib/shippingProfiles";
 type ProductShippingInfoProps = {
   shipping: ProductShippingDisplay | null;
   loading?: boolean;
+  emptyMessage?: string | null;
 };
 
 export function ProductShippingInfo({
   shipping,
   loading = false,
+  emptyMessage = null,
 }: ProductShippingInfoProps) {
   if (loading) {
     return (
-      <p className="font-label-sm text-on-surface-variant/60">
-        Loading shipping…
-      </p>
+      <div className="border border-outline-variant/10 bg-surface-container-high p-4 iron-bevel">
+        <p className="font-label-sm text-on-surface-variant">
+          Loading shipping…
+        </p>
+      </div>
     );
   }
 
   if (!shipping) {
     return (
-      <p className="text-center font-label-sm text-[10px] text-on-surface-variant/60">
-        <Link to="/shipping-returns" className="hover:text-primary">
-          Shipping &amp; returns
-        </Link>
-      </p>
+      <div className="border border-outline-variant/10 bg-surface-container-high p-4 iron-bevel">
+        <p className="font-body-sm text-on-surface-variant">
+          {emptyMessage ?? "Shipping details are not available for this item yet."}
+        </p>
+        <p className="mt-2 text-[11px] text-on-surface-variant/70">
+          <Link to="/shipping-returns" className="hover:text-primary">
+            Shipping &amp; returns
+          </Link>
+        </p>
+      </div>
     );
   }
 

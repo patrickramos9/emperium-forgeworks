@@ -26,6 +26,7 @@ export function mapAmplifyProduct(row: {
   vaultOnly?: boolean | null;
   shippingProfileId?: string | null;
   weightOz?: number | null;
+  shippingDisplay?: unknown;
 }): Product {
   const gallery = (row.images ?? []).filter(Boolean) as string[];
   const detailImage = row.detailImage ?? undefined;
@@ -57,5 +58,6 @@ export function mapAmplifyProduct(row: {
     vaultOnly: row.vaultOnly ?? false,
     shippingProfileId: row.shippingProfileId ?? undefined,
     weightOz: row.weightOz ?? undefined,
+    shippingDisplay: row.shippingDisplay ?? undefined,
   };
 }

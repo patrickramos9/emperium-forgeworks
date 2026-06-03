@@ -1,5 +1,7 @@
 import type { Product } from "@/data/seedProducts";
 import { normalizeImageRef, normalizeImageRefs } from "@/lib/productImageRefs";
+import type { ProductShippingDisplay } from "@/lib/shippingProfiles";
+import { toProductShippingDisplayField } from "@/services/productShippingService";
 
 import {
   serializeVariantGroups,
@@ -54,6 +56,7 @@ export function buildProductMutationPayload(input: {
   vaultOnly?: boolean;
   shippingProfileId?: string;
   weightOz?: number;
+  shippingDisplay?: ProductShippingDisplay | null;
   detailImage?: string;
   badges: string[];
   images: string[];
@@ -82,6 +85,9 @@ export function buildProductMutationPayload(input: {
     ...(input.weightOz != null && input.weightOz > 0
       ? { weightOz: input.weightOz }
       : { weightOz: null }),
+    shippingDisplay: input.shippingDisplay
+      ? toJsonField(toProductShippingDisplayField(input.shippingDisplay))
+      : null,
     ...(input.subtitle ? { subtitle: input.subtitle } : {}),
     ...(input.description ? { description: input.description } : {}),
     ...(input.lore ? { lore: input.lore } : {}),

@@ -39,6 +39,8 @@ Configure shipping in **Admin → Shipping** (profiles), then assign each produc
 
 Optional **estimated arrival** at Stripe Checkout (transit after ship) is planned for a later milestone; schema fields exist but there is no admin UI yet.
 
+**Product page shipping:** On each product save, admin copies shipping copy onto the product (`shippingDisplay`). Re-save products after changing profiles so the PDP shows shipping without relying on a second API call.
+
 ## Local development
 
 Keep `VITE_APP_ENV=local` in `.env.local` — checkout stays **mock** (no Stripe keys required).

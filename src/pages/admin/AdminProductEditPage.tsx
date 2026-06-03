@@ -21,6 +21,7 @@ import {
   listAllShippingProfiles,
   type ShippingProfileRecord,
 } from "@/services/shippingProfileService";
+import { buildShippingDisplaySnapshot } from "@/services/productShippingService";
 import {
   stripInvalidVariantImageRefs,
   validateVariantGroups,
@@ -190,6 +191,17 @@ export function AdminProductEditPage() {
 
       const { images, detailImage } = galleryToProductImages(galleryImages);
 
+      const weightOzParsed = weightOz.trim()
+        ? Number.parseInt(weightOz, 10)
+        : undefined;
+      const shippingDisplay = await buildShippingDisplaySnapshot(client, {
+        shippingProfileId: shippingProfileId || undefined,
+        weightOz:
+          weightOzParsed != null && Number.isFinite(weightOzParsed)
+            ? weightOzParsed
+            : undefined,
+      });
+
       const payload = buildProductMutationPayload({
         slug: productSlug,
         title,
@@ -203,9 +215,11 @@ export function AdminProductEditPage() {
         vaultOnly,
         sortOrder,
         shippingProfileId: shippingProfileId || undefined,
-        weightOz: weightOz.trim()
-          ? Number.parseInt(weightOz, 10)
-          : undefined,
+        weightOz:
+          weightOzParsed != null && Number.isFinite(weightOzParsed)
+            ? weightOzParsed
+            : undefined,
+        shippingDisplay,
         detailImage,
         badges: badgesText
           .split(",")
