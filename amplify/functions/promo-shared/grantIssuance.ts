@@ -189,11 +189,21 @@ export async function issueAbandonedCartGrantIfNeeded(
   return true;
 }
 
+/** Order.lineItems is a.json(); stored as stringified snapshots at checkout. */
+function lineItemsJsonFromOrder(
+  lineItems: Schema["Order"]["type"]["lineItems"],
+): string | null | undefined {
+  if (lineItems == null) return undefined;
+  if (typeof lineItems === "string") return lineItems;
+  return JSON.stringify(lineItems);
+}
+
 export async function reissueFavoriteGrantsAfterOrder(
   client: DataClient,
   userId: string,
-  lineItemsJson: string | null | undefined,
+  lineItems: Schema["Order"]["type"]["lineItems"],
 ): Promise<void> {
+  const lineItemsJson = lineItemsJsonFromOrder(lineItems);
   if (!lineItemsJson) return;
 
   let items: { productId?: string }[];
