@@ -12,6 +12,9 @@ export type PromoTemplateInput = {
   active: boolean;
   defaultExpiresInDays?: number;
   useForThankYou: boolean;
+  useForFavorite: boolean;
+  useForAbandonedCart: boolean;
+  abandonAfterHours?: number;
 };
 
 function toPayload(input: PromoTemplateInput) {
@@ -23,21 +26,25 @@ function toPayload(input: PromoTemplateInput) {
     active: input.active,
     defaultExpiresInDays: input.defaultExpiresInDays ?? null,
     useForThankYou: input.useForThankYou,
+    useForFavorite: input.useForFavorite,
+    useForAbandonedCart: input.useForAbandonedCart,
+    abandonAfterHours: input.useForAbandonedCart
+      ? (input.abandonAfterHours ?? 24)
+      : null,
   };
 }
 
-async function clearOtherThankYouTemplates(
+async function clearExclusiveTemplateFlag(
   client: AmplifyDataClient,
+  flag: "useForThankYou" | "useForFavorite" | "useForAbandonedCart",
   exceptId?: string,
 ) {
   const PromoTemplate = requirePromoTemplateModel(client);
   const rows = await listAllPromoTemplates(client);
   await Promise.all(
     rows
-      .filter((row) => row.useForThankYou && row.id !== exceptId)
-      .map((row) =>
-        PromoTemplate.update({ id: row.id, useForThankYou: false }),
-      ),
+      .filter((row) => row[flag] && row.id !== exceptId)
+      .map((row) => PromoTemplate.update({ id: row.id, [flag]: false })),
   );
 }
 
@@ -80,7 +87,13 @@ export async function createPromoTemplate(
 ): Promise<PromoTemplateRecord> {
   const PromoTemplate = requirePromoTemplateModel(client);
   if (input.useForThankYou) {
-    await clearOtherThankYouTemplates(client);
+    await clearExclusiveTemplateFlag(client, "useForThankYou");
+  }
+  if (input.useForFavorite) {
+    await clearExclusiveTemplateFlag(client, "useForFavorite");
+  }
+  if (input.useForAbandonedCart) {
+    await clearExclusiveTemplateFlag(client, "useForAbandonedCart");
   }
   const { data, errors } = await PromoTemplate.create(toPayload(input));
   if (errors?.length) {
@@ -97,7 +110,13 @@ export async function updatePromoTemplate(
 ): Promise<PromoTemplateRecord> {
   const PromoTemplate = requirePromoTemplateModel(client);
   if (input.useForThankYou) {
-    await clearOtherThankYouTemplates(client, id);
+    await clearExclusiveTemplateFlag(client, "useForThankYou", id);
+  }
+  if (input.useForFavorite) {
+    await clearExclusiveTemplateFlag(client, "useForFavorite", id);
+  }
+  if (input.useForAbandonedCart) {
+    await clearExclusiveTemplateFlag(client, "useForAbandonedCart", id);
   }
   const { data, errors } = await PromoTemplate.update({
     id,

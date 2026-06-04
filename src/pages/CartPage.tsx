@@ -9,6 +9,8 @@ import { IS_LOCAL } from "@/lib/config";
 import { validateCartLines } from "@/lib/validateCart";
 import { useCartPromo } from "@/hooks/useCartPromo";
 import { startCheckout } from "@/services/checkoutService";
+import { syncCartSnapshot } from "@/services/cartSnapshotService";
+import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { Link } from "react-router-dom";
 
 export function CartPage() {
@@ -44,6 +46,24 @@ export function CartPage() {
       enrichFromCatalog(products);
     }
   }, [catalogLoading, products, enrichFromCatalog]);
+
+  const cartSyncKey = items
+    .map((i) => `${i.key}:${i.quantity}:${i.priceCents}`)
+    .join("|");
+
+  useEffect(() => {
+    if (!signedIn || !items.length) return;
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const client = await getCustomerDataClient();
+        if (!client) return;
+        await syncCartSnapshot(client, items);
+      })();
+    }, 600);
+
+    return () => window.clearTimeout(timer);
+  }, [cartSyncKey, signedIn, items]);
 
   const canCheckout =
     items.length > 0 &&

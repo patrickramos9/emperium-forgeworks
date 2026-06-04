@@ -8,6 +8,8 @@ import { lookupCustomerByEmail } from "./functions/lookup-customer-by-email/reso
 import { getGa4Dashboard } from "./functions/get-ga4-dashboard/resource";
 import { createStripeCheckout } from "./functions/create-stripe-checkout/resource";
 import { stripeWebhook } from "./functions/stripe-webhook/resource";
+import { toggleProductFavorite } from "./functions/toggle-product-favorite/resource";
+import { syncCartSnapshot } from "./functions/sync-cart-snapshot/resource";
 
 const backend = defineBackend({
   auth,
@@ -18,6 +20,8 @@ const backend = defineBackend({
   getGa4Dashboard,
   createStripeCheckout,
   stripeWebhook,
+  toggleProductFavorite,
+  syncCartSnapshot,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;

@@ -19,6 +19,7 @@ import type { CatalogMode } from "@/lib/catalogFilter";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 import { useProductShippingDisplay } from "@/hooks/useProductShippingDisplay";
 import { ProductShippingInfo } from "@/components/ProductShippingInfo";
+import { ProductFavoriteButton } from "@/components/ProductFavoriteButton";
 import { isVaultUnlocked } from "@/lib/vaultSession";
 
 type ProductDetailPageProps = {
@@ -274,6 +275,7 @@ export function ProductDetailPage({
                   ? `Add ${selectedVariants.length} to Cart`
                   : "Add to Cart"}
               </button>
+              <ProductFavoriteButton productId={product.id} />
             </div>
 
             {product.lore && (

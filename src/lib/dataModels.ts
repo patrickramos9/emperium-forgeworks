@@ -104,3 +104,11 @@ export function requirePromoGrantModel(client: AmplifyDataClient) {
 export function hasPromoGrantModel(client: AmplifyDataClient): boolean {
   return Boolean(client.models.PromoGrant);
 }
+
+export function hasFavoriteModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.Favorite);
+}
+
+export function hasCartSnapshotModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.CartSnapshot);
+}

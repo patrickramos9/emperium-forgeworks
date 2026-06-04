@@ -436,11 +436,21 @@ See **§17** for grant setup and checkout verification.
 
 - [ ] **Local mock checkout** (`VITE_APP_ENV=local`): promo UI may show on cart, but Stripe + webhook thank-you path **not** exercised — use deployment or sandbox for full M6
 
-### Not in M6 core (skip — future milestones)
+### M6b — Favorite grants
 
-- [ ] **M6b** Favorite → grant on favorite
-- [ ] **M6c** Abandoned cart → grant on return visit
-- [ ] **M6d** Abandoned-cart email
+- [ ] Template with **Use for favorite-item grants** (only one active)
+- [ ] Signed-in customer on PDP → **Save to favorites** → grant + notification (if no open favorite grant for that product)
+- [ ] Cart with that product in cart → favorite grant applies to **that line’s subtotal** only
+- [ ] Unfavorite → unused grant **still** valid until used/expired
+- [ ] Paid order including favorited product → new favorite grant if product still favorited (webhook)
+
+### M6c — Abandoned cart (in-system)
+
+- [ ] Template with **Use for abandoned-cart** + idle hours (e.g. **1** hour for test)
+- [ ] Signed in; add items; leave cart idle past threshold (or lower hours for test)
+- [ ] Return to `/cart` → sync runs → **open** `abandoned_cart` grant + notification
+- [ ] Grant auto-applies on cart when eligible
+- [ ] **M6d** email — skip (M13)
 
 ---
 

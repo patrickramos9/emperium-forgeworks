@@ -24,11 +24,11 @@ Cursor should treat this file as the **source of truth** for:
 
 | Item | State |
 |------|--------|
-| **Phase** | Promo codes (M6) |
-| **Next** | **M6** — promo templates, grants, auto-apply checkout (spec below; M6b–M6d phased) |
+| **Phase** | Post-M6 — **M11** print tracker (recommended next) |
+| **Next** | **M11** — print progress tracker, or production QA for **M6b/c** |
 | **Blocked** | — |
-| **Recently verified** | **M15** — profiles, Stripe checkout shipping, admin order totals, PDP shipping block (`shippingDisplay` snapshot) — **production verified** |
-| **In progress** | **M6 core** — templates, grants, auto-apply cart/checkout, thank-you on paid order |
+| **Recently verified** | **M6 core** — **production verified** (2026-06-02) · **M15** — **production verified** |
+| **In progress** | **M6b + M6c** — implemented in repo; deploy backend + frontend + QA |
 | **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — feature-by-feature manual regression |
 
@@ -165,6 +165,8 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8d** — Sculptor partner portal (`/partner/sculptor`, admin-granted `editorUserId`) — **production verified**
 - **M3b** — Live Stripe Checkout + webhook (`Order` paid, ship-to address, email/phone) — **production verified**
 - **M15** — Shipping profiles, product assignment, Stripe checkout shipping, order totals, PDP shipping (`shippingDisplay` + live fallback), ready-to-ship on profiles — **production verified**
+- **M6 core** — Promo templates, grants, auto-apply cart/checkout, thank-you on paid order, admin tools — **production verified** (2026-06-02)
+- **M6b + M6c** — Favorite grants, abandoned-cart snapshot + return grant (in repo; deploy + QA pending)
 
 ### Blocked / waiting
 
@@ -172,12 +174,9 @@ _(none)_
 
 ### In progress
 
-- **M6 core** — implemented in repo; deploy + QA pending (M6b favorites, M6c abandoned cart not started)
+- **M6b + M6c** — favorite + abandoned-cart grants (deploy + QA pending)
 
 ### Planned (not started)
-- **M6** — Promo templates, grants, auto-apply checkout, thank-you issuance, admin tools
-- **M6b** — Favorites + favorite-item grants (re-issue after purchase)
-- **M6c** — Abandoned cart detection + in-system notification (account required)
 - **M6d** — Abandoned-cart **email** (defer; align with M13 marketing)
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M10** — Admin–customer chat
@@ -233,7 +232,7 @@ _(none)_
 
 ### M6 — Promo codes (templates + grants)
 
-**Status:** Spec agreed (2026-06-02) — not implemented. `/admin/promos` is a placeholder.
+**Status:** **M6 core production verified** (2026-06-02). **M6b** (favorites) and **M6c** (abandoned cart) implemented in repo — deploy + QA. **M6d** (email) deferred to M13.
 
 **Goal:** Etsy-style **issued offers** tied to accounts: auto-apply the single best eligible grant at checkout, persist on `Order`, separate from **M15 shipping**.
 

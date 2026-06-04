@@ -4,6 +4,8 @@ import { lookupCustomerByEmail as lookupCustomerByEmailFn } from "../functions/l
 import { getGa4Dashboard as getGa4DashboardFn } from "../functions/get-ga4-dashboard/resource";
 import { createStripeCheckout as createStripeCheckoutFn } from "../functions/create-stripe-checkout/resource";
 import { stripeWebhook as stripeWebhookFn } from "../functions/stripe-webhook/resource";
+import { toggleProductFavorite as toggleProductFavoriteFn } from "../functions/toggle-product-favorite/resource";
+import { syncCartSnapshot as syncCartSnapshotFn } from "../functions/sync-cart-snapshot/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -69,6 +71,24 @@ const schema = a.schema({
     paymentProvider: a.string().required(),
   }),
 
+  CartSnapshotLine: a.customType({
+    productId: a.string().required(),
+    slug: a.string().required(),
+    quantity: a.integer().required(),
+    priceCents: a.integer().required(),
+    title: a.string(),
+  }),
+
+  ToggleFavoriteResult: a.customType({
+    favorited: a.boolean().required(),
+    grantIssued: a.boolean().required(),
+  }),
+
+  SyncCartSnapshotResult: a.customType({
+    synced: a.boolean().required(),
+    grantIssued: a.boolean().required(),
+  }),
+
   listCustomers: a
     .query()
     .arguments({
@@ -109,6 +129,25 @@ const schema = a.schema({
     .returns(a.ref("CheckoutSessionResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(createStripeCheckoutFn)),
+
+  toggleProductFavorite: a
+    .mutation()
+    .arguments({
+      productId: a.string().required(),
+      favorited: a.boolean().required(),
+    })
+    .returns(a.ref("ToggleFavoriteResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(toggleProductFavoriteFn)),
+
+  syncCartSnapshot: a
+    .mutation()
+    .arguments({
+      lineItems: a.ref("CartSnapshotLine").array().required(),
+    })
+    .returns(a.ref("SyncCartSnapshotResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(syncCartSnapshotFn)),
 
   VaultAccess: a
     .model({
@@ -247,6 +286,12 @@ const schema = a.schema({
       defaultExpiresInDays: a.integer(),
       /** When true, paid orders issue a thank-you grant from this template. */
       useForThankYou: a.boolean().default(false),
+      /** When true, first favorite on a product issues a grant (M6b). */
+      useForFavorite: a.boolean().default(false),
+      /** When true, idle cart triggers a grant on return (M6c). */
+      useForAbandonedCart: a.boolean().default(false),
+      /** Hours of cart inactivity before abandon grant (M6c). Default 24 in Lambda. */
+      abandonAfterHours: a.integer(),
     })
     .authorization((allow) => [
       /** Required for cart/checkout to resolve grant discount rules. */
@@ -261,6 +306,7 @@ const schema = a.schema({
       userId: a.string().required(),
       source: a.enum(["admin", "thank_you", "favorite", "abandoned_cart"]),
       productId: a.string(),
+      cartSnapshotId: a.string(),
       expiresAt: a.datetime(),
       revokedAt: a.datetime(),
       redeemedAt: a.datetime(),
@@ -269,6 +315,32 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
       allow.group("admin"),
+    ]),
+
+  /** Saved items per customer (M6b). */
+  Favorite: a
+    .model({
+      userId: a.string().required(),
+      productId: a.string().required(),
+    })
+    .identifier(["userId", "productId"])
+    .authorization((allow) => [
+      allow.ownerDefinedIn("userId").identityClaim("sub").to(["read", "create", "delete"]),
+      allow.group("admin").to(["read"]),
+    ]),
+
+  /** Server-side cart for abandon detection (M6c). */
+  CartSnapshot: a
+    .model({
+      userId: a.string().required(),
+      lineItems: a.json().required(),
+      updatedAt: a.datetime().required(),
+      abandonedAt: a.datetime(),
+    })
+    .identifier(["userId"])
+    .authorization((allow) => [
+      allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
+      allow.group("admin").to(["read"]),
     ]),
 
   Notification: a
@@ -353,6 +425,8 @@ const schema = a.schema({
 .authorization((allow) => [
   allow.resource(createStripeCheckoutFn),
   allow.resource(stripeWebhookFn),
+  allow.resource(toggleProductFavoriteFn),
+  allow.resource(syncCartSnapshotFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

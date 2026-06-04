@@ -44,6 +44,9 @@ export function AdminPromoTemplateEditPage() {
   const [amountDollars, setAmountDollars] = useState("5.00");
   const [active, setActive] = useState(true);
   const [useForThankYou, setUseForThankYou] = useState(false);
+  const [useForFavorite, setUseForFavorite] = useState(false);
+  const [useForAbandonedCart, setUseForAbandonedCart] = useState(false);
+  const [abandonAfterHours, setAbandonAfterHours] = useState("24");
   const [expiresInDays, setExpiresInDays] = useState("");
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -86,6 +89,11 @@ export function AdminPromoTemplateEditPage() {
         );
         setActive(row.active ?? true);
         setUseForThankYou(row.useForThankYou ?? false);
+        setUseForFavorite(row.useForFavorite ?? false);
+        setUseForAbandonedCart(row.useForAbandonedCart ?? false);
+        setAbandonAfterHours(
+          row.abandonAfterHours != null ? String(row.abandonAfterHours) : "24",
+        );
         setExpiresInDays(
           row.defaultExpiresInDays != null
             ? String(row.defaultExpiresInDays)
@@ -132,6 +140,10 @@ export function AdminPromoTemplateEditPage() {
       ? Number.parseInt(expiresInDays, 10)
       : undefined;
 
+    const abandonHours = abandonAfterHours.trim()
+      ? Number.parseInt(abandonAfterHours, 10)
+      : 24;
+
     const input = {
       name: trimmedName,
       kind,
@@ -143,6 +155,12 @@ export function AdminPromoTemplateEditPage() {
           : undefined,
       active,
       useForThankYou,
+      useForFavorite,
+      useForAbandonedCart,
+      abandonAfterHours:
+        useForAbandonedCart && Number.isFinite(abandonHours) && abandonHours > 0
+          ? abandonHours
+          : undefined,
       defaultExpiresInDays:
         days != null && Number.isFinite(days) && days > 0 ? days : undefined,
     };
@@ -332,6 +350,41 @@ export function AdminPromoTemplateEditPage() {
             Use for thank-you grants after paid orders
           </span>
         </label>
+
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={useForFavorite}
+            onChange={(e) => setUseForFavorite(e.target.checked)}
+          />
+          <span className="font-label-sm text-on-surface">
+            Use for favorite-item grants (first save + after purchase if still
+            favorited)
+          </span>
+        </label>
+
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={useForAbandonedCart}
+            onChange={(e) => setUseForAbandonedCart(e.target.checked)}
+          />
+          <span className="font-label-sm text-on-surface">
+            Use for abandoned-cart grants (in-system on return)
+          </span>
+        </label>
+
+        {useForAbandonedCart && (
+          <Field label="Cart idle hours before offer">
+            <input
+              type="number"
+              min="1"
+              value={abandonAfterHours}
+              onChange={(e) => setAbandonAfterHours(e.target.value)}
+              className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2"
+            />
+          </Field>
+        )}
 
         {error && <p className="text-error">{error}</p>}
 

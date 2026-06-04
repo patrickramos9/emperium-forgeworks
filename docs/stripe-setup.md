@@ -50,7 +50,14 @@ Optional **estimated arrival** at Stripe Checkout (transit after ship) is planne
 | **admin** | On template edit → **Issue grant** with customer email |
 | **thank_you** | Stripe webhook after order is **Paid**; exactly one active template with **Use for thank-you** |
 
-**Planned later:** `favorite` (M6b), `abandoned_cart` (M6c), abandoned-cart email (M6d). The schema already has those `source` values; no triggers or UI for them yet.
+**Also live (M6b / M6c):**
+
+| Source | Trigger |
+|--------|---------|
+| **favorite** | Customer saves a product on PDP (one template with **Use for favorite**) |
+| **abandoned_cart** | Signed-in cart idle ≥ N hours, then customer returns to cart (template **Use for abandoned cart** + idle hours) |
+
+**Later:** abandoned-cart **email** (M6d, with M13 marketing).
 
 - Configure templates in **Admin → Promo templates**. Mark one as **thank-you** to issue a grant after each paid order.
 - Issue admin grants by customer email on the template edit page.

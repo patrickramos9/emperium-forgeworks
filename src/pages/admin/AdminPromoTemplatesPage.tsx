@@ -59,11 +59,10 @@ export function AdminPromoTemplatesPage() {
             in.
           </p>
           <p className="mt-2 max-w-2xl text-body-sm text-on-surface-variant">
-            <strong className="text-on-surface">Grant sources (today):</strong>{" "}
-            admin issue by email on a template, or automatic thank-you after a paid
-            order (mark one template “thank-you”).{" "}
-            <strong className="text-on-surface">Not built yet:</strong> favorite-item
-            (M6b), abandoned-cart in-system (M6c), abandoned-cart email (M6d).
+            <strong className="text-on-surface">Grant sources:</strong> admin issue,
+            thank-you (paid order), favorite (PDP save), abandoned cart (idle cart +
+            return). One active template per source flag. Email recovery (M6d) comes
+            with marketing (M13).
           </p>
         </div>
         <Link

@@ -1,0 +1,8 @@
+{
+  "name": "sync-cart-snapshot",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "aws-amplify": "^6.12.0"
+  }
+}
