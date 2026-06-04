@@ -23,6 +23,7 @@ export const handler: Schema["toggleProductFavorite"]["functionHandler"] =
     }
 
     const productId = event.arguments.productId;
+    const productSlug = event.arguments.productSlug?.trim() || undefined;
     const favorited = event.arguments.favorited;
 
     if (favorited) {
@@ -34,6 +35,7 @@ export const handler: Schema["toggleProductFavorite"]["functionHandler"] =
         const createResult = await dataClient.models.Favorite.create({
           userId,
           productId,
+          ...(productSlug ? { productSlug } : {}),
         });
         if (createResult.errors?.length) {
           throw new Error(createResult.errors.map((e) => e.message).join("; "));

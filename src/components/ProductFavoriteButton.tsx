@@ -11,10 +11,18 @@ import {
 
 type Props = {
   productId: string;
+  productSlug: string;
+  /** When false, product was delisted — show removed state only. */
+  productInCatalog?: boolean;
   className?: string;
 };
 
-export function ProductFavoriteButton({ productId, className = "" }: Props) {
+export function ProductFavoriteButton({
+  productId,
+  productSlug,
+  productInCatalog = true,
+  className = "",
+}: Props) {
   const [signedIn, setSignedIn] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,7 +74,12 @@ export function ProductFavoriteButton({ productId, className = "" }: Props) {
     setBusy(true);
     try {
       const next = !favorited;
-      const result = await toggleProductFavorite(client, productId, next);
+      const result = await toggleProductFavorite(
+        client,
+        productId,
+        next,
+        productSlug,
+      );
       setFavorited(result.favorited);
       if (result.grantIssued) {
         setMessage("Offer added to your account — see cart when signed in.");
@@ -76,7 +89,28 @@ export function ProductFavoriteButton({ productId, className = "" }: Props) {
     } finally {
       setBusy(false);
     }
-  }, [favorited, productId]);
+  }, [favorited, productId, productSlug]);
+
+  if (!productInCatalog) {
+    return (
+      <p className={`text-label-sm text-on-surface-variant ${className}`}>
+        This item was removed from the store.
+        {favorited && (
+          <>
+            {" "}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void handleToggle()}
+              className="text-error hover:underline disabled:opacity-50"
+            >
+              Remove from favorites
+            </button>
+          </>
+        )}
+      </p>
+    );
+  }
 
   if (!signedIn) {
     return (

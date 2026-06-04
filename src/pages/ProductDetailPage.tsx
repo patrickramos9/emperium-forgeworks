@@ -20,6 +20,7 @@ import { useProduct, useProducts } from "@/hooks/useProducts";
 import { useProductShippingDisplay } from "@/hooks/useProductShippingDisplay";
 import { ProductShippingInfo } from "@/components/ProductShippingInfo";
 import { ProductFavoriteButton } from "@/components/ProductFavoriteButton";
+import { StaleFavoriteNotice } from "@/components/StaleFavoriteNotice";
 import { isVaultUnlocked } from "@/lib/vaultSession";
 
 type ProductDetailPageProps = {
@@ -118,7 +119,8 @@ export function ProductDetailPage({
     return (
       <main className="px-margin-mobile pt-32 md:px-margin-desktop">
         <p className="text-on-surface-variant">Product not found.</p>
-        <Link to={listPath} className="mt-4 text-primary">
+        <StaleFavoriteNotice slug={slug} listPath={listPath} listLabel={listLabel} />
+        <Link to={listPath} className="mt-4 inline-block text-primary">
           Back to {listLabel.toLowerCase()}
         </Link>
       </main>
@@ -275,7 +277,10 @@ export function ProductDetailPage({
                   ? `Add ${selectedVariants.length} to Cart`
                   : "Add to Cart"}
               </button>
-              <ProductFavoriteButton productId={product.id} />
+              <ProductFavoriteButton
+                productId={product.id}
+                productSlug={product.slug}
+              />
             </div>
 
             {product.lore && (

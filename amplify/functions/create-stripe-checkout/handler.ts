@@ -290,6 +290,20 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       lineItems.map((item) => item.productId),
     );
 
+    for (const item of lineItems) {
+      const product = productById.get(item.productId);
+      if (!product) {
+        throw new Error(
+          `"${item.title}" is no longer available. Update your cart and try again.`,
+        );
+      }
+      if (product.inStock === false) {
+        throw new Error(
+          `"${item.title}" is out of stock. Update your cart and try again.`,
+        );
+      }
+    }
+
     const shipping = resolveCartShipping(
       checkoutLines,
       productById,

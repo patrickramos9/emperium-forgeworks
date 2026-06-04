@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CartLine } from "@/context/CartContext";
+import type { Product } from "@/data/seedProducts";
+import { filterPurchasableCartLines } from "@/lib/cartCatalog";
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { hasPromoGrantModel } from "@/lib/dataModels";
 import { hasCustomerSession } from "@/lib/customerAuth";
@@ -7,7 +9,7 @@ import { getCustomerUserId } from "@/lib/customerAuth";
 import type { AppliedPromo } from "@/lib/promoGrants";
 import { resolveBestAppliedPromo } from "@/services/promoGrantService";
 
-export function useCartPromo(lines: CartLine[]) {
+export function useCartPromo(lines: CartLine[], products: Product[]) {
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
@@ -24,7 +26,9 @@ export function useCartPromo(lines: CartLine[]) {
       const session = await hasCustomerSession();
       if (!cancelled) setSignedIn(session);
 
-      if (!session || !lines.length) {
+      const purchasable = filterPurchasableCartLines(lines, products);
+
+      if (!session || !purchasable.length) {
         if (!cancelled) {
           setPromo(null);
           setLoading(false);
@@ -59,7 +63,7 @@ export function useCartPromo(lines: CartLine[]) {
         const applied = await resolveBestAppliedPromo(
           client,
           userId,
-          lines.map((line) => ({
+          purchasable.map((line) => ({
             productId: line.productId,
             priceCents: line.priceCents,
             quantity: line.quantity,
@@ -78,7 +82,7 @@ export function useCartPromo(lines: CartLine[]) {
     return () => {
       cancelled = true;
     };
-  }, [lineKey, signedIn]);
+  }, [lineKey, signedIn, products]);
 
   return { promo, loading, signedIn };
 }

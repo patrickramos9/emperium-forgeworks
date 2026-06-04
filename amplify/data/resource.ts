@@ -134,6 +134,7 @@ const schema = a.schema({
     .mutation()
     .arguments({
       productId: a.string().required(),
+      productSlug: a.string(),
       favorited: a.boolean().required(),
     })
     .returns(a.ref("ToggleFavoriteResult"))
@@ -322,6 +323,8 @@ const schema = a.schema({
     .model({
       userId: a.string().required(),
       productId: a.string().required(),
+      /** Denormalized for stale-favorite cleanup when product is deleted (M17). */
+      productSlug: a.string(),
     })
     .identifier(["userId", "productId"])
     .authorization((allow) => [

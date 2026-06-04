@@ -454,6 +454,30 @@ See **§17** for grant setup and checkout verification.
 
 ---
 
+## 17b. Removed-from-catalog — cart & favorites (M17 / B1)
+
+**Prep:** Admin deletes or delists a product that Customer A already has in **cart** and/or **favorites**.
+
+### Cart
+
+- [ ] `/cart` shows removed line with **“removed from the store”** (or equivalent) styling; line is not treated as purchasable
+- [ ] Site banner when any line blocks checkout; **Checkout** disabled or errors with clear message
+- [ ] Subtotal / promo discount use **purchasable lines only** (removed line excluded)
+- [ ] Remove ghost line → checkout works for remaining items
+- [ ] **Server guard:** tamper `productId` in devtools / retry checkout API → Stripe session rejected with clear error
+
+### Favorites / PDP
+
+- [ ] Favorited product still in catalog: heart works as before
+- [ ] After admin removes product: visiting old `/shop/:slug` shows **stale favorite** notice (if user had favorited) with option to clear favorite
+- [ ] Favorites without stored `productSlug` (pre-deploy rows): stale notice may not appear — acceptable; re-favorite after deploy for full path
+
+### Regression
+
+- [ ] `npm run validate:cart-catalog` passes in CI/local
+
+---
+
 ## 18. Cross-cutting / non-functional
 
 ### Responsive & browsers
@@ -489,6 +513,7 @@ See **§17** for grant setup and checkout verification.
 | **M6b** | Favorite-item promo grants | — |
 | **M6c** | Abandoned-cart detection + in-system grant | — |
 | **M6d** | Abandoned-cart email | — |
+| **M17** | Removed-from-catalog cart + favorites UX | — |
 | **M10** | Admin–customer chat | — |
 | **M11** | Print progress tracker | — |
 | **M15b** | Cart shipping estimate preview; Stripe estimated arrival UI | — |

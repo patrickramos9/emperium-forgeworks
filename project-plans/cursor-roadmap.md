@@ -182,13 +182,13 @@ _(none)_
 
 | ID | Issue | When to fix | Planned fix |
 |----|--------|-------------|-------------|
-| **B1** | Admin **deletes** (or delists) a product while it remains in a customer **cart** or **favorites** → broken UX / checkout errors | **After M6b/c** deployed and QA’d | **M17** — clear messaging + safe removal paths |
+| **B1** | Admin **deletes** (or delists) a product while it remains in a customer **cart** or **favorites** → broken UX / checkout errors | **After M6b/c** deployed and QA’d | **M17** — implemented in repo; deploy + QA |
 
 ### Planned (not started)
 
 **Core + bugs + initial polish (current focus)**
 
-- **M17** — Removed-from-catalog UX (cart + favorites) — fixes **B1**
+- **M17** — Removed-from-catalog UX (cart + favorites) — fixes **B1** (in repo; deploy + QA)
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
 - **M18** — **Cart price-change** in-system notifications (sale or list price up/down for items in cart)
 - **M9a** — **Initial UX polish** (micro-interactions, cart feedback, consistency — see §4)
@@ -812,7 +812,7 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ### M17 — Removed-from-catalog UX (bug **B1**)
 
-**Status:** Planned — fix **after M6b/c** (favorites) ships.
+**Status:** Implemented in repo — deploy backend (`Favorite.productSlug`, optional) + frontend; QA **B1**.
 
 **Goal:** When a product is no longer in the catalog (admin delete, or treat as unavailable if `inStock: false` / hidden — confirm behavior in implementation), customers with it in **cart** or **favorites** see a clear message instead of broken checkout or silent failures.
 

@@ -6,7 +6,12 @@ import { CartLineThumbnail } from "@/components/CartLineThumbnail";
 import { findCatalogProduct } from "@/lib/cartLineImage";
 import { useProducts } from "@/hooks/useProducts";
 import { IS_LOCAL } from "@/lib/config";
-import { validateCartLines } from "@/lib/validateCart";
+import {
+  cartSubtotalCents,
+  filterPurchasableCartLines,
+  getCartLineIssues,
+  issuesByLineKey,
+} from "@/lib/cartCatalog";
 import { useCartPromo } from "@/hooks/useCartPromo";
 import { startCheckout } from "@/services/checkoutService";
 import { syncCartSnapshot } from "@/services/cartSnapshotService";
@@ -16,7 +21,6 @@ import { Link } from "react-router-dom";
 export function CartPage() {
   const {
     items,
-    subtotalCents,
     maxLineQty,
     updateQuantity,
     removeItem,
@@ -24,22 +28,32 @@ export function CartPage() {
     enrichFromCatalog,
   } = useCart();
   const { products, loading: catalogLoading } = useProducts("all");
-  const { promo, loading: promoLoading, signedIn } = useCartPromo(items);
+  const { promo, loading: promoLoading, signedIn } = useCartPromo(items, products);
   const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const discountCents = promo?.discountCents ?? 0;
-  const totalAfterPromo = Math.max(0, subtotalCents - discountCents);
-
-  const validationIssues = useMemo(
-    () => validateCartLines(items, products),
+  const cartIssues = useMemo(
+    () => getCartLineIssues(items, products),
     [items, products],
   );
 
-  const issuesByKey = useMemo(
-    () => new Map(validationIssues.map((issue) => [issue.key, issue.message])),
-    [validationIssues],
+  const issueByKey = useMemo(() => issuesByLineKey(cartIssues), [cartIssues]);
+
+  const purchasableItems = useMemo(
+    () => filterPurchasableCartLines(items, products),
+    [items, products],
   );
+
+  const purchasableSubtotalCents = useMemo(
+    () => cartSubtotalCents(purchasableItems),
+    [purchasableItems],
+  );
+
+  const hasRemovedLines = cartIssues.some((issue) => issue.kind === "removed");
+  const discountCents = promo?.discountCents ?? 0;
+  const totalAfterPromo = Math.max(0, purchasableSubtotalCents - discountCents);
+
+  const blockingIssues = cartIssues.filter((issue) => issue.blocksCheckout);
 
   useEffect(() => {
     if (!catalogLoading && products.length > 0) {
@@ -58,24 +72,24 @@ export function CartPage() {
       void (async () => {
         const client = await getCustomerDataClient();
         if (!client) return;
-        await syncCartSnapshot(client, items);
+        await syncCartSnapshot(client, purchasableItems);
       })();
     }, 600);
 
     return () => window.clearTimeout(timer);
-  }, [cartSyncKey, signedIn, items]);
+  }, [cartSyncKey, signedIn, purchasableItems]);
 
   const canCheckout =
-    items.length > 0 &&
+    purchasableItems.length > 0 &&
     !catalogLoading &&
-    validationIssues.length === 0 &&
+    blockingIssues.length === 0 &&
     !checkingOut;
 
   useEffect(() => {
-    if (validationIssues.length > 0 && error) {
+    if (blockingIssues.length > 0 && error) {
       setError(null);
     }
-  }, [validationIssues.length, error]);
+  }, [blockingIssues.length, error]);
 
   async function handleCheckout() {
     setError(null);
@@ -85,17 +99,22 @@ export function CartPage() {
       return;
     }
 
-    const issues = validateCartLines(items, products);
-    if (issues.length) {
-      setError("Fix the items marked below before checkout.");
+    const issues = getCartLineIssues(items, products);
+    if (issues.some((issue) => issue.blocksCheckout)) {
+      setError("Remove or fix the items marked below before checkout.");
+      return;
+    }
+
+    if (!purchasableItems.length) {
+      setError("No available items to checkout.");
       return;
     }
 
     setCheckingOut(true);
     try {
-      await startCheckout(items, {
+      await startCheckout(purchasableItems, {
         promoGrantId: promo?.grantId,
-      });
+      }, products);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Checkout failed");
       setCheckingOut(false);
@@ -133,18 +152,30 @@ export function CartPage() {
         </p>
       )}
 
+      {hasRemovedLines && !catalogLoading && (
+        <p
+          className="mb-4 border border-error/30 bg-surface-container-low p-3 text-body-sm text-on-surface"
+          role="status"
+        >
+          Some items in your cart were removed from the store. Remove them below
+          to continue.
+        </p>
+      )}
+
       <ul className="space-y-4">
         {items.map((item) => {
           const lineTotalCents = item.priceCents * item.quantity;
-          const issueMessage = issuesByKey.get(item.key);
+          const issue = issueByKey.get(item.key);
           const catalogProduct = findCatalogProduct(item, products);
+          const isRemoved = issue?.kind === "removed";
+          const lineBlocked = issue?.blocksCheckout ?? false;
 
           return (
             <li
               key={item.key}
               className={`flex flex-col gap-4 border bg-surface-container-low p-4 iron-bevel sm:flex-row sm:items-center ${
-                issueMessage
-                  ? "border-error/50"
+                lineBlocked
+                  ? "border-error/50 opacity-90"
                   : "border-outline-variant/20"
               }`}
             >
@@ -154,54 +185,70 @@ export function CartPage() {
                 catalogLoading={catalogLoading}
               />
               <div className="min-w-0 flex-grow">
-                <Link
-                  to={`/shop/${item.slug}`}
-                  className="font-headline-md text-on-surface hover:text-primary"
-                >
-                  {item.title}
-                </Link>
+                {isRemoved ? (
+                  <p className="font-headline-md text-on-surface">{item.title}</p>
+                ) : (
+                  <Link
+                    to={`/shop/${item.slug}`}
+                    className="font-headline-md text-on-surface hover:text-primary"
+                  >
+                    {item.title}
+                  </Link>
+                )}
                 {item.variantLabel && (
                   <p className="text-label-sm text-on-surface-variant">
                     {item.variantLabel}
                   </p>
                 )}
-                <p className="font-label-md text-primary">
-                  {formatPrice(item.priceCents)} each
-                </p>
-                {issueMessage && (
-                  <p className="mt-1 text-label-sm text-error">{issueMessage}</p>
+                {!isRemoved && (
+                  <p className="font-label-md text-primary">
+                    {formatPrice(item.priceCents)} each
+                  </p>
+                )}
+                {issue && (
+                  <p className="mt-1 text-label-sm text-error">{issue.message}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-label="Decrease quantity"
-                  onClick={() => updateQuantity(item.key, item.quantity - 1)}
-                  className="border border-outline-variant/30 px-3 py-1 hover:border-primary"
-                >
-                  −
-                </button>
-                <span className="w-8 text-center font-label-md">
-                  {item.quantity}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Increase quantity"
-                  disabled={item.quantity >= maxLineQty}
-                  onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                  className="border border-outline-variant/30 px-3 py-1 hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  +
-                </button>
-              </div>
+              {!lineBlocked ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Decrease quantity"
+                    onClick={() => updateQuantity(item.key, item.quantity - 1)}
+                    className="border border-outline-variant/30 px-3 py-1 hover:border-primary"
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center font-label-md">
+                    {item.quantity}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Increase quantity"
+                    disabled={item.quantity >= maxLineQty}
+                    onClick={() => updateQuantity(item.key, item.quantity + 1)}
+                    className="border border-outline-variant/30 px-3 py-1 hover:border-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    +
+                  </button>
+                </div>
+              ) : (
+                <div className="sm:min-w-[6rem]" />
+              )}
               <div className="text-right sm:min-w-[6rem]">
-                <p className="font-label-md text-on-surface">
-                  {formatPrice(lineTotalCents)}
-                </p>
+                {!isRemoved && (
+                  <p className="font-label-md text-on-surface">
+                    {formatPrice(lineTotalCents)}
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => removeItem(item.key)}
-                  className="mt-1 text-label-sm text-on-surface-variant hover:text-error"
+                  className={`font-label-sm uppercase hover:text-error ${
+                    lineBlocked
+                      ? "mt-0 bg-error/10 px-3 py-2 text-error"
+                      : "mt-1 text-on-surface-variant"
+                  }`}
                 >
                   Remove
                 </button>
@@ -222,7 +269,7 @@ export function CartPage() {
             <>
               <p className="font-label-md text-on-surface-variant">
                 <span className="line-through">
-                  Subtotal {formatPrice(subtotalCents)}
+                  Subtotal {formatPrice(purchasableSubtotalCents)}
                 </span>
               </p>
               <p className="text-label-sm text-secondary">
@@ -236,10 +283,10 @@ export function CartPage() {
           ) : (
             <>
               <p className="font-label-md text-on-surface">
-                Subtotal: {formatPrice(subtotalCents)}
+                Subtotal: {formatPrice(purchasableSubtotalCents)}
               </p>
               <p className="font-label-md text-xl text-primary">
-                Total before shipping: {formatPrice(subtotalCents)}
+                Total before shipping: {formatPrice(purchasableSubtotalCents)}
               </p>
             </>
           )}

@@ -4,6 +4,11 @@ import {
   type CheckoutLineItem,
 } from "@emperium/shared";
 import type { CartLine } from "@/context/CartContext";
+import type { Product } from "@/data/seedProducts";
+import {
+  filterPurchasableCartLines,
+  getCartLineIssues,
+} from "@/lib/cartCatalog";
 import { SITE_URL, APP_ENV } from "@/lib/config";
 import { configureAmplify, isAmplifyConfigured } from "@/lib/amplify";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
@@ -102,9 +107,23 @@ async function startStripeCheckout(
 export async function startCheckout(
   items: CartLine[],
   options?: { promoGrantId?: string },
+  catalogProducts: Product[] = [],
 ) {
   if (!items.length) {
     throw new Error("Cart is empty");
+  }
+
+  if (catalogProducts.length) {
+    const issues = getCartLineIssues(items, catalogProducts);
+    if (issues.some((issue) => issue.blocksCheckout)) {
+      throw new Error(
+        "Your cart includes items that are no longer available. Update your cart and try again.",
+      );
+    }
+    items = filterPurchasableCartLines(items, catalogProducts);
+    if (!items.length) {
+      throw new Error("No available items to checkout.");
+    }
   }
 
   await configureAmplify();
