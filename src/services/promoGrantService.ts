@@ -150,8 +150,16 @@ export async function resolveBestAppliedPromo(
 
   await Promise.all(
     templateIds.map(async (id) => {
-      const { data } = await requirePromoTemplateModel(client).get({ id });
-      if (data?.active) templateById.set(id, data);
+      const result = await requirePromoTemplateModel(client).get({ id });
+      if (result.errors?.length) {
+        console.error(
+          "[promo] template load failed",
+          id,
+          result.errors.map((e) => e.message).join("; "),
+        );
+        return;
+      }
+      if (result.data?.active) templateById.set(id, result.data);
     }),
   );
 

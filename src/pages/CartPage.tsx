@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MockCheckoutBanner } from "@/components/MockCheckoutBanner";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
-import { productPrimaryImage } from "@/lib/productImageUrls";
+import { useCartLineThumbnails } from "@/hooks/useCartLineThumbnails";
 import { useProducts } from "@/hooks/useProducts";
 import { IS_LOCAL } from "@/lib/config";
 import { validateCartLines } from "@/lib/validateCart";
@@ -38,10 +38,7 @@ export function CartPage() {
     [validationIssues],
   );
 
-  const productById = useMemo(
-    () => new Map(products.map((p) => [p.id, p])),
-    [products],
-  );
+  const thumbnails = useCartLineThumbnails(items, products);
 
   useEffect(() => {
     if (!catalogLoading && products.length > 0) {
@@ -121,10 +118,7 @@ export function CartPage() {
         {items.map((item) => {
           const lineTotalCents = item.priceCents * item.quantity;
           const issueMessage = issuesByKey.get(item.key);
-          const catalogProduct = productById.get(item.productId);
-          const thumbUrl =
-            item.imageUrl ??
-            (catalogProduct ? productPrimaryImage(catalogProduct) : undefined);
+          const thumbUrl = thumbnails[item.key];
 
           return (
             <li

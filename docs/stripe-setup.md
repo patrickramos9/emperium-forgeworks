@@ -57,6 +57,10 @@ Optional **estimated arrival** at Stripe Checkout (transit after ship) is planne
 - Customers must **sign in**; the best eligible grant auto-applies on the cart (discount on subtotal before shipping).
 - Deactivating a template stops new grants; existing unused grants remain until used, expired, or revoked.
 
+**If cart shows no discount but admin issued a grant:** signed-in customers must be allowed to **read** `PromoTemplate` (not only `PromoGrant`). Without that, the cart cannot load discount rules and checkout stays full price. After any `amplify/data` auth change, **redeploy the backend** and hard-refresh the storefront.
+
+**Stripe line copy** (was/now descriptions) lives in the `create-stripe-checkout` Lambda — redeploy backend after changing it, not frontend-only.
+
 ## Local development
 
 Keep `VITE_APP_ENV=local` in `.env.local` — checkout stays **mock** (no Stripe keys required).

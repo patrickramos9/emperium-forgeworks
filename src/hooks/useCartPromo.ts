@@ -34,6 +34,11 @@ export function useCartPromo(lines: CartLine[]) {
 
       const client = await getCustomerDataClient();
       if (!client || !hasPromoGrantModel(client)) {
+        if (client && !hasPromoGrantModel(client)) {
+          console.warn(
+            "[useCartPromo] PromoGrant model missing — redeploy Amplify backend and refresh the site.",
+          );
+        }
         if (!cancelled) {
           setPromo(null);
           setLoading(false);

@@ -248,7 +248,11 @@ const schema = a.schema({
       /** When true, paid orders issue a thank-you grant from this template. */
       useForThankYou: a.boolean().default(false),
     })
-    .authorization((allow) => [allow.group("admin")]),
+    .authorization((allow) => [
+      /** Required for cart/checkout to resolve grant discount rules. */
+      allow.authenticated().to(["read"]),
+      allow.group("admin"),
+    ]),
 
   /** Single-use issued offer tied to a user (M6). */
   PromoGrant: a
