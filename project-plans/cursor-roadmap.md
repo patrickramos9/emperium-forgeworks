@@ -20,12 +20,12 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-02
+**Last updated:** 2026-06-03
 
 | Item | State |
 |------|--------|
-| **Phase** | Post-M6 — **M11** print tracker (recommended next) |
-| **Next** | **M11** — print progress tracker, or production QA for **M6b/c** |
+| **Phase** | Core commerce + bugs + **initial polish** (print tracking **deferred**) |
+| **Next** | QA **M6b/c** → **M17** (B1) → **M19** → **M18** → **M9a** (UX polish, e.g. add-to-cart feedback) |
 | **Blocked** | — |
 | **Recently verified** | **M6 core** — **production verified** (2026-06-02) · **M15** — **production verified** |
 | **In progress** | **M6b + M6c** — implemented in repo; deploy backend + frontend + QA |
@@ -33,7 +33,9 @@ Cursor should treat this file as the **source of truth** for:
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — feature-by-feature manual regression |
 
 **Recommended build order:**  
-M8 (done) → **M3b** (done) → **M15** (done) → **M6** → **M6b** (favorites) → **M6c** (abandoned cart) → M11 → **M16** → M10 → M11b → M14 → M12 → **M13** (+ **M6d** abandoned-cart email) → M9
+M8 (done) → **M3b** (done) → **M15** (done) → **M6** (done) → **M6b/c** → **M17** (B1) → **M19** → **M18** → **M9a** (initial UX polish) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M9** (SEO, gallery, perf) → **M11** → M11b → M14  
+
+**Deferred (ops / hardware — after core + polish above):** **M11**, **M11b**, **M14** — print progress, Pi bridge, ForgeLink™.
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -176,16 +178,34 @@ _(none)_
 
 - **M6b + M6c** — favorite + abandoned-cart grants (deploy + QA pending)
 
+### Known bugs (queued — not milestones)
+
+| ID | Issue | When to fix | Planned fix |
+|----|--------|-------------|-------------|
+| **B1** | Admin **deletes** (or delists) a product while it remains in a customer **cart** or **favorites** → broken UX / checkout errors | **After M6b/c** deployed and QA’d | **M17** — clear messaging + safe removal paths |
+
 ### Planned (not started)
-- **M6d** — Abandoned-cart **email** (defer; align with M13 marketing)
-- **M9** — Polish & growth (gallery, SEO, performance)
+
+**Core + bugs + initial polish (current focus)**
+
+- **M17** — Removed-from-catalog UX (cart + favorites) — fixes **B1**
+- **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
+- **M18** — **Cart price-change** in-system notifications (sale or list price up/down for items in cart)
+- **M9a** — **Initial UX polish** (micro-interactions, cart feedback, consistency — see §4)
+
+**Later (before print tracking)**
+
+- **M16** — Returns, refunds & exchanges
 - **M10** — Admin–customer chat
-- **M11** — Print progress tracker (Queued → fabrication → Shipped)
-- **M16** — Returns, refunds & exchanges (Stripe refunds + return requests; exchanges operational)
-- **M11b** — Raspberry Pi SDCP bridge (optional; extends M11)
 - **M12** — Notification preferences
-- **M13** — Marketing & growth engine (feed, pixels, UTM — prefer after M3b)
-- **M14** — ForgeLink™ hardware MVP (device registry; extends M11b API)
+- **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
+- **M9** — Polish & growth (gallery, SEO, performance)
+
+**Deferred — print / hardware (after core + M9a + M9)**
+
+- **M11** — Print progress tracker
+- **M11b** — Raspberry Pi SDCP bridge (optional)
+- **M14** — ForgeLink™ hardware MVP
 
 §4 below has implementation specs for milestones that are not yet shipped.
 
@@ -584,9 +604,44 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ---
 
+### M9a — Initial UX polish
+
+**Status:** Planned — **after M18** (or in parallel with late M19), **before M11** and before broad **M9** SEO/gallery work.
+
+**Goal:** Small, high-impact storefront UX improvements that make the shop feel finished. No new backend models unless strictly necessary.
+
+**Priority examples (expand during implementation):**
+
+| Area | Improvement |
+|------|-------------|
+| **Add to cart** | Clear feedback when item(s) added — e.g. brief toast, inline confirmation, and/or cart icon badge animation (header count already updates; user may not notice) |
+| **PDP** | Disabled “Add to cart” states explained (variants required, out of stock) |
+| **Cart** | Loading / empty / error states consistent with design system |
+| **Checkout** | Clearer progress when redirecting to Stripe (“Forging…” already; ensure errors are visible) |
+| **Account** | Form success/error feedback on login, register, notifications |
+| **Favorites** | Confirm save/unsave beyond button label (align with add-to-cart pattern) |
+
+**Out of scope (M9a):**
+
+- New commerce features (sales, promos, shipping) — other milestones.
+- SEO, gallery page, Merchant feed — **M9**.
+- Print stages — **M11**.
+
+**Cursor rules:**
+
+- Prefer lightweight patterns (toast component, `aria-live` region, CSS transition) over new dependencies.
+- Reuse existing `Icon`, layout header cart count, and Tailwind tokens.
+
+**Acceptance:**
+
+- Adding a product from PDP gives **obvious** confirmation within 1s without leaving the page.
+- No regression to cart, checkout, or variant picker behavior.
+
+---
+
 ### M9 — Polish & growth
 
-**Goal:** SEO, gallery, performance.
+**Goal:** SEO, gallery, performance — **after M9a** and core milestones; not a substitute for cart/PDP micro-interactions.
 
 **Scope:**
 - **Gallery page**:
@@ -656,6 +711,8 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ### M11 — Print progress tracker
 
+**Status:** **Deferred** — implement **after** core commerce (M17, M19, M18), **M9a** initial polish, and preferably **M9** / **M16** as needed. Patrick priority: finish shopper-facing core, bugs, and polish before ops fabrication tooling.
+
 **Goal:** Track order progress through fabrication stages.
 
 **Data model:**
@@ -693,6 +750,8 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 ---
 
 ### M11b — Raspberry Pi printer bridge (optional)
+
+**Status:** **Deferred** with **M11**.
 
 **Depends on:** M11 (`PrintJob` model and stage API must exist first).
 
@@ -751,6 +810,99 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ---
 
+### M17 — Removed-from-catalog UX (bug **B1**)
+
+**Status:** Planned — fix **after M6b/c** (favorites) ships.
+
+**Goal:** When a product is no longer in the catalog (admin delete, or treat as unavailable if `inStock: false` / hidden — confirm behavior in implementation), customers with it in **cart** or **favorites** see a clear message instead of broken checkout or silent failures.
+
+**Depends on:** **M6b** (`Favorite` model + PDP favorites UI).
+
+**Storefront:**
+
+- **Cart (`/cart`):** Lines for missing products show **“Removed from the store”** (or similar), no checkout for those lines; one-click **Remove**; block checkout while any removed line remains (extend `validateCartLines`).
+- **Favorites (PDP / future list):** If favorite points at missing product, show **removed** state; offer **Remove from favorites**; do not issue favorite promos for removed products.
+- **CartSnapshot / promo:** Do not apply product-scoped grants for removed `productId`s.
+
+**Admin:**
+
+- Optional: soft-delete flag on `Product` instead of hard delete (v2); v1 can rely on delete + client handling of missing catalog row.
+
+**Acceptance:**
+
+- Customer with stale cart line for deleted product sees explicit copy, can remove line, checkout works for remaining valid lines.
+- Favorite on deleted product shows removed message; toggle clears favorite without error.
+
+---
+
+### M18 — Cart price-change notifications
+
+**Status:** Planned — **after M19** (needs sale/list price semantics) and **M6c** (`CartSnapshot` sync).
+
+**Goal:** Notify signed-in customers (in-system `Notification`, kind `marketing` or `order`) when an item **in their server cart snapshot** has a **price decrease** (sale or markdown) or **price increase** (list price change).
+
+**Depends on:** **M6c** (`CartSnapshot`), **M19** (or minimal `compareAtCents` / `salePriceCents` on `Product` if M19 is phased).
+
+**Design notes:**
+
+- Compare **last notified price** (or price at last `CartSnapshot` sync) vs current catalog `priceCents` (+ variant delta).
+- Throttle: one notification per product per user per change window (avoid spam on every cart page load).
+- Respect **M12** preferences when implemented; until then, send marketing notifications.
+- **Not** the same as **M6** promo grants (account offers); this is **catalog price** transparency.
+
+**Backend:**
+
+- Extend `syncCartSnapshot` (or dedicated Lambda) to diff prices and create targeted notifications.
+- Optional: store `lastNotifiedPriceCents` on snapshot line json.
+
+**Acceptance:**
+
+- Admin lowers product price → customer with item in cart receives in-system alert with link to cart/PDP.
+- Price increase → optional notification (config or always inform — decide at implementation).
+
+---
+
+### M19 — Catalog sales & product bundles
+
+**Status:** Planned — **after M17**, **before M18** (price alerts need stable sale fields).
+
+**Goal:** Admin-defined **storefront sales** on individual products and **bundles** (multi-SKU single purchase). Distinct from **M6** (per-account promo grants auto-applied at checkout).
+
+**Scope (v1):**
+
+1. **Single-product sale**
+   - Fields on `Product` (or `ProductSale` overlay): e.g. `salePriceCents`, `compareAtCents`, `saleStartsAt`, `saleEndsAt`.
+   - PDP + shop card show struck-through compare + sale price.
+   - Cart uses **sale price** for subtotal; checkout Lambda reads live catalog (same as today, with sale fields).
+
+2. **Bundles (v1 minimal)**
+   - `ProductBundle` or `bundleItems` json on a sellable “bundle” product: component `productId`s + qty.
+   - One add-to-cart for bundle; line items expand for shipping/inventory or stay single bundle line (decide at spec — prefer expanded lines for M15 shipping).
+
+3. **Admin**
+   - Product edit: sale window + compare-at.
+   - Bundle editor (which products, bundle price).
+
+**Out of scope (v1):**
+
+- Stack bundle sale with M6 account promo (still **one grant per order**; sale price is line price before grant).
+- BOGO / complex rules.
+
+**Relationship to M6:**
+
+| | **M6 promos** | **M19 catalog sales** |
+|--|----------------|------------------------|
+| Who | Per-user grants | Everyone sees sale on PDP |
+| Set in | Promo templates / grants | Product (or bundle) admin |
+| Checkout | Auto-pick best grant | Line `priceCents` from catalog |
+
+**Acceptance:**
+
+- Admin sets 20% off a SKU for two weeks; storefront shows sale; cart/checkout totals match.
+- Admin creates bundle at fixed price; customer adds once; order line items and shipping resolve correctly.
+
+---
+
 ### M13 — Marketing & growth engine (new)
 
 **Goal:** Turn the site into a growth-ready ecommerce platform.
@@ -793,6 +945,8 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 ---
 
 ### M14 — ForgeLink™ hardware MVP (new)
+
+**Status:** **Deferred** with **M11** / **M11b**.
 
 **Depends on:** M11b (reuse the same device-authenticated `updatePrintJobStage` API; do not invent a second auth scheme).
 
