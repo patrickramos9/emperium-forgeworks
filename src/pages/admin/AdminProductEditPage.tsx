@@ -30,6 +30,11 @@ import {
   formatCentsForInput,
   parseDollarInputToCents,
 } from "@/lib/priceUtils";
+import {
+  normalizeProductSlug,
+  productSlugFromTitle,
+  validateProductSlug,
+} from "@/lib/productSlug";
 
 const CATEGORIES: ProductCategory[] = [
   "Horror",
@@ -88,6 +93,7 @@ export function AdminProductEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [slugTouched, setSlugTouched] = useState(false);
 
   function applyProduct(p: Product) {
     setRecordId(p.id);
@@ -184,6 +190,11 @@ export function AdminProductEditPage() {
         throw new Error(variantError);
       }
 
+      const slugValidation = validateProductSlug(productSlug);
+      if (slugValidation) {
+        throw new Error(slugValidation);
+      }
+
       const priceCents = parseDollarInputToCents(priceDollars);
       const specs = specsJson.trim()
         ? parseJsonField<Product["specs"]>(specsJson, "specs")
@@ -203,7 +214,7 @@ export function AdminProductEditPage() {
       });
 
       const payload = buildProductMutationPayload({
-        slug: productSlug,
+        slug: normalizeProductSlug(productSlug),
         title,
         subtitle: subtitle || undefined,
         description: description || undefined,
@@ -289,7 +300,13 @@ export function AdminProductEditPage() {
           </span>
           <input
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setTitle(next);
+              if (isNew && !slugTouched) {
+                setProductSlug(productSlugFromTitle(next));
+              }
+            }}
             required
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
@@ -300,11 +317,20 @@ export function AdminProductEditPage() {
           </span>
           <input
             value={productSlug}
-            onChange={(e) => setProductSlug(e.target.value)}
+            onChange={(e) => {
+              setSlugTouched(true);
+              setProductSlug(e.target.value);
+            }}
             required
             disabled={!isNew && !!recordId}
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2 disabled:opacity-60"
           />
+          {isNew && (
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              Auto-generated from title until you edit this field. Required before
+              photo upload.
+            </p>
+          )}
         </label>
         <AdminProductGalleryEditor
           images={galleryImages}

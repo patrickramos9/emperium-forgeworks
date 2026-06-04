@@ -9,6 +9,7 @@ import {
 } from "@/lib/productGallery";
 import { uploadProductImages } from "@/lib/productImageUpload";
 import { resolveImageUrl } from "@/lib/productImageUrls";
+import { validateProductSlug } from "@/lib/productSlug";
 
 interface AdminProductGalleryEditorProps {
   images: string[];
@@ -37,6 +38,10 @@ export function AdminProductGalleryEditor({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [zoneActive, setZoneActive] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const slugError = validateProductSlug(productSlug);
+  const canUpload = !slugError && !disabled && !uploading;
 
   useEffect(() => {
     let cancelled = false;
@@ -69,25 +74,32 @@ export function AdminProductGalleryEditor({
 
   const uploadAtIndex = useCallback(
     async (files: File[], index: number) => {
-      if (!productSlug.trim()) {
-        onError?.("Set a slug before uploading images.");
+      const validationError = validateProductSlug(productSlug);
+      if (validationError) {
+        setUploadError(validationError);
+        onError?.(validationError);
         return;
       }
       if (files.length === 0) return;
 
       const remaining = MAX_GALLERY_IMAGES - images.length;
       if (remaining <= 0) {
-        onError?.(`Maximum ${MAX_GALLERY_IMAGES} photos per product.`);
+        const message = `Maximum ${MAX_GALLERY_IMAGES} photos per product.`;
+        setUploadError(message);
+        onError?.(message);
         return;
       }
 
       const batch = files.slice(0, remaining);
+      setUploadError(null);
       setUploadState(true);
       try {
         const paths = await uploadProductImages(productSlug, batch);
         onChange(insertGalleryImages(images, paths, index));
       } catch (err) {
-        onError?.(err instanceof Error ? err.message : "Upload failed");
+        const message = err instanceof Error ? err.message : "Upload failed";
+        setUploadError(message);
+        onError?.(message);
       } finally {
         setUploadState(false);
       }
@@ -174,7 +186,7 @@ export function AdminProductGalleryEditor({
               <button
                 key={`slot-add-${index}`}
                 type="button"
-                disabled={disabled || uploading || !productSlug.trim()}
+                disabled={!canUpload}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => handleSlotDragOver(e, index)}
                 onDragLeave={() => setDropIndex(null)}
@@ -260,13 +272,15 @@ export function AdminProductGalleryEditor({
 
       {images.length < MAX_GALLERY_IMAGES && (
         <div
-          onDragOver={handleZoneDragOver}
+          onDragOver={canUpload ? handleZoneDragOver : undefined}
           onDragLeave={() => setZoneActive(false)}
-          onDrop={handleZoneDrop}
+          onDrop={canUpload ? handleZoneDrop : undefined}
           className={`rounded border-2 border-dashed px-4 py-6 text-center transition-colors ${
-            zoneActive
-              ? "border-primary bg-primary/10"
-              : "border-outline-variant/30 bg-surface-container-lowest"
+            !canUpload
+              ? "border-outline-variant/20 bg-surface-container-lowest opacity-70"
+              : zoneActive
+                ? "border-primary bg-primary/10"
+                : "border-outline-variant/30 bg-surface-container-lowest"
           }`}
         >
           <Icon name="upload_file" className="text-3xl text-on-surface-variant" />
@@ -274,7 +288,7 @@ export function AdminProductGalleryEditor({
             Drop photos here or{" "}
             <button
               type="button"
-              disabled={disabled || uploading || !productSlug.trim()}
+              disabled={!canUpload}
               onClick={() => fileInputRef.current?.click()}
               className="text-primary underline hover:text-plasma-glow disabled:opacity-50"
             >
@@ -293,7 +307,7 @@ export function AdminProductGalleryEditor({
         accept="image/*"
         multiple
         className="hidden"
-        disabled={disabled || uploading}
+        disabled={!canUpload}
         onChange={(e) => {
           const files = e.target.files ? [...e.target.files] : [];
           if (files.length > 0) {
@@ -306,9 +320,15 @@ export function AdminProductGalleryEditor({
       {uploading && (
         <p className="text-body-sm text-on-surface-variant">Uploading photos…</p>
       )}
-      {!productSlug.trim() && (
-        <p className="text-body-sm text-on-surface-variant">
-          Enter a slug above before uploading photos.
+      {slugError && (
+        <p className="text-body-sm text-on-surface-variant" role="status">
+          {slugError} Fill in the slug field above (auto-filled from title on new
+          products).
+        </p>
+      )}
+      {uploadError && (
+        <p className="text-body-sm text-error" role="alert">
+          {uploadError}
         </p>
       )}
     </div>
