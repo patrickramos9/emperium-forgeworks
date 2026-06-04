@@ -17,13 +17,13 @@ export function ProductImage({
 }: ProductImageProps) {
   return (
     <div
-      className={`flex h-full w-full items-center justify-center overflow-hidden bg-black ${className}`}
+      className={`flex items-center justify-center overflow-hidden bg-black ${className}`}
     >
       {src ? (
         <img
           src={src}
           alt={alt}
-          className={`max-h-full max-w-full object-contain ${imageClassName}`}
+          className={`max-h-full max-w-full object-contain ${imageClassName}`.trim()}
         />
       ) : (
         <Icon name="image" className="text-4xl text-on-surface-variant opacity-40" />

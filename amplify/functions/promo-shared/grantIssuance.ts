@@ -119,7 +119,7 @@ export async function createPromoGrantWithNotification(
       ? ` Expires ${new Date(expiresAt).toLocaleDateString("en-US")}.`
       : "";
 
-  await client.models.Notification.create({
+  const notificationResult = await client.models.Notification.create({
     title: input.notification.title,
     body: `${input.notification.bodyPrefix} ${input.template.name}: ${discountPreview(input.template)}.${expiryText} Applies automatically at checkout when signed in.`,
     kind: "marketing",
@@ -127,6 +127,11 @@ export async function createPromoGrantWithNotification(
     active: true,
     sortOrder: 55,
   });
+  if (notificationResult.errors?.length) {
+    throw new Error(
+      `Promo grant created but notification failed: ${notificationResult.errors.map((e) => e.message).join("; ")}`,
+    );
+  }
 
   return grant;
 }

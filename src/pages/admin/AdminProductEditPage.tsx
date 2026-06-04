@@ -368,9 +368,12 @@ export function AdminProductEditPage() {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
+            rows={12}
+            className="mt-1 min-h-[16rem] w-full resize-y border border-outline-variant/30 bg-surface-container-low px-3 py-2 leading-relaxed"
           />
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            Drag the bottom edge to make the box taller while you write.
+          </p>
         </label>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">

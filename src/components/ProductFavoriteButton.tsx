@@ -81,8 +81,14 @@ export function ProductFavoriteButton({
         productSlug,
       );
       setFavorited(result.favorited);
-      if (result.grantIssued) {
-        setMessage("Offer added to your account — see cart when signed in.");
+      if (result.favorited && result.grantIssued) {
+        setMessage(
+          "Offer added — check Account → Notifications and your cart when this item is in the cart.",
+        );
+      } else if (result.favorited) {
+        setMessage(
+          "Saved to favorites. If you already have an offer for this item, it stays in Account → Notifications.",
+        );
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not update favorite");

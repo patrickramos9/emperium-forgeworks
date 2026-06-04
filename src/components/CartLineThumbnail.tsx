@@ -58,7 +58,7 @@ export function CartLineThumbnail({ item, product, catalogLoading }: Props) {
   if (catalogLoading && !src) {
     return (
       <div
-        className="h-24 w-24 shrink-0 animate-pulse bg-surface-container"
+        className="h-24 w-24 shrink-0 self-start animate-pulse bg-surface-container"
         aria-hidden
       />
     );
@@ -67,7 +67,7 @@ export function CartLineThumbnail({ item, product, catalogLoading }: Props) {
   if (failed && !src) {
     return (
       <div
-        className="flex h-24 w-24 shrink-0 items-center justify-center border border-outline-variant/20 bg-surface-container text-center text-label-sm text-on-surface-variant"
+        className="flex h-24 w-24 shrink-0 self-start items-center justify-center border border-outline-variant/20 bg-surface-container text-center text-label-sm text-on-surface-variant"
         title="Image unavailable"
       >
         —
@@ -76,11 +76,13 @@ export function CartLineThumbnail({ item, product, catalogLoading }: Props) {
   }
 
   return (
-    <ProductImage
-      src={src}
-      alt=""
-      className="h-24 w-24 shrink-0 border border-outline-variant/10"
-      imageClassName="h-full w-full object-cover"
-    />
+    <div className="h-24 w-24 shrink-0 self-start overflow-hidden border border-outline-variant/10 bg-black">
+      <ProductImage
+        src={src}
+        alt=""
+        className="h-full w-full"
+        imageClassName="h-full w-full object-cover"
+      />
+    </div>
   );
 }

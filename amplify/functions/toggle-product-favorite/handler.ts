@@ -42,11 +42,16 @@ export const handler: Schema["toggleProductFavorite"]["functionHandler"] =
         }
       }
 
-      const grantIssued = await issueFavoriteGrantIfNeeded(
-        dataClient,
-        userId,
-        productId,
-      );
+      let grantIssued = false;
+      try {
+        grantIssued = await issueFavoriteGrantIfNeeded(
+          dataClient,
+          userId,
+          productId,
+        );
+      } catch (err) {
+        console.error("Favorite promo grant failed", err);
+      }
 
       return { favorited: true, grantIssued };
     }
