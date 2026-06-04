@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { MockCheckoutBanner } from "@/components/MockCheckoutBanner";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
-import { useCartLineThumbnails } from "@/hooks/useCartLineThumbnails";
+import { CartLineThumbnail } from "@/components/CartLineThumbnail";
+import { findCatalogProduct } from "@/lib/cartLineImage";
 import { useProducts } from "@/hooks/useProducts";
 import { IS_LOCAL } from "@/lib/config";
 import { validateCartLines } from "@/lib/validateCart";
@@ -37,8 +38,6 @@ export function CartPage() {
     () => new Map(validationIssues.map((issue) => [issue.key, issue.message])),
     [validationIssues],
   );
-
-  const thumbnails = useCartLineThumbnails(items, products);
 
   useEffect(() => {
     if (!catalogLoading && products.length > 0) {
@@ -118,7 +117,7 @@ export function CartPage() {
         {items.map((item) => {
           const lineTotalCents = item.priceCents * item.quantity;
           const issueMessage = issuesByKey.get(item.key);
-          const thumbUrl = thumbnails[item.key];
+          const catalogProduct = findCatalogProduct(item, products);
 
           return (
             <li
@@ -129,20 +128,11 @@ export function CartPage() {
                   : "border-outline-variant/20"
               }`}
             >
-              {thumbUrl ? (
-                <img
-                  src={thumbUrl}
-                  alt=""
-                  className="h-24 w-24 shrink-0 object-cover"
-                />
-              ) : (
-                <div
-                  className="flex h-24 w-24 shrink-0 items-center justify-center border border-outline-variant/20 bg-surface-container text-center text-label-sm text-on-surface-variant"
-                  aria-hidden
-                >
-                  —
-                </div>
-              )}
+              <CartLineThumbnail
+                item={item}
+                product={catalogProduct}
+                catalogLoading={catalogLoading}
+              />
               <div className="min-w-0 flex-grow">
                 <Link
                   to={`/shop/${item.slug}`}

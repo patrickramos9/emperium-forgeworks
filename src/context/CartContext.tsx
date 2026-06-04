@@ -13,7 +13,7 @@ import {
   CART_STORAGE_VERSION,
   MAX_LINE_QTY,
 } from "@/lib/cartConstants";
-import { productPrimaryImage } from "@/lib/productImageUrls";
+import { productPrimaryImageRef } from "@/lib/productImageUrls";
 
 export interface CartLine {
   key: string;
@@ -55,16 +55,6 @@ function lineKey(productId: string, variantId?: string) {
 
 function clampQuantity(quantity: number): number {
   return Math.min(MAX_LINE_QTY, Math.max(1, quantity));
-}
-
-function isBrowsableImageUrl(url: string | undefined): boolean {
-  if (!url?.trim()) return false;
-  return url.startsWith("http") || url.startsWith("/");
-}
-
-function imageUrlForProduct(product: Product): string | undefined {
-  const url = productPrimaryImage(product);
-  return url && isBrowsableImageUrl(url) ? url : undefined;
 }
 
 function loadStoredItems(): CartLine[] {
@@ -125,15 +115,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const existing = prev.find((i) => i.key === key);
         if (existing) {
           const imageUrl =
-            imageUrlForProduct(product) ?? existing.imageUrl;
+            productPrimaryImageRef(product) ?? existing.imageUrl;
           return prev.map((i) =>
             i.key === key
               ? {
                   ...i,
                   quantity: clampQuantity(i.quantity + quantity),
-                  ...(!isBrowsableImageUrl(i.imageUrl) && imageUrl
-                    ? { imageUrl }
-                    : {}),
+                  ...(imageUrl && !i.imageUrl ? { imageUrl } : {}),
                 }
               : i,
           );
@@ -147,7 +135,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             title: product.title,
             priceCents,
             quantity,
-            imageUrl: imageUrlForProduct(product),
+            imageUrl: productPrimaryImageRef(product),
             variantId: variant?.id,
             variantLabel: variant?.label,
           },
@@ -179,13 +167,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const enrichFromCatalog = useCallback((products: Product[]) => {
     if (!products.length) return;
     const byId = new Map(products.map((p) => [p.id, p]));
+    const bySlug = new Map(products.map((p) => [p.slug, p]));
     setItems((prev) => {
       let changed = false;
       const next = prev.map((item) => {
-        if (isBrowsableImageUrl(item.imageUrl)) return item;
-        const product = byId.get(item.productId);
+        if (item.imageUrl?.trim()) return item;
+        const product =
+          byId.get(item.productId) ?? bySlug.get(item.slug);
         if (!product) return item;
-        const imageUrl = imageUrlForProduct(product);
+        const imageUrl = productPrimaryImageRef(product);
         if (!imageUrl || imageUrl === item.imageUrl) return item;
         changed = true;
         return { ...item, imageUrl };

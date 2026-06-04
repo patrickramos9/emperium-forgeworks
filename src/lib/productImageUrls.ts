@@ -56,3 +56,15 @@ export async function resolveProductImages(product: Product): Promise<Product> {
 export function productPrimaryImage(product: Product): string | undefined {
   return product.detailImage ?? product.images[0];
 }
+
+/**
+ * Raw image ref for presigning (storage path or URL). Prefer `imageRefs` when
+ * `images` were cleared after a failed resolve.
+ */
+export function productPrimaryImageRef(product: Product): string | undefined {
+  const ref = product.imageRefs?.[0];
+  if (ref) return ref;
+  const image = product.images[0];
+  if (image) return image;
+  return product.detailImage;
+}
