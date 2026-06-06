@@ -65,9 +65,11 @@ export function useCartPromo(lines: CartLine[], products: Product[]) {
           userId,
           purchasable.map((line) => ({
             productId: line.productId,
+            slug: line.slug,
             priceCents: line.priceCents,
             quantity: line.quantity,
           })),
+          products.map((p) => ({ id: p.id, slug: p.slug })),
         );
         if (!cancelled) setPromo(applied);
       } catch (err) {

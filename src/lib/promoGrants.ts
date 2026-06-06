@@ -6,9 +6,33 @@ export type PromoGrantSource = NonNullable<PromoGrantRecord["source"]>;
 
 export type CartLineForPromo = {
   productId: string;
+  slug?: string;
   priceCents: number;
   quantity: number;
 };
+
+export type CatalogRefForPromo = {
+  id: string;
+  slug: string;
+};
+
+/** Match cart line to a product-scoped grant (id or slug when cart predates id sync). */
+export function findCartLineForGrantProduct(
+  grantProductId: string,
+  lines: CartLineForPromo[],
+  catalog?: CatalogRefForPromo[],
+): CartLineForPromo | undefined {
+  const byId = lines.find((row) => row.productId === grantProductId);
+  if (byId) return byId;
+
+  const catalogSlug = catalog?.find((p) => p.id === grantProductId)?.slug;
+  if (catalogSlug) {
+    const bySlug = lines.find((row) => row.slug === catalogSlug);
+    if (bySlug) return bySlug;
+  }
+
+  return undefined;
+}
 
 export type AppliedPromo = {
   grantId: string;
@@ -70,6 +94,7 @@ export function computeGrantDiscountCents(
   grant: PromoGrantRecord,
   template: PromoTemplateRecord,
   lines: CartLineForPromo[],
+  catalog?: CatalogRefForPromo[],
 ): number {
   const subtotalCents = lines.reduce(
     (sum, line) => sum + line.priceCents * line.quantity,
@@ -78,7 +103,7 @@ export function computeGrantDiscountCents(
   if (subtotalCents <= 0) return 0;
 
   if (grant.productId) {
-    const line = lines.find((row) => row.productId === grant.productId);
+    const line = findCartLineForGrantProduct(grant.productId, lines, catalog);
     if (!line) return 0;
     const lineSubtotal = line.priceCents * line.quantity;
     return computeTemplateDiscountCents(template, lineSubtotal);

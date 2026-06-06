@@ -140,6 +140,7 @@ export async function resolveBestAppliedPromo(
   client: AmplifyDataClient,
   userId: string,
   lines: CartLineForPromo[],
+  catalog?: { id: string; slug: string }[],
 ): Promise<AppliedPromo | null> {
   const grants = await listGrantsForUser(client, userId);
   const active = grants.filter((grant) => isGrantActive(grant));
@@ -167,7 +168,12 @@ export async function resolveBestAppliedPromo(
     .map((grant) => {
       const template = templateById.get(grant.templateId);
       if (!template) return null;
-      const discountCents = computeGrantDiscountCents(grant, template, lines);
+      const discountCents = computeGrantDiscountCents(
+        grant,
+        template,
+        lines,
+        catalog,
+      );
       if (discountCents <= 0) return null;
       return { grant, template, discountCents };
     })

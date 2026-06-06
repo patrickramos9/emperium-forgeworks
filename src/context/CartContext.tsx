@@ -171,14 +171,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       let changed = false;
       const next = prev.map((item) => {
-        if (item.imageUrl?.trim()) return item;
         const product =
           byId.get(item.productId) ?? bySlug.get(item.slug);
         if (!product) return item;
-        const imageUrl = productPrimaryImageRef(product);
-        if (!imageUrl || imageUrl === item.imageUrl) return item;
-        changed = true;
-        return { ...item, imageUrl };
+
+        let updated = item;
+        if (product.id !== item.productId || product.slug !== item.slug) {
+          updated = {
+            ...updated,
+            productId: product.id,
+            slug: product.slug,
+            key: lineKey(product.id, item.variantId),
+          };
+          changed = true;
+        }
+
+        if (!updated.imageUrl?.trim()) {
+          const imageUrl = productPrimaryImageRef(product);
+          if (imageUrl && imageUrl !== updated.imageUrl) {
+            updated = { ...updated, imageUrl };
+            changed = true;
+          }
+        }
+
+        return updated;
       });
       return changed ? next : prev;
     });

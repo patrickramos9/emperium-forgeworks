@@ -3,6 +3,7 @@ import {
   computeGrantDiscountCents,
   isGrantActive,
   pickBestGrant,
+  type CatalogRefForPromo,
   type LineForPromo,
   type PromoGrantLike,
   type PromoTemplateLike,
@@ -56,6 +57,7 @@ export async function resolvePromoForCheckout(
   userId: string,
   lines: LineForPromo[],
   requestedGrantId?: string | null,
+  catalog?: CatalogRefForPromo[],
 ): Promise<ResolvedPromo | null> {
   const listResult = await client.models.PromoGrant.list({
     filter: { userId: { eq: userId } },
@@ -91,6 +93,7 @@ export async function resolvePromoForCheckout(
         grant as PromoGrantLike,
         template,
         lines,
+        catalog,
       );
       if (discountCents <= 0) return null;
       return { grant: grant as PromoGrantLike, template, discountCents };

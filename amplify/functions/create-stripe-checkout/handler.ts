@@ -63,6 +63,33 @@ async function loadProductsById(
   return map;
 }
 
+/** Resolve cart lines to catalog rows (by id, then slug when cart ids are stale). */
+async function loadProductsForLineItems(
+  items: CheckoutLineItem[],
+): Promise<Map<string, ProductRecord>> {
+  const map = await loadProductsById(items.map((item) => item.productId));
+
+  await Promise.all(
+    items.map(async (item) => {
+      if (map.has(item.productId)) return;
+      const slug = item.slug?.trim();
+      if (!slug) return;
+
+      const response = await dataClient.models.Product.list({
+        filter: { slug: { eq: slug } },
+        limit: 1,
+      });
+      if (response.errors?.length) {
+        throw new Error(response.errors.map((e) => e.message).join("; "));
+      }
+      const product = response.data?.[0];
+      if (product) map.set(item.productId, product);
+    }),
+  );
+
+  return map;
+}
+
 function formatUsd(cents: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -226,6 +253,16 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       priceCents: item.priceCents,
     }));
 
+    const productById = await loadProductsForLineItems(lineItems);
+    const promoCatalog = [
+      ...new Map(
+        [...productById.values()].map((product) => [
+          product.id,
+          { id: product.id, slug: product.slug },
+        ]),
+      ).values(),
+    ];
+
     let promo: Awaited<ReturnType<typeof resolvePromoForCheckout>> = null;
     if (userId) {
       promo = await resolvePromoForCheckout(
@@ -233,10 +270,12 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
         userId,
         lineItems.map((item) => ({
           productId: item.productId,
+          slug: item.slug,
           priceCents: item.priceCents,
           quantity: item.quantity,
         })),
         event.arguments.promoGrantId,
+        promoCatalog,
       );
     } else if (event.arguments.promoGrantId) {
       throw new Error("Sign in to use promotional offers.");
@@ -285,10 +324,6 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
 
     const profileById = new Map(activeProfiles.map((p) => [p.id, p]));
     const defaultProfile = activeProfiles.find((p) => p.isDefault) ?? null;
-
-    const productById = await loadProductsById(
-      lineItems.map((item) => item.productId),
-    );
 
     for (const item of lineItems) {
       const product = productById.get(item.productId);

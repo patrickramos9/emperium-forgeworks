@@ -20,9 +20,31 @@ export type PromoGrantLike = {
 
 export type LineForPromo = {
   productId: string;
+  slug?: string;
   priceCents: number;
   quantity: number;
 };
+
+export type CatalogRefForPromo = {
+  id: string;
+  slug: string;
+};
+
+function findCartLineForGrantProduct(
+  grantProductId: string,
+  lines: LineForPromo[],
+  catalog?: CatalogRefForPromo[],
+): LineForPromo | undefined {
+  const byId = lines.find((row) => row.productId === grantProductId);
+  if (byId) return byId;
+
+  const catalogSlug = catalog?.find((p) => p.id === grantProductId)?.slug;
+  if (catalogSlug) {
+    return lines.find((row) => row.slug === catalogSlug);
+  }
+
+  return undefined;
+}
 
 const INDEFINITE_ISO = "2099-12-31T23:59:59.999Z";
 
@@ -54,6 +76,7 @@ export function computeGrantDiscountCents(
   grant: PromoGrantLike,
   template: PromoTemplateLike,
   lines: LineForPromo[],
+  catalog?: CatalogRefForPromo[],
 ): number {
   const subtotalCents = lines.reduce(
     (sum, line) => sum + line.priceCents * line.quantity,
@@ -62,7 +85,7 @@ export function computeGrantDiscountCents(
   if (subtotalCents <= 0) return 0;
 
   if (grant.productId) {
-    const line = lines.find((row) => row.productId === grant.productId);
+    const line = findCartLineForGrantProduct(grant.productId, lines, catalog);
     if (!line) return 0;
     return computeTemplateDiscountCents(
       template,
