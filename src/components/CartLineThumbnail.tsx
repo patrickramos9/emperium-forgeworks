@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/Icon";
 import type { CartLine } from "@/context/CartContext";
 import type { Product } from "@/data/seedProducts";
-import { ProductImage } from "@/components/ProductImage";
 import { cartLineImageRef } from "@/lib/cartLineImage";
 import { resolveImageUrl } from "@/lib/productImageUrls";
+
+const THUMB_PX = 96;
+
+const frameClass =
+  "size-24 max-h-24 max-w-24 shrink-0 flex-none self-start overflow-hidden border border-outline-variant/10 bg-black";
 
 type Props = {
   item: CartLine;
@@ -58,7 +63,7 @@ export function CartLineThumbnail({ item, product, catalogLoading }: Props) {
   if (catalogLoading && !src) {
     return (
       <div
-        className="h-24 w-24 shrink-0 self-start animate-pulse bg-surface-container"
+        className={`${frameClass} animate-pulse bg-surface-container`}
         aria-hidden
       />
     );
@@ -67,7 +72,7 @@ export function CartLineThumbnail({ item, product, catalogLoading }: Props) {
   if (failed && !src) {
     return (
       <div
-        className="flex h-24 w-24 shrink-0 self-start items-center justify-center border border-outline-variant/20 bg-surface-container text-center text-label-sm text-on-surface-variant"
+        className={`${frameClass} flex items-center justify-center bg-surface-container text-center text-label-sm text-on-surface-variant`}
         title="Image unavailable"
       >
         —
@@ -75,13 +80,30 @@ export function CartLineThumbnail({ item, product, catalogLoading }: Props) {
     );
   }
 
+  if (!src) {
+    return (
+      <div
+        className={`${frameClass} flex items-center justify-center`}
+        aria-hidden
+      >
+        <Icon
+          name="image"
+          className="text-2xl text-on-surface-variant opacity-40"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="h-24 w-24 shrink-0 self-start overflow-hidden border border-outline-variant/10 bg-black">
-      <ProductImage
+    <div className={frameClass}>
+      <img
         src={src}
         alt=""
-        className="h-full w-full"
-        imageClassName="h-full w-full object-cover"
+        width={THUMB_PX}
+        height={THUMB_PX}
+        className="block h-full w-full max-h-full max-w-full object-cover object-center"
+        loading="lazy"
+        decoding="async"
       />
     </div>
   );

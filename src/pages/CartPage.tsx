@@ -179,12 +179,13 @@ export function CartPage() {
                   : "border-outline-variant/20"
               }`}
             >
-              <CartLineThumbnail
-                item={item}
-                product={catalogProduct}
-                catalogLoading={catalogLoading}
-              />
-              <div className="min-w-0 flex-grow">
+              <div className="flex min-w-0 flex-1 items-start gap-4 sm:flex-1">
+                <CartLineThumbnail
+                  item={item}
+                  product={catalogProduct}
+                  catalogLoading={catalogLoading}
+                />
+                <div className="min-w-0 flex-1">
                 {isRemoved ? (
                   <p className="font-headline-md text-on-surface">{item.title}</p>
                 ) : (
@@ -208,6 +209,7 @@ export function CartPage() {
                 {issue && (
                   <p className="mt-1 text-label-sm text-error">{issue.message}</p>
                 )}
+                </div>
               </div>
               {!lineBlocked ? (
                 <div className="flex items-center gap-2">
