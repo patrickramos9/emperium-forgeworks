@@ -4,6 +4,39 @@ import { getCustomerUserId } from "@/lib/customerAuth";
 
 export type NotificationRecord = Schema["Notification"]["type"];
 export type NotificationReadRecord = Schema["NotificationRead"]["type"];
+export type NotificationSortOrder = "newest" | "oldest";
+
+export function notificationTimestampMs(row: NotificationRecord): number {
+  const created = row.createdAt ? Date.parse(row.createdAt) : Number.NaN;
+  if (Number.isFinite(created)) return created;
+  const starts = row.startsAt ? Date.parse(row.startsAt) : Number.NaN;
+  if (Number.isFinite(starts)) return starts;
+  return 0;
+}
+
+export function formatNotificationDateTime(
+  row: NotificationRecord,
+): string | null {
+  const ms = notificationTimestampMs(row);
+  if (!ms) return null;
+  return new Date(ms).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export function sortNotificationsByDate(
+  rows: NotificationRecord[],
+  order: NotificationSortOrder = "newest",
+): NotificationRecord[] {
+  const sorted = [...rows].sort(
+    (a, b) => notificationTimestampMs(b) - notificationTimestampMs(a),
+  );
+  return order === "newest" ? sorted : sorted.reverse();
+}
 
 function isActiveNow(row: NotificationRecord, nowIso: string): boolean {
   if (row.active === false) return false;
@@ -48,8 +81,11 @@ export async function listCustomerNotifications(
 
   const all = await listAdminNotifications(client);
   const nowIso = new Date().toISOString();
-  return all.filter(
-    (row) => isActiveNow(row, nowIso) && isVisibleToUser(row, userId),
+  return sortNotificationsByDate(
+    all.filter(
+      (row) => isActiveNow(row, nowIso) && isVisibleToUser(row, userId),
+    ),
+    "newest",
   );
 }
 

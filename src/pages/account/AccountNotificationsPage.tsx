@@ -2,16 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import {
+  formatNotificationDateTime,
   listCustomerNotifications,
   listMyNotificationReads,
   markNotificationRead,
+  sortNotificationsByDate,
   type NotificationRecord,
+  type NotificationSortOrder,
 } from "@/services/notificationService";
 
 export function AccountNotificationsPage() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
+  const [sortOrder, setSortOrder] = useState<NotificationSortOrder>("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +40,11 @@ export function AccountNotificationsPage() {
   }, [navigate]);
 
   const readSet = useMemo(() => new Set(readIds), [readIds]);
+
+  const sortedNotifications = useMemo(
+    () => sortNotificationsByDate(notifications, sortOrder),
+    [notifications, sortOrder],
+  );
 
   async function handleMarkRead(notificationId: string) {
     const client = await requireCustomerSession(navigate, "/account/notifications");
@@ -70,14 +79,45 @@ export function AccountNotificationsPage() {
         </Link>
       </div>
 
+      {notifications.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <span className="font-label-sm uppercase text-on-surface-variant">
+            Sort
+          </span>
+          <button
+            type="button"
+            onClick={() => setSortOrder("newest")}
+            className={`border px-3 py-1 font-label-sm uppercase ${
+              sortOrder === "newest"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-outline-variant/30 text-on-surface-variant hover:border-primary/50"
+            }`}
+          >
+            Newest first
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortOrder("oldest")}
+            className={`border px-3 py-1 font-label-sm uppercase ${
+              sortOrder === "oldest"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-outline-variant/30 text-on-surface-variant hover:border-primary/50"
+            }`}
+          >
+            Oldest first
+          </button>
+        </div>
+      )}
+
       {error && <p className="mb-4 text-error">{error}</p>}
 
       {notifications.length === 0 ? (
         <p className="text-on-surface-variant">No notifications right now.</p>
       ) : (
         <ul className="space-y-4">
-          {notifications.map((note) => {
+          {sortedNotifications.map((note) => {
             const isRead = readSet.has(note.id);
+            const sentAt = formatNotificationDateTime(note);
             return (
               <li
                 key={note.id}
@@ -88,6 +128,7 @@ export function AccountNotificationsPage() {
                     <p className="font-headline-md text-on-surface">{note.title}</p>
                     <p className="text-label-sm uppercase text-on-surface-variant">
                       {note.kind ?? "system"} · {isRead ? "Read" : "Unread"}
+                      {sentAt ? ` · ${sentAt}` : ""}
                     </p>
                   </div>
                   {!isRead && (

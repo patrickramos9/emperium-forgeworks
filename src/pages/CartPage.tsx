@@ -66,18 +66,18 @@ export function CartPage() {
     .join("|");
 
   useEffect(() => {
-    if (!signedIn || !items.length) return;
+    if (!signedIn || !items.length || catalogLoading) return;
 
     const timer = window.setTimeout(() => {
       void (async () => {
         const client = await getCustomerDataClient();
         if (!client) return;
-        await syncCartSnapshot(client, purchasableItems);
+        await syncCartSnapshot(client, items);
       })();
     }, 600);
 
     return () => window.clearTimeout(timer);
-  }, [cartSyncKey, signedIn, purchasableItems]);
+  }, [cartSyncKey, signedIn, items, catalogLoading]);
 
   const canCheckout =
     purchasableItems.length > 0 &&

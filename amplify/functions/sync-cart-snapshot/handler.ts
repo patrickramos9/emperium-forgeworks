@@ -44,6 +44,23 @@ function snapshotHasItems(
   return (lineItems ?? []).some((row) => row && row.quantity > 0);
 }
 
+/** Stable signature so viewing /cart without edits does not reset abandon idle time. */
+function snapshotSignature(
+  lineItems: Schema["CartSnapshotLine"]["type"][],
+): string {
+  return JSON.stringify(
+    lineItems
+      .filter((row) => row.quantity > 0)
+      .map((row) => ({
+        productId: row.productId,
+        slug: row.slug,
+        quantity: row.quantity,
+        priceCents: row.priceCents,
+      }))
+      .sort((a, b) => a.productId.localeCompare(b.productId)),
+  );
+}
+
 export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
   event,
 ) => {
@@ -71,6 +88,10 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
   const previous = existing.data;
 
   const previousLines = parseLineItems(previous?.lineItems);
+  const linesChanged =
+    !previous ||
+    snapshotSignature(previousLines) !== snapshotSignature(lineItems);
+
   if (previous && incomingHasItems && snapshotHasItems(previousLines)) {
     const templates = await listAllTemplates(dataClient);
     const template = findActiveTemplate(templates, "useForAbandonedCart");
@@ -85,11 +106,15 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
     const idleHours = (nowMs - updatedAtMs) / (1000 * 60 * 60);
 
     if (idleHours >= abandonHours) {
-      grantIssued = await issueAbandonedCartGrantIfNeeded(
-        dataClient,
-        userId,
-        userId,
-      );
+      try {
+        grantIssued = await issueAbandonedCartGrantIfNeeded(
+          dataClient,
+          userId,
+          userId,
+        );
+      } catch (err) {
+        console.error("Abandoned cart grant failed", err);
+      }
     }
   }
 
@@ -103,8 +128,8 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
   const payload = {
     userId,
     lineItems,
-    updatedAt: now,
-    abandonedAt: null as string | null,
+    updatedAt: linesChanged ? now : (previous?.updatedAt ?? now),
+    abandonedAt: grantIssued ? now : (previous?.abandonedAt ?? null),
   };
 
   if (previous) {

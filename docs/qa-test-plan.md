@@ -492,8 +492,8 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 ### M6c — Abandoned cart (in-system)
 
 - [ ] Template with **Use for abandoned-cart** + idle hours (e.g. **1** hour for test)
-- [ ] Signed in; add **purchasable** items to cart; visit `/cart` so snapshot sync runs
-- [ ] Leave cart idle ≥ configured hours (or lower hours for test)
+- [ ] Signed in; add items to cart; visit `/cart` once so snapshot sync runs (starts idle timer)
+- [ ] Do **not** change cart contents; waiting ≥ configured hours counts from **last cart change**, not each `/cart` page view
 - [ ] Return to `/cart` → sync runs → **open** `abandoned_cart` grant + notification (if no open grant for same snapshot rules)
 - [ ] Grant auto-applies on cart when eligible
 - [ ] Clear cart or checkout → snapshot cleared or updated; no abandon grant on empty cart
