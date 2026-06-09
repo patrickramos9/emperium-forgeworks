@@ -5,6 +5,7 @@ import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { ProductImage } from "@/components/ProductImage";
 import { RichTextContent } from "@/components/RichTextContent";
 import { isRichTextEmpty } from "@/lib/richTextUtils";
+import { QuantityStepper } from "@/components/QuantityStepper";
 import { VariantPicker } from "@/components/VariantPicker";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
@@ -56,12 +57,22 @@ export function ProductDetailPage({
     string | undefined
   >();
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [baseQuantity, setBaseQuantity] = useState(1);
+  const [optionQuantities, setOptionQuantities] = useState<
+    Record<string, number>
+  >({});
+  const [variantQuantities, setVariantQuantities] = useState<
+    Record<string, number>
+  >({});
 
   useEffect(() => {
     if (product) {
       setVariantSelection(initialVariantMultiSelection(product.variantGroups));
       setLastToggledOptionId(undefined);
       setGalleryIndex(0);
+      setBaseQuantity(1);
+      setOptionQuantities({});
+      setVariantQuantities({});
     }
   }, [product?.slug, product?.variantGroups]);
 
@@ -83,10 +94,100 @@ export function ProductDetailPage({
     [product?.variantGroups],
   );
 
+  const hasVariations = activeGroups.length > 0;
+
   const selectedVariants = useMemo(() => {
     if (!product) return [];
     return buildSelectedVariants(product.variantGroups, variantSelection);
   }, [product, variantSelection]);
+
+  useEffect(() => {
+    if (!product || selectedVariants.length === 0) return;
+    setVariantQuantities((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const variant of selectedVariants) {
+        if (next[variant.id] == null) {
+          next[variant.id] = 1;
+          changed = true;
+        }
+      }
+      for (const id of Object.keys(next)) {
+        if (!selectedVariants.some((v) => v.id === id)) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [product, selectedVariants]);
+
+  function handleVariantToggle(groupId: string, optionId: string) {
+    setLastToggledOptionId(optionId);
+    setVariantSelection((current) => {
+      const selected = current[groupId]?.includes(optionId);
+      if (!selected) {
+        setOptionQuantities((qty) => ({
+          ...qty,
+          [optionId]: qty[optionId] ?? 1,
+        }));
+      }
+      return toggleVariantMultiSelection(current, groupId, optionId);
+    });
+  }
+
+  function handleAddToCart() {
+    if (!product) return;
+    if (!hasVariations) {
+      addItem(product, { quantity: baseQuantity });
+      return;
+    }
+    if (activeGroups.length === 1) {
+      const group = activeGroups[0]!;
+      for (const optionId of variantSelection[group.id] ?? []) {
+        const option = group.options.find((row) => row.id === optionId);
+        if (!option) continue;
+        addItem(product, {
+          variant: {
+            id: option.id,
+            label: option.label,
+            priceDeltaCents: option.priceDeltaCents,
+          },
+          quantity: optionQuantities[option.id] ?? 1,
+        });
+      }
+      return;
+    }
+    for (const variant of selectedVariants) {
+      addItem(product, {
+        variant,
+        quantity: variantQuantities[variant.id] ?? 1,
+      });
+    }
+  }
+
+  const addToCartCount = useMemo(() => {
+    if (!hasVariations) return baseQuantity;
+    if (activeGroups.length === 1) {
+      const group = activeGroups[0]!;
+      return (variantSelection[group.id] ?? []).reduce(
+        (sum, optionId) => sum + (optionQuantities[optionId] ?? 1),
+        0,
+      );
+    }
+    return selectedVariants.reduce(
+      (sum, variant) => sum + (variantQuantities[variant.id] ?? 1),
+      0,
+    );
+  }, [
+    hasVariations,
+    baseQuantity,
+    activeGroups,
+    variantSelection,
+    optionQuantities,
+    selectedVariants,
+    variantQuantities,
+  ]);
 
   const priceLabel = useMemo(() => {
     if (!product) return "";
@@ -129,7 +230,6 @@ export function ProductDetailPage({
     );
   }
 
-  const hasVariations = activeGroups.length > 0;
   const canAddToCart =
     product.inStock && (!hasVariations || selectedVariants.length > 0);
   const displayTitle = product.title.split("–")[0]?.trim() ?? product.title;
@@ -251,33 +351,69 @@ export function ProductDetailPage({
                 groups={activeGroups}
                 basePriceCents={product.priceCents}
                 selection={variantSelection}
+                quantities={optionQuantities}
                 resetKey={product.slug}
-                onToggle={(groupId, optionId) => {
-                  setLastToggledOptionId(optionId);
-                  setVariantSelection((current) =>
-                    toggleVariantMultiSelection(current, groupId, optionId),
-                  );
-                }}
+                onToggle={handleVariantToggle}
+                onQuantityChange={(optionId, quantity) =>
+                  setOptionQuantities((current) => ({
+                    ...current,
+                    [optionId]: quantity,
+                  }))
+                }
               />
             )}
+
+            {activeGroups.length > 1 && selectedVariants.length > 0 && (
+              <div className="space-y-2 border border-outline-variant/30 bg-surface-container-low p-4">
+                <p className="font-label-sm uppercase text-on-surface-variant">
+                  Quantities
+                </p>
+                <ul className="space-y-2">
+                  {selectedVariants.map((variant) => (
+                    <li
+                      key={variant.id}
+                      className="flex flex-wrap items-center justify-between gap-3"
+                    >
+                      <span className="min-w-0 flex-1 font-label-md text-on-surface">
+                        {variant.label}
+                      </span>
+                      <QuantityStepper
+                        value={variantQuantities[variant.id] ?? 1}
+                        onChange={(qty) =>
+                          setVariantQuantities((current) => ({
+                            ...current,
+                            [variant.id]: qty,
+                          }))
+                        }
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {!hasVariations && (
+              <div className="flex items-center justify-between gap-4 border border-outline-variant/30 bg-surface-container-low px-4 py-3">
+                <span className="font-label-md uppercase text-on-surface-variant">
+                  Quantity
+                </span>
+                <QuantityStepper
+                  value={baseQuantity}
+                  onChange={setBaseQuantity}
+                />
+              </div>
+            )}
+
             <div className="space-y-stack-sm">
               <button
                 type="button"
                 disabled={!canAddToCart}
-                onClick={() => {
-                  if (!hasVariations) {
-                    addItem(product, { quantity: 1 });
-                    return;
-                  }
-                  for (const variant of selectedVariants) {
-                    addItem(product, { variant, quantity: 1 });
-                  }
-                }}
+                onClick={handleAddToCart}
                 className="molten-glow flex w-full items-center justify-center gap-3 bg-primary py-5 font-headline-md uppercase tracking-wider text-on-primary transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
               >
                 <Icon name="add_shopping_cart" />
-                {selectedVariants.length > 1
-                  ? `Add ${selectedVariants.length} to Cart`
+                {addToCartCount > 1
+                  ? `Add ${addToCartCount} to Cart`
                   : "Add to Cart"}
               </button>
               <ProductFavoriteButton

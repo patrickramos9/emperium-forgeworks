@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { QuantityStepper } from "@/components/QuantityStepper";
 import { formatPrice } from "@/data/seedProducts";
 import {
   groupDisplayName,
@@ -10,7 +11,9 @@ interface VariantPickerProps {
   groups: ProductOptionGroup[];
   basePriceCents: number;
   selection: Record<string, string[]>;
+  quantities: Record<string, number>;
   onToggle: (groupId: string, optionId: string) => void;
+  onQuantityChange: (optionId: string, quantity: number) => void;
   /** Reset open panels when the product changes. */
   resetKey?: string;
 }
@@ -31,7 +34,9 @@ export function VariantPicker({
   groups,
   basePriceCents,
   selection,
+  quantities,
   onToggle,
+  onQuantityChange,
   resetKey,
 }: VariantPickerProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -116,7 +121,7 @@ export function VariantPicker({
                         type="button"
                         aria-pressed={selected}
                         onClick={() => onToggle(group.id, option.id)}
-                        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-container-high ${
+                        className={`flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-left transition-colors hover:bg-surface-container-high ${
                           selected ? "bg-primary/10" : ""
                         }`}
                       >
@@ -132,9 +137,17 @@ export function VariantPicker({
                         >
                           {option.label}
                         </span>
-                        <span className="font-label-sm text-on-surface-variant">
+                        <span className="shrink-0 font-label-sm text-on-surface-variant">
                           {formatPrice(basePriceCents + option.priceDeltaCents)}
                         </span>
+                        {selected && (
+                          <QuantityStepper
+                            size="sm"
+                            stopPropagation
+                            value={quantities[option.id] ?? 1}
+                            onChange={(qty) => onQuantityChange(option.id, qty)}
+                          />
+                        )}
                       </button>
                     </li>
                   );
