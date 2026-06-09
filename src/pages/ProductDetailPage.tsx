@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { ProductImage } from "@/components/ProductImage";
+import { RichTextContent } from "@/components/RichTextContent";
+import { isRichTextEmpty } from "@/lib/richTextUtils";
 import { VariantPicker } from "@/components/VariantPicker";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
@@ -199,14 +201,15 @@ export function ProductDetailPage({
               </div>
             )}
 
-            {product.description && (
+            {!isRichTextEmpty(product.description) && (
               <div className="border border-outline-variant/10 bg-surface-container-high p-6 iron-bevel">
                 <h2 className="font-headline-md text-[18px] text-on-surface">
                   Description
                 </h2>
-                <p className="mt-stack-md font-body-md leading-relaxed text-on-surface-variant">
-                  {product.description}
-                </p>
+                <RichTextContent
+                  html={product.description}
+                  className="mt-stack-md"
+                />
               </div>
             )}
           </div>

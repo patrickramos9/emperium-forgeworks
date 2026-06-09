@@ -7,6 +7,10 @@ import {
 } from "@/data/seedProducts";
 import { AdminProductGalleryEditor } from "@/components/admin/AdminProductGalleryEditor";
 import { AdminProductVariantsEditor } from "@/components/admin/AdminProductVariantsEditor";
+import {
+  normalizeRichTextForSave,
+  RichTextEditor,
+} from "@/components/RichTextEditor";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { mapAmplifyProduct } from "@/lib/mapAmplifyProduct";
@@ -217,7 +221,7 @@ export function AdminProductEditPage() {
         slug: normalizeProductSlug(productSlug),
         title,
         subtitle: subtitle || undefined,
-        description: description || undefined,
+        description: normalizeRichTextForSave(description),
         lore: lore || undefined,
         category,
         priceCents,
@@ -361,20 +365,17 @@ export function AdminProductEditPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
         </label>
-        <label className="block">
+        <div>
           <span className="font-label-sm uppercase text-on-surface-variant">
             Description
           </span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={12}
-            className="mt-1 min-h-[16rem] w-full resize-y border border-outline-variant/30 bg-surface-container-low px-3 py-2 leading-relaxed"
-          />
-          <p className="mt-1 text-body-sm text-on-surface-variant">
-            Drag the bottom edge to make the box taller while you write.
-          </p>
-        </label>
+          <div className="mt-1">
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+            />
+          </div>
+        </div>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
             Price (USD)
