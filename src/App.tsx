@@ -45,6 +45,7 @@ import { AdminSculptorsPage } from "@/pages/admin/AdminSculptorsPage";
 import { AdminSculptorEditPage } from "@/pages/admin/AdminSculptorEditPage";
 import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayout";
 import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage";
+import { TrustedSiteScript } from "@/components/TrustedSiteScript";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -68,6 +69,7 @@ export default function App() {
       <AnnouncementProvider>
         <BrowserRouter>
           <AnalyticsTracker />
+          <TrustedSiteScript />
           <SiteSystemBanner />
           <Routes>
           <Route element={<Layout showPowerLine />}>
