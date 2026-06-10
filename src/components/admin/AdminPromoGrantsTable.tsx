@@ -29,9 +29,15 @@ function statusLabel(status: ReturnType<typeof getGrantStatus>): string {
   }
 }
 
+function shortTemplateId(templateId: string): string {
+  if (templateId.length <= 12) return templateId;
+  return `${templateId.slice(0, 8)}…`;
+}
+
 type AdminPromoGrantsTableProps = {
   grants: PromoGrantRecord[];
-  templateById: Map<string, PromoTemplateRecord>;
+  /** Value is the template, or null when the template was deleted. */
+  templateById: Map<string, PromoTemplateRecord | null>;
   customerLabels: Map<string, CustomerLabel>;
   onRevoke?: (grantId: string) => void;
   emptyMessage?: string;
@@ -64,6 +70,7 @@ export function AdminPromoGrantsTable({
         <tbody>
           {grants.map((grant) => {
             const template = templateById.get(grant.templateId);
+            const templateResolved = templateById.has(grant.templateId);
             const label = customerLabels.get(grant.userId);
             const status = getGrantStatus(grant);
 
@@ -91,8 +98,18 @@ export function AdminPromoGrantsTable({
                         {templateDiscountLabel(template)}
                       </p>
                     </div>
+                  ) : templateResolved ? (
+                    <div>
+                      <p className="text-on-surface">Deleted template</p>
+                      <p className="text-label-sm text-on-surface-variant">
+                        Template {shortTemplateId(grant.templateId)} was removed
+                        after this grant was issued.
+                      </p>
+                    </div>
                   ) : (
-                    <span className="text-on-surface-variant">Unknown template</span>
+                    <span className="text-on-surface-variant">
+                      Resolving template…
+                    </span>
                   )}
                 </td>
                 <td className="p-3">

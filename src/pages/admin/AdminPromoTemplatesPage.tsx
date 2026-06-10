@@ -6,8 +6,12 @@ import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
 import { hasPromoGrantModel, hasPromoTemplateModel } from "@/lib/dataModels";
-import { listAllPromoGrants } from "@/services/promoGrantService";
-import { listAllPromoTemplates } from "@/services/promoTemplateService";
+import type { PromoTemplateRecord } from "@/lib/promoGrants";
+import { listAllPromoGrants, revokePromoGrant } from "@/services/promoGrantService";
+import {
+  listAllPromoTemplates,
+  resolveTemplatesForGrants,
+} from "@/services/promoTemplateService";
 
 export function AdminPromoTemplatesPage() {
   const navigate = useNavigate();
@@ -21,6 +25,9 @@ export function AdminPromoTemplatesPage() {
   >([]);
   const [customerLabels, setCustomerLabels] = useState<
     Awaited<ReturnType<typeof resolveCustomerLabelsForUserIds>>
+  >(new Map());
+  const [templateById, setTemplateById] = useState<
+    Map<string, PromoTemplateRecord | null>
   >(new Map());
 
   const load = useCallback(async () => {
@@ -51,26 +58,58 @@ export function AdminPromoTemplatesPage() {
       ]);
       setRows(templates);
       setGrants(allGrants);
-      const userIds = [...new Set(allGrants.map((grant) => grant.userId))];
-      setCustomerLabels(
-        userIds.length
-          ? await resolveCustomerLabelsForUserIds(client, userIds)
-          : new Map(),
-      );
+      const [labels, resolvedTemplates] = await Promise.all([
+        allGrants.length
+          ? resolveCustomerLabelsForUserIds(
+              client,
+              [...new Set(allGrants.map((grant) => grant.userId))],
+            )
+          : Promise.resolve(new Map()),
+        resolveTemplatesForGrants(
+          client,
+          allGrants.map((grant) => grant.templateId),
+          templates,
+        ),
+      ]);
+      setCustomerLabels(labels);
+      setTemplateById(resolvedTemplates);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     }
     setLoading(false);
   }, [navigate]);
 
-  const templateById = useMemo(
-    () => new Map(rows.map((row) => [row.id, row])),
-    [rows],
-  );
-
   useEffect(() => {
     void load();
   }, [load]);
+
+  const orphanedGrantCount = useMemo(
+    () =>
+      grants.filter(
+        (grant) =>
+          templateById.has(grant.templateId) &&
+          templateById.get(grant.templateId) === null,
+      ).length,
+    [grants, templateById],
+  );
+
+  async function handleRevokeGrant(grantId: string) {
+    if (!window.confirm("Revoke this grant for the customer?")) return;
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+    try {
+      await revokePromoGrant(client, grantId);
+      setGrants((rows) =>
+        rows.map((row) =>
+          row.id === grantId
+            ? { ...row, revokedAt: new Date().toISOString() }
+            : row,
+        ),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Revoke failed");
+    }
+  }
 
   return (
     <div>
@@ -151,6 +190,13 @@ export function AdminPromoTemplatesPage() {
           All customer offers issued from templates — admin, thank-you, favorite,
           and abandoned cart.
         </p>
+        {orphanedGrantCount > 0 && (
+          <p className="mt-2 text-body-sm text-error">
+            {orphanedGrantCount} grant{orphanedGrantCount === 1 ? "" : "s"}{" "}
+            reference deleted templates. Revoke them to clean up test data, or
+            leave redeemed/expired rows as historical records.
+          </p>
+        )}
         {loading ? (
           <p className="mt-4 text-on-surface-variant">Loading grants...</p>
         ) : (
@@ -159,6 +205,7 @@ export function AdminPromoTemplatesPage() {
               grants={grants}
               templateById={templateById}
               customerLabels={customerLabels}
+              onRevoke={(grantId) => void handleRevokeGrant(grantId)}
               emptyMessage="No grants issued yet. Favorite, abandoned-cart, and thank-you grants appear here after the backend rules fire."
             />
           </div>

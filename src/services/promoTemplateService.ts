@@ -1,6 +1,8 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import type { Schema } from "../../amplify/data/resource";
 import { requirePromoTemplateModel } from "@/lib/dataModels";
+import { isGrantActive } from "@/lib/promoGrants";
+import { listAllPromoGrants } from "@/services/promoGrantService";
 
 export type PromoTemplateRecord = Schema["PromoTemplate"]["type"];
 
@@ -81,6 +83,42 @@ export async function getPromoTemplateById(
   return data ?? null;
 }
 
+/** Every grant templateId maps to its template, or null when the template was deleted. */
+export async function resolveTemplatesForGrants(
+  client: AmplifyDataClient,
+  grantTemplateIds: string[],
+  templates?: PromoTemplateRecord[],
+): Promise<Map<string, PromoTemplateRecord | null>> {
+  const allTemplates = templates ?? (await listAllPromoTemplates(client));
+  const map = new Map<string, PromoTemplateRecord | null>(
+    allTemplates.map((row) => [row.id, row]),
+  );
+
+  const missingIds = [
+    ...new Set(grantTemplateIds.filter((id) => id && !map.has(id))),
+  ];
+
+  await Promise.all(
+    missingIds.map(async (id) => {
+      map.set(id, await getPromoTemplateById(client, id));
+    }),
+  );
+
+  return map;
+}
+
+export async function grantCountsForTemplate(
+  client: AmplifyDataClient,
+  templateId: string,
+): Promise<{ total: number; open: number }> {
+  const grants = await listAllPromoGrants(client);
+  const matching = grants.filter((grant) => grant.templateId === templateId);
+  return {
+    total: matching.length,
+    open: matching.filter((grant) => isGrantActive(grant)).length,
+  };
+}
+
 export async function createPromoTemplate(
   client: AmplifyDataClient,
   input: PromoTemplateInput,
@@ -133,6 +171,13 @@ export async function deletePromoTemplate(
   client: AmplifyDataClient,
   id: string,
 ): Promise<void> {
+  const { open } = await grantCountsForTemplate(client, id);
+  if (open > 0) {
+    throw new Error(
+      `Cannot delete: ${open} open grant${open === 1 ? "" : "s"} still reference this template. Revoke them in Issued grants first.`,
+    );
+  }
+
   const PromoTemplate = requirePromoTemplateModel(client);
   const { errors } = await PromoTemplate.delete({ id });
   if (errors?.length) {

@@ -11,6 +11,7 @@ import {
   createPromoTemplate,
   deletePromoTemplate,
   getPromoTemplateById,
+  grantCountsForTemplate,
   updatePromoTemplate,
 } from "@/services/promoTemplateService";
 import { AdminPromoGrantsTable } from "@/components/admin/AdminPromoGrantsTable";
@@ -67,7 +68,7 @@ export function AdminPromoTemplateEditPage() {
   );
 
   const templateById = useMemo(() => {
-    if (!loadedTemplate) return new Map<string, PromoTemplateRecord>();
+    if (!loadedTemplate) return new Map<string, PromoTemplateRecord | null>();
     return new Map([[loadedTemplate.id, loadedTemplate]]);
   }, [loadedTemplate]);
 
@@ -258,9 +259,22 @@ export function AdminPromoTemplateEditPage() {
 
   async function handleDelete() {
     if (isNew || !id) return;
-    if (!window.confirm("Delete this promo template?")) return;
     const client = await requireAdminSession(navigate);
     if (!client) return;
+
+    const { total, open } = await grantCountsForTemplate(client, id);
+    let message = "Delete this promo template?";
+    if (open > 0) {
+      setError(
+        `Cannot delete: ${open} open grant${open === 1 ? "" : "s"} still reference this template. Revoke them in Issued grants first.`,
+      );
+      return;
+    }
+    if (total > 0) {
+      message = `Delete this template? ${total} historical grant${total === 1 ? "" : "s"} will show as "Deleted template" in Issued grants.`;
+    }
+    if (!window.confirm(message)) return;
+
     try {
       await deletePromoTemplate(client, id);
       navigate("/admin/promos");
