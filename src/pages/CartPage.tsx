@@ -28,9 +28,15 @@ export function CartPage() {
     enrichFromCatalog,
   } = useCart();
   const { products, loading: catalogLoading } = useProducts("all");
-  const { promo, loading: promoLoading, signedIn } = useCartPromo(items, products);
+  const [promoRefreshKey, setPromoRefreshKey] = useState(0);
+  const { promo, loading: promoLoading, signedIn } = useCartPromo(
+    items,
+    products,
+    promoRefreshKey,
+  );
   const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   const cartIssues = useMemo(
     () => getCartLineIssues(items, products),
@@ -68,15 +74,40 @@ export function CartPage() {
   useEffect(() => {
     if (!signedIn || !items.length || catalogLoading) return;
 
+    let cancelled = false;
+
+    async function runSync() {
+      const client = await getCustomerDataClient();
+      if (!client || cancelled) return;
+      const result = await syncCartSnapshot(client, items);
+      if (cancelled) return;
+      setPromoRefreshKey((key) => key + 1);
+      if (result.grantIssued) {
+        setSyncNotice("Welcome-back offer applied to your cart.");
+      }
+    }
+
     const timer = window.setTimeout(() => {
-      void (async () => {
-        const client = await getCustomerDataClient();
-        if (!client) return;
-        await syncCartSnapshot(client, items);
-      })();
+      void runSync();
     }, 600);
 
-    return () => window.clearTimeout(timer);
+    const interval = window.setInterval(() => {
+      void runSync();
+    }, 5 * 60 * 1000);
+
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        void runSync();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [cartSyncKey, signedIn, items, catalogLoading]);
 
   const canCheckout =
@@ -149,6 +180,12 @@ export function CartPage() {
       {catalogLoading && (
         <p className="mb-4 text-label-sm text-on-surface-variant">
           Verifying catalog…
+        </p>
+      )}
+
+      {syncNotice && (
+        <p className="mb-4 border border-secondary/30 bg-surface-container-low p-3 text-body-sm text-secondary">
+          {syncNotice}
         </p>
       )}
 

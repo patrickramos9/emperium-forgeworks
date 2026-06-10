@@ -44,7 +44,7 @@ function snapshotHasItems(
   return (lineItems ?? []).some((row) => row && row.quantity > 0);
 }
 
-/** Stable signature so viewing /cart without edits does not reset abandon idle time. */
+/** Stable signature — slug/qty/price only so catalog id sync does not reset idle time. */
 function snapshotSignature(
   lineItems: Schema["CartSnapshotLine"]["type"][],
 ): string {
@@ -52,12 +52,11 @@ function snapshotSignature(
     lineItems
       .filter((row) => row.quantity > 0)
       .map((row) => ({
-        productId: row.productId,
-        slug: row.slug,
+        slug: row.slug ?? row.productId,
         quantity: row.quantity,
         priceCents: row.priceCents,
       }))
-      .sort((a, b) => a.productId.localeCompare(b.productId)),
+      .sort((a, b) => a.slug.localeCompare(b.slug)),
   );
 }
 

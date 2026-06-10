@@ -9,7 +9,11 @@ import { getCustomerUserId } from "@/lib/customerAuth";
 import type { AppliedPromo } from "@/lib/promoGrants";
 import { resolveBestAppliedPromo } from "@/services/promoGrantService";
 
-export function useCartPromo(lines: CartLine[], products: Product[]) {
+export function useCartPromo(
+  lines: CartLine[],
+  products: Product[],
+  refreshToken = 0,
+) {
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
@@ -84,7 +88,7 @@ export function useCartPromo(lines: CartLine[], products: Product[]) {
     return () => {
       cancelled = true;
     };
-  }, [lineKey, signedIn, products]);
+  }, [lineKey, signedIn, products, refreshToken]);
 
   return { promo, loading, signedIn };
 }
