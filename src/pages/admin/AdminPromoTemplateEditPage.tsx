@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState, type ReactNode } from "react";
+import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { hasPromoTemplateModel } from "@/lib/dataModels";
@@ -13,6 +13,8 @@ import {
   getPromoTemplateById,
   updatePromoTemplate,
 } from "@/services/promoTemplateService";
+import { AdminPromoGrantsTable } from "@/components/admin/AdminPromoGrantsTable";
+import type { PromoTemplateRecord } from "@/lib/promoGrants";
 import { issuePromoGrant, revokePromoGrant } from "@/services/promoGrantService";
 import { listAllPromoGrants } from "@/services/promoGrantService";
 
@@ -60,6 +62,14 @@ export function AdminPromoTemplateEditPage() {
   const [customerLabels, setCustomerLabels] = useState<
     Map<string, CustomerLabel>
   >(new Map());
+  const [loadedTemplate, setLoadedTemplate] = useState<PromoTemplateRecord | null>(
+    null,
+  );
+
+  const templateById = useMemo(() => {
+    if (!loadedTemplate) return new Map<string, PromoTemplateRecord>();
+    return new Map([[loadedTemplate.id, loadedTemplate]]);
+  }, [loadedTemplate]);
 
   useEffect(() => {
     async function load() {
@@ -80,6 +90,7 @@ export function AdminPromoTemplateEditPage() {
           return;
         }
         setName(row.name);
+        setLoadedTemplate(row);
         setKind(row.kind === "fixed" ? "fixed" : "percent");
         setPercent(row.percent != null ? String(row.percent) : "10");
         setAmountDollars(
@@ -431,50 +442,18 @@ export function AdminPromoTemplateEditPage() {
             </button>
           </form>
 
-          {grants.length > 0 && (
-            <ul className="space-y-2 text-body-sm">
-              {grants.slice(0, 20).map((grant) => {
-                const label = customerLabels.get(grant.userId);
-                const status = grant.redeemedAt
-                  ? "redeemed"
-                  : grant.revokedAt
-                    ? "revoked"
-                    : "open";
-
-                return (
-                <li
-                  key={grant.id}
-                  className="flex flex-wrap items-center justify-between gap-2 border border-outline-variant/10 p-2"
-                >
-                  <div className="min-w-0">
-                    <p className="font-label-md text-on-surface">
-                      {label?.displayName ?? "Unknown customer"}
-                    </p>
-                    {label?.email &&
-                      label.displayName.toLowerCase() !==
-                        label.email.toLowerCase() && (
-                        <p className="text-label-sm text-on-surface-variant">
-                          {label.email}
-                        </p>
-                      )}
-                    <p className="text-label-sm text-on-surface-variant">
-                      {grant.source} · {status}
-                    </p>
-                  </div>
-                  {!grant.redeemedAt && !grant.revokedAt && (
-                    <button
-                      type="button"
-                      onClick={() => void handleRevokeGrant(grant.id)}
-                      className="font-label-sm uppercase text-error hover:underline"
-                    >
-                      Revoke
-                    </button>
-                  )}
-                </li>
-              );
-              })}
-            </ul>
-          )}
+          <div className="mt-4">
+            <h3 className="font-label-sm uppercase text-on-surface-variant">
+              Grants for this template
+            </h3>
+            <AdminPromoGrantsTable
+              grants={grants}
+              templateById={templateById}
+              customerLabels={customerLabels}
+              onRevoke={(grantId) => void handleRevokeGrant(grantId)}
+              emptyMessage="No grants issued from this template yet."
+            />
+          </div>
         </section>
       )}
     </div>

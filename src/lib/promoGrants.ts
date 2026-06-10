@@ -51,6 +51,48 @@ export function grantExpiresAtIso(
   return expiresAt?.trim() || INDEFINITE_ISO;
 }
 
+export type PromoGrantStatus = "open" | "redeemed" | "revoked" | "expired";
+
+export function formatGrantSourceLabel(
+  source: PromoGrantSource | null | undefined,
+): string {
+  switch (source) {
+    case "admin":
+      return "Admin";
+    case "thank_you":
+      return "Thank-you";
+    case "favorite":
+      return "Favorite";
+    case "abandoned_cart":
+      return "Abandoned cart";
+    default:
+      return "—";
+  }
+}
+
+export function getGrantStatus(
+  grant: PromoGrantRecord,
+  nowMs = Date.now(),
+): PromoGrantStatus {
+  if (grant.redeemedAt) return "redeemed";
+  if (grant.revokedAt) return "revoked";
+  if (!isGrantActive(grant, nowMs)) return "expired";
+  return "open";
+}
+
+export function formatGrantIssuedAt(
+  createdAt: string | null | undefined,
+): string {
+  if (!createdAt) return "—";
+  return new Date(createdAt).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function isGrantActive(
   grant: PromoGrantRecord,
   nowMs = Date.now(),

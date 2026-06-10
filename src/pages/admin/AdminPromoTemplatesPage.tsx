@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AdminPromoGrantsTable } from "@/components/admin/AdminPromoGrantsTable";
 import { formatPrice } from "@/data/seedProducts";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
-import { hasPromoTemplateModel } from "@/lib/dataModels";
+import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
+import { hasPromoGrantModel, hasPromoTemplateModel } from "@/lib/dataModels";
+import { listAllPromoGrants } from "@/services/promoGrantService";
 import { listAllPromoTemplates } from "@/services/promoTemplateService";
 
 export function AdminPromoTemplatesPage() {
@@ -13,6 +16,12 @@ export function AdminPromoTemplatesPage() {
   const [rows, setRows] = useState<
     Awaited<ReturnType<typeof listAllPromoTemplates>>
   >([]);
+  const [grants, setGrants] = useState<
+    Awaited<ReturnType<typeof listAllPromoGrants>>
+  >([]);
+  const [customerLabels, setCustomerLabels] = useState<
+    Awaited<ReturnType<typeof resolveCustomerLabelsForUserIds>>
+  >(new Map());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -36,12 +45,28 @@ export function AdminPromoTemplatesPage() {
       return;
     }
     try {
-      setRows(await listAllPromoTemplates(client));
+      const [templates, allGrants] = await Promise.all([
+        listAllPromoTemplates(client),
+        hasPromoGrantModel(client) ? listAllPromoGrants(client) : Promise.resolve([]),
+      ]);
+      setRows(templates);
+      setGrants(allGrants);
+      const userIds = [...new Set(allGrants.map((grant) => grant.userId))];
+      setCustomerLabels(
+        userIds.length
+          ? await resolveCustomerLabelsForUserIds(client, userIds)
+          : new Map(),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     }
     setLoading(false);
   }, [navigate]);
+
+  const templateById = useMemo(
+    () => new Map(rows.map((row) => [row.id, row])),
+    [rows],
+  );
 
   useEffect(() => {
     void load();
@@ -117,6 +142,28 @@ export function AdminPromoTemplatesPage() {
           ))}
         </ul>
       )}
+
+      <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
+        <h2 className="font-headline-md uppercase text-on-surface">
+          Issued grants
+        </h2>
+        <p className="mt-1 text-body-sm text-on-surface-variant">
+          All customer offers issued from templates — admin, thank-you, favorite,
+          and abandoned cart.
+        </p>
+        {loading ? (
+          <p className="mt-4 text-on-surface-variant">Loading grants...</p>
+        ) : (
+          <div className="mt-4">
+            <AdminPromoGrantsTable
+              grants={grants}
+              templateById={templateById}
+              customerLabels={customerLabels}
+              emptyMessage="No grants issued yet. Favorite, abandoned-cart, and thank-you grants appear here after the backend rules fire."
+            />
+          </div>
+        )}
+      </section>
     </div>
   );
 }
