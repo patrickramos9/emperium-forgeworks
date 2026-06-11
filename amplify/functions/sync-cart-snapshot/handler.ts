@@ -60,6 +60,27 @@ function snapshotSignature(
   );
 }
 
+function normalizeLineItems(
+  lineItems: Schema["CartSnapshotLine"]["type"][],
+): Schema["CartSnapshotLine"]["type"][] {
+  return lineItems
+    .filter((row) => row && row.quantity > 0)
+    .map((row) => ({
+      productId: row.productId,
+      slug: row.slug?.trim() || row.productId,
+      quantity: row.quantity,
+      priceCents: row.priceCents,
+      ...(row.title?.trim() ? { title: row.title.trim() } : {}),
+    }));
+}
+
+/** CartSnapshot.lineItems is a.json() — AppSync expects a serialized JSON string. */
+function lineItemsJsonFromSnapshot(
+  lineItems: Schema["CartSnapshotLine"]["type"][],
+): string {
+  return JSON.stringify(normalizeLineItems(lineItems));
+}
+
 export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
   event,
 ) => {
@@ -71,8 +92,10 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
     throw new Error("Sign in to sync cart.");
   }
 
-  const lineItems = (event.arguments.lineItems ?? []).filter(
-    (row): row is Schema["CartSnapshotLine"]["type"] => row != null,
+  const lineItems = normalizeLineItems(
+    (event.arguments.lineItems ?? []).filter(
+      (row): row is Schema["CartSnapshotLine"]["type"] => row != null,
+    ),
   );
   const now = new Date().toISOString();
   const nowMs = Date.now();
@@ -126,7 +149,7 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
 
   const payload = {
     userId,
-    lineItems,
+    lineItems: lineItemsJsonFromSnapshot(lineItems),
     updatedAt: linesChanged ? now : (previous?.updatedAt ?? now),
     abandonedAt: grantIssued ? now : (previous?.abandonedAt ?? null),
   };

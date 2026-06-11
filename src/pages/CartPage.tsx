@@ -14,7 +14,7 @@ import {
 } from "@/lib/cartCatalog";
 import { useCartPromo } from "@/hooks/useCartPromo";
 import { startCheckout } from "@/services/checkoutService";
-import { syncCartSnapshot } from "@/services/cartSnapshotService";
+import { syncCartSnapshot, cartLinesReadyForSnapshot } from "@/services/cartSnapshotService";
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { Link } from "react-router-dom";
 
@@ -73,6 +73,7 @@ export function CartPage() {
 
   useEffect(() => {
     if (!signedIn || !items.length || catalogLoading) return;
+    if (!cartLinesReadyForSnapshot(items)) return;
 
     let cancelled = false;
 
@@ -82,6 +83,11 @@ export function CartPage() {
       const result = await syncCartSnapshot(client, items);
       if (cancelled) return;
       setPromoRefreshKey((key) => key + 1);
+      if (result.error) {
+        setSyncNotice(null);
+        console.warn("[CartPage] cart sync failed:", result.error);
+        return;
+      }
       if (result.grantIssued) {
         setSyncNotice("Welcome-back offer applied to your cart.");
       }
