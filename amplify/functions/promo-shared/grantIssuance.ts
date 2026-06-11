@@ -164,6 +164,31 @@ export async function issueFavoriteGrantIfNeeded(
   return true;
 }
 
+export async function revokeOpenAbandonedCartGrants(
+  client: DataClient,
+  userId: string,
+): Promise<number> {
+  const grants = await listGrantsForUser(client, userId);
+  const now = new Date().toISOString();
+  let revoked = 0;
+
+  for (const grant of grants) {
+    if (grant.source !== "abandoned_cart" || !isGrantOpen(grant)) continue;
+    const result = await client.models.PromoGrant.update({
+      id: grant.id,
+      revokedAt: now,
+    });
+    if (result.errors?.length) {
+      throw new Error(
+        `Failed to revoke abandon grant ${grant.id}: ${result.errors.map((e) => e.message).join("; ")}`,
+      );
+    }
+    revoked += 1;
+  }
+
+  return revoked;
+}
+
 export async function issueAbandonedCartGrantIfNeeded(
   client: DataClient,
   userId: string,

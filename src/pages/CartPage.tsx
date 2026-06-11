@@ -86,14 +86,28 @@ export function CartPage() {
   }, [catalogVerified]);
 
   useEffect(() => {
-    if (!signedIn || !items.length || catalogLoading || !catalogVerified) return;
-    if (!cartLinesReadyForSnapshot(items)) return;
+    if (!signedIn || catalogLoading) return;
 
     let cancelled = false;
 
     async function runSync() {
       const client = await getCustomerDataClient();
       if (!client || cancelled) return;
+
+      if (!items.length) {
+        const result = await syncCartSnapshot(client, []);
+        if (cancelled) return;
+        setPreferAbandonedPromo(false);
+        setSyncNotice(null);
+        setPromoRefreshKey((key) => key + 1);
+        if (result.error) {
+          console.warn("[CartPage] empty-cart sync failed:", result.error);
+        }
+        return;
+      }
+
+      if (!catalogVerified || !cartLinesReadyForSnapshot(items)) return;
+
       const result = await syncCartSnapshot(client, items);
       if (cancelled) return;
       setPromoRefreshKey((key) => key + 1);
@@ -101,6 +115,10 @@ export function CartPage() {
         setSyncNotice(null);
         console.warn("[CartPage] cart sync failed:", result.error);
         return;
+      }
+      if (result.grantsRevoked) {
+        setPreferAbandonedPromo(false);
+        setSyncNotice(null);
       }
       if (result.grantIssued) {
         setPreferAbandonedPromo(true);

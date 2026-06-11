@@ -87,6 +87,7 @@ const schema = a.schema({
   SyncCartSnapshotResult: a.customType({
     synced: a.boolean().required(),
     grantIssued: a.boolean().required(),
+    grantsRevoked: a.boolean().required(),
   }),
 
   listCustomers: a

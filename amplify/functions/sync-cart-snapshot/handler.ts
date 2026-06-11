@@ -7,6 +7,7 @@ import {
   findActiveTemplate,
   issueAbandonedCartGrantIfNeeded,
   listAllTemplates,
+  revokeOpenAbandonedCartGrants,
 } from "../promo-shared/grantIssuance.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
@@ -100,6 +101,7 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
   const now = new Date().toISOString();
   const nowMs = Date.now();
   let grantIssued = false;
+  let grantsRevoked = false;
 
   const existing = await dataClient.models.CartSnapshot.get({ userId });
   if (existing.errors?.length) {
@@ -141,10 +143,12 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
   }
 
   if (!incomingHasItems) {
+    const revoked = await revokeOpenAbandonedCartGrants(dataClient, userId);
+    grantsRevoked = revoked > 0;
     if (previous) {
       await dataClient.models.CartSnapshot.delete({ userId });
     }
-    return { synced: true, grantIssued };
+    return { synced: true, grantIssued, grantsRevoked };
   }
 
   const payload = {
@@ -166,5 +170,5 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
     }
   }
 
-  return { synced: true, grantIssued };
+  return { synced: true, grantIssued, grantsRevoked };
 };

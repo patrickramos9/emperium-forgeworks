@@ -14,6 +14,7 @@ import {
   MAX_LINE_QTY,
 } from "@/lib/cartConstants";
 import { productPrimaryImageRef } from "@/lib/productImageUrls";
+import { useEmptyCartSnapshotSync } from "@/hooks/useEmptyCartSnapshotSync";
 
 export interface CartLine {
   key: string;
@@ -95,6 +96,8 @@ function persistItems(items: CartLine[]) {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartLine[]>(loadStoredItems);
+
+  useEmptyCartSnapshotSync(items);
 
   useEffect(() => {
     persistItems(items);

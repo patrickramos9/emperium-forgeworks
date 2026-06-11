@@ -25,10 +25,17 @@ export function cartLinesReadyForSnapshot(items: CartLine[]): boolean {
   );
 }
 
+export type SyncCartSnapshotResult = {
+  synced: boolean;
+  grantIssued: boolean;
+  grantsRevoked?: boolean;
+  error?: string;
+};
+
 export async function syncCartSnapshot(
   client: AmplifyDataClient,
   items: CartLine[],
-): Promise<{ synced: boolean; grantIssued: boolean; error?: string }> {
+): Promise<SyncCartSnapshotResult> {
   if (!client.mutations.syncCartSnapshot) {
     return {
       synced: false,
@@ -38,9 +45,6 @@ export async function syncCartSnapshot(
   }
 
   const lineItems = cartLinesToSnapshotInput(items);
-  if (!lineItems.length) {
-    return { synced: false, grantIssued: false };
-  }
 
   const { data, errors } = await client.mutations.syncCartSnapshot({
     lineItems,
