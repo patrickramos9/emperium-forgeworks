@@ -171,8 +171,15 @@ export function pickBestGrant(
     template: PromoTemplateRecord;
     discountCents: number;
   }[],
+  preferSource?: PromoGrantSource,
 ): (typeof candidates)[number] | null {
   if (!candidates.length) return null;
+
+  if (preferSource) {
+    const preferred = candidates.filter((row) => row.grant.source === preferSource);
+    const preferredWinner = pickBestGrant(preferred);
+    if (preferredWinner) return preferredWinner;
+  }
 
   return candidates.reduce((best, row) => {
     if (row.discountCents > best.discountCents) return row;

@@ -6,13 +6,15 @@ import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { hasPromoGrantModel } from "@/lib/dataModels";
 import { hasCustomerSession } from "@/lib/customerAuth";
 import { getCustomerUserId } from "@/lib/customerAuth";
-import type { AppliedPromo } from "@/lib/promoGrants";
+import type { AppliedPromo, PromoGrantSource } from "@/lib/promoGrants";
 import { resolveBestAppliedPromo } from "@/services/promoGrantService";
 
 export function useCartPromo(
   lines: CartLine[],
   products: Product[],
   refreshToken = 0,
+  catalogVerified = true,
+  preferSource?: PromoGrantSource,
 ) {
   const [promo, setPromo] = useState<AppliedPromo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +76,7 @@ export function useCartPromo(
             quantity: line.quantity,
           })),
           products.map((p) => ({ id: p.id, slug: p.slug })),
+          preferSource ? { preferSource } : undefined,
         );
         if (!cancelled) setPromo(applied);
       } catch (err) {
@@ -88,7 +91,7 @@ export function useCartPromo(
     return () => {
       cancelled = true;
     };
-  }, [lineKey, signedIn, products, refreshToken]);
+  }, [lineKey, signedIn, products, refreshToken, catalogVerified, preferSource]);
 
   return { promo, loading, signedIn };
 }

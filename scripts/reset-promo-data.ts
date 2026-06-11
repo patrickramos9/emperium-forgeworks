@@ -1,5 +1,9 @@
 /**
- * Deletes all PromoGrant and PromoTemplate records (test data reset).
+ * Resets promo-related test data:
+ * - PromoGrant + PromoTemplate records
+ * - Marketing Notification rows (promo inbox messages; system/order kept)
+ * - CartSnapshot rows (idle-timer state for abandon detection)
+ *
  * Usage: npx tsx scripts/reset-promo-data.ts
  */
 import outputs from "../amplify_outputs.json";
@@ -23,6 +27,33 @@ async function listAll<T extends { id: string }>(
   }>,
 ): Promise<T[]> {
   const rows: T[] = [];
+  let nextToken: string | undefined;
+
+  do {
+    const response = await listFn({ limit: 100, nextToken });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row) rows.push(row);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  return rows;
+}
+
+async function listAllCartSnapshots(
+  listFn: (args: {
+    limit?: number;
+    nextToken?: string;
+  }) => Promise<{
+    data?: (Schema["CartSnapshot"]["type"] | null)[] | null;
+    errors?: { message: string }[] | null;
+    nextToken?: string | null;
+  }>,
+): Promise<Schema["CartSnapshot"]["type"][]> {
+  const rows: Schema["CartSnapshot"]["type"][] = [];
   let nextToken: string | undefined;
 
   do {
@@ -75,7 +106,53 @@ async function main() {
     console.log(`  Deleted template ${template.id} (${template.name})`);
   }
 
-  console.log("Promo data reset complete.");
+  if (client.models.Notification) {
+    const notifications = await listAll((args) =>
+      client.models.Notification.list(args),
+    );
+    const marketing = notifications.filter((row) => row.kind === "marketing");
+    console.log(
+      `Found ${marketing.length} marketing notification(s) (${notifications.length} total).`,
+    );
+    for (const note of marketing) {
+      const { errors } = await client.models.Notification.delete({ id: note.id });
+      if (errors?.length) {
+        throw new Error(
+          `Failed to delete notification ${note.id}: ${errors.map((e) => e.message).join("; ")}`,
+        );
+      }
+      console.log(`  Deleted notification ${note.id} (${note.title})`);
+    }
+  } else {
+    console.warn("Notification model not available — skipped marketing notification cleanup.");
+  }
+
+  if (client.models.CartSnapshot) {
+    const snapshots = await listAllCartSnapshots((args) =>
+      client.models.CartSnapshot.list(args),
+    );
+    console.log(`Found ${snapshots.length} cart snapshot(s).`);
+    for (const snapshot of snapshots) {
+      const { errors } = await client.models.CartSnapshot.delete({
+        userId: snapshot.userId,
+      });
+      if (errors?.length) {
+        throw new Error(
+          `Failed to delete cart snapshot ${snapshot.userId}: ${errors.map((e) => e.message).join("; ")}`,
+        );
+      }
+      console.log(`  Deleted cart snapshot for ${snapshot.userId}`);
+    }
+  } else {
+    console.warn("CartSnapshot model not available — skipped cart snapshot cleanup.");
+  }
+
+  console.log(
+    "Promo data reset complete (grants, templates, marketing notifications, cart snapshots).",
+  );
+  console.log(
+    "Note: NotificationRead rows may remain but no longer affect unread counts once marketing notifications are gone.",
+  );
 }
 
 main().catch((err) => {

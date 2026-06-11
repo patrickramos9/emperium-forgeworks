@@ -29,17 +29,31 @@ function resolveUnitPriceCents(
   return product.priceCents + (variant?.priceDeltaCents ?? 0);
 }
 
+/** True when the catalog finished loading and every cart line resolves to a product. */
+export function isCartCatalogVerified(
+  items: CartLine[],
+  products: Product[],
+  catalogLoading: boolean,
+): boolean {
+  if (catalogLoading || !items.length || !products.length) return false;
+  return items.every((item) => Boolean(findCatalogProduct(item, products)));
+}
+
 /** Checks cart lines against live catalog before checkout. */
 export function getCartLineIssues(
   items: CartLine[],
   products: Product[],
+  catalogVerified = true,
 ): CartLineIssue[] {
   const issues: CartLineIssue[] = [];
+
+  if (!products.length) return issues;
 
   for (const item of items) {
     const product = findCatalogProduct(item, products);
 
     if (!product) {
+      if (!catalogVerified) continue;
       issues.push({
         key: item.key,
         title: item.title,
@@ -94,9 +108,10 @@ export function issuesByLineKey(
 export function filterPurchasableCartLines(
   items: CartLine[],
   products: Product[],
+  catalogVerified = true,
 ): CartLine[] {
   const blocked = new Set(
-    getCartLineIssues(items, products)
+    getCartLineIssues(items, products, catalogVerified)
       .filter((issue) => issue.blocksCheckout)
       .map((issue) => issue.key),
   );

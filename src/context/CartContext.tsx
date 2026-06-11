@@ -78,6 +78,7 @@ function loadStoredItems(): CartLine[] {
       .map((item) => ({
         ...item,
         quantity: clampQuantity(item.quantity),
+        slug: item.slug?.trim() || item.productId,
       }));
   } catch {
     return [];

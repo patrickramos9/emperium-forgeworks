@@ -141,6 +141,7 @@ export async function resolveBestAppliedPromo(
   userId: string,
   lines: CartLineForPromo[],
   catalog?: { id: string; slug: string }[],
+  options?: { preferSource?: PromoGrantSource },
 ): Promise<AppliedPromo | null> {
   const grants = await listGrantsForUser(client, userId);
   const active = grants.filter((grant) => isGrantActive(grant));
@@ -179,7 +180,7 @@ export async function resolveBestAppliedPromo(
     })
     .filter((row): row is NonNullable<typeof row> => row != null);
 
-  const winner = pickBestGrant(candidates);
+  const winner = pickBestGrant(candidates, options?.preferSource);
   if (!winner) return null;
 
   const expiresAt = winner.grant.expiresAt ?? null;

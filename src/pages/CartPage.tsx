@@ -10,6 +10,7 @@ import {
   cartSubtotalCents,
   filterPurchasableCartLines,
   getCartLineIssues,
+  isCartCatalogVerified,
   issuesByLineKey,
 } from "@/lib/cartCatalog";
 import { useCartPromo } from "@/hooks/useCartPromo";
@@ -27,27 +28,35 @@ export function CartPage() {
     clearCart,
     enrichFromCatalog,
   } = useCart();
-  const { products, loading: catalogLoading } = useProducts("all");
+  const { products, loading: catalogLoading, loadError } = useProducts("all");
   const [promoRefreshKey, setPromoRefreshKey] = useState(0);
+  const [preferAbandonedPromo, setPreferAbandonedPromo] = useState(false);
+  const catalogVerified = isCartCatalogVerified(
+    items,
+    products,
+    catalogLoading,
+  );
   const { promo, loading: promoLoading, signedIn } = useCartPromo(
     items,
     products,
     promoRefreshKey,
+    catalogVerified,
+    preferAbandonedPromo ? "abandoned_cart" : undefined,
   );
   const [checkingOut, setCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   const cartIssues = useMemo(
-    () => getCartLineIssues(items, products),
-    [items, products],
+    () => getCartLineIssues(items, products, catalogVerified),
+    [items, products, catalogVerified],
   );
 
   const issueByKey = useMemo(() => issuesByLineKey(cartIssues), [cartIssues]);
 
   const purchasableItems = useMemo(
-    () => filterPurchasableCartLines(items, products),
-    [items, products],
+    () => filterPurchasableCartLines(items, products, catalogVerified),
+    [items, products, catalogVerified],
   );
 
   const purchasableSubtotalCents = useMemo(
@@ -72,7 +81,12 @@ export function CartPage() {
     .join("|");
 
   useEffect(() => {
-    if (!signedIn || !items.length || catalogLoading) return;
+    if (!catalogVerified) return;
+    setPromoRefreshKey((key) => key + 1);
+  }, [catalogVerified]);
+
+  useEffect(() => {
+    if (!signedIn || !items.length || catalogLoading || !catalogVerified) return;
     if (!cartLinesReadyForSnapshot(items)) return;
 
     let cancelled = false;
@@ -89,6 +103,7 @@ export function CartPage() {
         return;
       }
       if (result.grantIssued) {
+        setPreferAbandonedPromo(true);
         setSyncNotice("Welcome-back offer applied to your cart.");
       }
     }
@@ -114,10 +129,11 @@ export function CartPage() {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [cartSyncKey, signedIn, items, catalogLoading]);
+  }, [cartSyncKey, signedIn, items, catalogLoading, catalogVerified]);
 
   const canCheckout =
     purchasableItems.length > 0 &&
+    catalogVerified &&
     !catalogLoading &&
     blockingIssues.length === 0 &&
     !checkingOut;
@@ -136,7 +152,7 @@ export function CartPage() {
       return;
     }
 
-    const issues = getCartLineIssues(items, products);
+    const issues = getCartLineIssues(items, products, catalogVerified);
     if (issues.some((issue) => issue.blocksCheckout)) {
       setError("Remove or fix the items marked below before checkout.");
       return;
@@ -183,9 +199,15 @@ export function CartPage() {
         Your Cart
       </h1>
 
-      {catalogLoading && (
+      {(catalogLoading || (!catalogVerified && products.length > 0)) && (
         <p className="mb-4 text-label-sm text-on-surface-variant">
-          Verifying catalog…
+          Verifying cart against catalog…
+        </p>
+      )}
+
+      {loadError && !catalogLoading && products.length === 0 && (
+        <p className="mb-4 text-label-sm text-error">
+          Could not load catalog — refresh the page to verify cart items.
         </p>
       )}
 
