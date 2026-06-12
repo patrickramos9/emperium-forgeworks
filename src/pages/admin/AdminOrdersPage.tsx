@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatPrice } from "@/data/seedProducts";
+import { OrderCustomerSummary } from "@/components/admin/OrderCustomerSummary";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
+import {
+  buildOrderCustomerDisplay,
+} from "@/lib/adminOrderCustomer";
+import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
 import {
   formatOrderDate,
   listAllOrders,
@@ -14,6 +19,9 @@ import {
 export function AdminOrdersPage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [customerLabels, setCustomerLabels] = useState<
+    Awaited<ReturnType<typeof resolveCustomerLabelsForUserIds>>
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +31,17 @@ export function AdminOrdersPage() {
       if (!client) return;
 
       try {
-        setOrders(await listAllOrders(client));
+        const rows = await listAllOrders(client);
+        setOrders(rows);
+
+        const userIds = [
+          ...new Set(rows.map((order) => order.userId).filter(Boolean) as string[]),
+        ];
+        setCustomerLabels(
+          userIds.length
+            ? await resolveCustomerLabelsForUserIds(client, userIds)
+            : new Map(),
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load orders");
       } finally {
@@ -32,6 +50,15 @@ export function AdminOrdersPage() {
     }
     void load();
   }, [navigate]);
+
+  const customerByOrderId = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof buildOrderCustomerDisplay>>();
+    for (const order of orders) {
+      const label = order.userId ? customerLabels.get(order.userId) : undefined;
+      map.set(order.id, buildOrderCustomerDisplay(order, label));
+    }
+    return map;
+  }, [orders, customerLabels]);
 
   if (loading) {
     return <p className="text-on-surface-variant">Loading orders...</p>;
@@ -60,6 +87,7 @@ export function AdminOrdersPage() {
             <thead className="bg-surface-container-high font-label-sm uppercase text-on-surface-variant">
               <tr>
                 <th className="p-3">Date</th>
+                <th className="p-3">Customer</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Provider</th>
                 <th className="p-3">Total</th>
@@ -77,6 +105,14 @@ export function AdminOrdersPage() {
                   >
                     <td className="p-3 text-on-surface">
                       {formatOrderDate(order.createdAt)}
+                    </td>
+                    <td className="p-3">
+                      <OrderCustomerSummary
+                        customer={
+                          customerByOrderId.get(order.id) ??
+                          buildOrderCustomerDisplay(order)
+                        }
+                      />
                     </td>
                     <td className="p-3">{orderStatusLabel(order.status)}</td>
                     <td className="p-3 text-on-surface-variant">

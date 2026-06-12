@@ -11,6 +11,8 @@ const schema = a.schema({
   CustomerListItem: a.customType({
     userId: a.string().required(),
     email: a.string().required(),
+    /** Cognito profile name when set (given + family, name, or preferred_username). */
+    name: a.string(),
   }),
 
   CustomerListResult: a.customType({

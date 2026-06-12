@@ -12,13 +12,23 @@ function mapUser(user: {
   Username?: string;
   Attributes?: { Name?: string; Value?: string }[];
 }) {
-  const email =
-    user.Attributes?.find((attr) => attr.Name === "email")?.Value ?? "";
-  const userId =
-    user.Attributes?.find((attr) => attr.Name === "sub")?.Value ??
-    user.Username ??
+  const attrs = user.Attributes ?? [];
+  const attr = (key: string) =>
+    attrs.find((entry) => entry.Name === key)?.Value?.trim() ?? "";
+
+  const email = attr("email");
+  const userId = attr("sub") || user.Username || "";
+  const givenName = attr("given_name");
+  const familyName = attr("family_name");
+  const fullName = attr("name");
+  const preferred = attr("preferred_username");
+  const name =
+    fullName ||
+    [givenName, familyName].filter(Boolean).join(" ") ||
+    preferred ||
     "";
-  return { userId, email };
+
+  return { userId, email, ...(name ? { name } : {}) };
 }
 
 export const handler: Schema["listCustomers"]["functionHandler"] = async (

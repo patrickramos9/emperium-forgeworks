@@ -3,6 +3,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { formatPrice } from "@/data/seedProducts";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import {
+  buildOrderCustomerDisplay,
+  missingShippingAddressMessage,
+} from "@/lib/adminOrderCustomer";
+import { resolveCustomerLabelsForUserIds, type CustomerLabel } from "@/lib/customerAdmin";
+import {
   formatOrderDate,
   formatShippingAddress,
   getOrderById,
@@ -20,6 +25,7 @@ export function AdminOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<OrderRecord | null>(null);
+  const [customerLabel, setCustomerLabel] = useState<CustomerLabel | null>(null);
   const [status, setStatus] = useState<OrderStatus>("paid");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,6 +50,15 @@ export function AdminOrderDetailPage() {
         }
         setOrder(row);
         if (row.status) setStatus(row.status);
+
+        if (row.userId) {
+          const labels = await resolveCustomerLabelsForUserIds(client, [
+            row.userId,
+          ]);
+          setCustomerLabel(labels.get(row.userId) ?? null);
+        } else {
+          setCustomerLabel(null);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load order");
       } finally {
@@ -89,6 +104,7 @@ export function AdminOrderDetailPage() {
   const items = parseOrderLineItems(order.lineItems);
   const shipping = parseShippingAddress(order.shippingAddress);
   const shippingLines = formatShippingAddress(shipping).split("\n");
+  const customer = buildOrderCustomerDisplay(order, customerLabel);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -144,17 +160,43 @@ export function AdminOrderDetailPage() {
           label="Session ref"
           value={order.externalSessionId}
         />
-        {order.userId && (
-          <DetailRow label="Customer ID" value={order.userId} />
-        )}
-        {order.email && <DetailRow label="Email" value={order.email} />}
-        {order.customerName && (
-          <DetailRow label="Name" value={order.customerName} />
-        )}
-        {order.customerPhone && (
-          <DetailRow label="Phone" value={order.customerPhone} />
-        )}
       </dl>
+
+      <section className="mt-stack-lg">
+        <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
+          Customer
+        </h2>
+        <dl className="mt-3 space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
+          <DetailRow
+            label="Email"
+            value={customer.email ?? "—"}
+          />
+          {customer.checkoutName && (
+            <DetailRow label="Checkout name" value={customer.checkoutName} />
+          )}
+          {customer.accountName && (
+            <DetailRow label="Account name" value={customer.accountName} />
+          )}
+          {customer.isRegistered &&
+            customer.accountEmail &&
+            customer.accountEmail !== customer.email && (
+            <DetailRow label="Account email" value={customer.accountEmail} />
+          )}
+          <DetailRow
+            label="Checkout type"
+            value={customer.isRegistered ? "Signed-in customer" : "Guest"}
+          />
+          {customer.phone && (
+            <DetailRow label="Phone" value={customer.phone} />
+          )}
+          {customer.awaitingCheckoutDetails && (
+            <p className="text-body-sm text-on-surface-variant">
+              Contact and shipping details are collected during Stripe checkout
+              and appear here once payment completes.
+            </p>
+          )}
+        </dl>
+      </section>
 
       <section className="mt-stack-lg">
         <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
@@ -169,8 +211,7 @@ export function AdminOrderDetailPage() {
             </address>
           ) : (
             <p className="text-on-surface-variant">
-              No shipping address recorded (order placed before shipping
-              collection was enabled).
+              {missingShippingAddressMessage(order.status)}
             </p>
           )}
         </div>

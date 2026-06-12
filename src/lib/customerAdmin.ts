@@ -4,12 +4,14 @@ import { listAllOrders } from "@/services/orderService";
 export type CustomerAccount = {
   userId: string;
   email: string;
+  name?: string;
 };
 
-/** Email plus best available display name (checkout name when present). */
+/** Email plus best available display name (account profile or checkout name). */
 export type CustomerLabel = {
   email: string;
   displayName: string;
+  accountName?: string;
 };
 
 export async function fetchCustomerAccounts(
@@ -33,7 +35,11 @@ export async function fetchCustomerAccounts(
   const items = (data?.items ?? []).filter(
     (row): row is CustomerAccount =>
       Boolean(row?.userId && row?.email),
-  );
+  ).map((row) => ({
+    userId: row.userId,
+    email: row.email,
+    ...(row.name?.trim() ? { name: row.name.trim() } : {}),
+  }));
 
   return {
     items,
@@ -74,9 +80,11 @@ export async function resolveCustomerLabelsForUserIds(
   const accounts = await fetchAllCustomerAccounts(client);
   for (const account of accounts) {
     if (!wanted.has(account.userId)) continue;
+    const accountName = account.name?.trim();
     labels.set(account.userId, {
       email: account.email,
-      displayName: account.email,
+      displayName: accountName || account.email,
+      ...(accountName ? { accountName } : {}),
     });
   }
 
@@ -104,7 +112,10 @@ export async function resolveCustomerLabelsForUserIds(
       email: order.email?.trim() ?? "",
       displayName: customerName,
     };
-    labels.set(uid, { ...existing, displayName: customerName });
+    labels.set(uid, {
+      ...existing,
+      displayName: customerName,
+    });
     nameSet.add(uid);
   }
 
