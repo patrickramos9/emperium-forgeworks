@@ -9,6 +9,8 @@ interface ProductImageGalleryProps {
   resetKey?: string;
   activeIndex?: number;
   onActiveIndexChange?: (index: number) => void;
+  /** Cap main image height so sticky PDP galleries stay within the viewport. */
+  fitViewport?: boolean;
 }
 
 export function ProductImageGallery({
@@ -17,6 +19,7 @@ export function ProductImageGallery({
   resetKey,
   activeIndex: controlledIndex,
   onActiveIndexChange,
+  fitViewport = false,
 }: ProductImageGalleryProps) {
   const [internalIndex, setInternalIndex] = useState(0);
   const isControlled = controlledIndex !== undefined;
@@ -63,7 +66,11 @@ export function ProductImageGallery({
         <ProductImage
           src={activeImage}
           alt={`${alt} — photo ${activeIndex + 1}`}
-          className="aspect-[4/5] bg-surface-container-low"
+          className={`aspect-[4/5] w-full bg-surface-container-low ${
+            fitViewport
+              ? "max-h-[min(62vh,640px)] lg:max-h-[calc(100vh-12rem)]"
+              : ""
+          }`}
           imageClassName="contrast-125 grayscale-[0.2] transition-transform duration-500"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />

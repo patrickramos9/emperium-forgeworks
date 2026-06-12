@@ -113,7 +113,7 @@ export function VariantPicker({
 
             {isOpen && (
               <ul
-                className="border-t border-outline-variant/20 bg-surface-container-lowest"
+                className="max-h-64 overflow-y-auto overscroll-contain border-t border-outline-variant/20 bg-surface-container-lowest sm:max-h-72"
                 aria-label={groupDisplayName(group)}
               >
                 {group.options.map((option) => {

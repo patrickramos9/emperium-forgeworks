@@ -261,15 +261,168 @@ export function ProductDetailPage({
         </nav>
 
         <div className="grid grid-cols-1 items-start gap-gutter lg:grid-cols-12">
-          <div className="space-y-gutter lg:col-span-7">
-            <ProductImageGallery
-              images={galleryImages}
-              alt={product.title}
-              resetKey={product.slug}
-              activeIndex={galleryIndex}
-              onActiveIndexChange={setGalleryIndex}
-            />
+          <div className="order-1 lg:col-span-7 lg:row-start-1">
+            <div className="sticky top-20 z-10 self-start lg:top-28">
+              <ProductImageGallery
+                images={galleryImages}
+                alt={product.title}
+                resetKey={product.slug}
+                activeIndex={galleryIndex}
+                onActiveIndexChange={setGalleryIndex}
+                fitViewport
+              />
+            </div>
+          </div>
 
+          <div className="order-2 flex min-h-0 flex-col gap-stack-md lg:col-span-5 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100vh-7rem)] lg:gap-stack-sm">
+            <div className="shrink-0 space-y-stack-sm">
+              <div className="flex items-center gap-2">
+                <span className="border border-secondary/20 bg-void-purple px-2 py-0.5 font-label-sm text-[10px] uppercase tracking-widest text-secondary">
+                  Elite Selection
+                </span>
+                <div className="flex text-plasma-glow">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Icon key={i} name="star" className="text-sm" filled />
+                  ))}
+                </div>
+              </div>
+              <h1 className="font-display-lg text-headline-md uppercase leading-tight text-primary md:text-headline-lg">
+                {displayTitle}
+              </h1>
+              {product.subtitle && (
+                <p className="font-body-md italic text-on-surface-variant">
+                  {product.subtitle}
+                </p>
+              )}
+            </div>
+
+            <div className="shrink-0 space-y-stack-sm">
+              <p className="font-headline-md text-headline-md text-on-surface">
+                {priceLabel}
+              </p>
+
+              <ProductShippingInfo
+                shipping={shipping}
+                loading={shippingLoading}
+                emptyMessage={shippingError}
+              />
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-stack-md overflow-y-auto overscroll-contain pr-0.5 lg:pr-1">
+              {activeGroups.length > 0 && (
+                <VariantPicker
+                  groups={activeGroups}
+                  basePriceCents={product.priceCents}
+                  selection={variantSelection}
+                  quantities={optionQuantities}
+                  resetKey={product.slug}
+                  imageUrlForRef={(ref) => displayUrlForGalleryRef(product, ref)}
+                  onToggle={handleVariantToggle}
+                  onQuantityChange={(optionId, quantity) =>
+                    setOptionQuantities((current) => ({
+                      ...current,
+                      [optionId]: quantity,
+                    }))
+                  }
+                />
+              )}
+
+              {activeGroups.length > 1 && selectedVariants.length > 0 && (
+                <div className="space-y-2 border border-outline-variant/30 bg-surface-container-low p-4">
+                  <p className="font-label-sm uppercase text-on-surface-variant">
+                    Quantities
+                  </p>
+                  <ul className="space-y-2">
+                    {selectedVariants.map((variant) => (
+                      <li
+                        key={variant.id}
+                        className="flex flex-wrap items-center justify-between gap-3"
+                      >
+                        <span className="min-w-0 flex-1 font-label-md text-on-surface">
+                          {variant.label}
+                        </span>
+                        <QuantityStepper
+                          value={variantQuantities[variant.id] ?? 1}
+                          onChange={(qty) =>
+                            setVariantQuantities((current) => ({
+                              ...current,
+                              [variant.id]: qty,
+                            }))
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {!hasVariations && (
+                <div className="flex items-center justify-between gap-4 border border-outline-variant/30 bg-surface-container-low px-4 py-3">
+                  <span className="font-label-md uppercase text-on-surface-variant">
+                    Quantity
+                  </span>
+                  <QuantityStepper
+                    value={baseQuantity}
+                    onChange={setBaseQuantity}
+                  />
+                </div>
+              )}
+
+              {product.lore && (
+                <div className="border-t border-outline-variant/20 pt-stack-md">
+                  <h3 className="font-headline-md text-[18px] text-on-surface">
+                    The Lore
+                  </h3>
+                  <p className="mt-stack-sm font-body-md leading-relaxed text-on-surface-variant">
+                    {product.lore}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="shrink-0 space-y-stack-sm border-t border-outline-variant/20 pt-stack-sm lg:border-t-0 lg:pt-0">
+              <button
+                type="button"
+                disabled={!canAddToCart}
+                onClick={handleAddToCart}
+                className="molten-glow flex w-full items-center justify-center gap-3 bg-primary py-4 font-headline-md uppercase tracking-wider text-on-primary transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
+              >
+                <Icon name="add_shopping_cart" />
+                {addToCartCount > 1
+                  ? `Add ${addToCartCount} to Cart`
+                  : "Add to Cart"}
+              </button>
+              <ProductFavoriteButton
+                productId={product.id}
+                productSlug={product.slug}
+              />
+
+              <div className="flex gap-gutter">
+                <div className="group flex items-center gap-2">
+                  <Icon
+                    name="precision_manufacturing"
+                    className="text-primary group-hover:text-plasma-glow"
+                    filled
+                  />
+                  <span className="font-label-sm text-[11px] uppercase tracking-tighter">
+                    Ultra-Fine Detail
+                  </span>
+                </div>
+                <div className="group flex items-center gap-2">
+                  <Icon
+                    name="package_2"
+                    className="text-primary group-hover:text-plasma-glow"
+                    filled
+                  />
+                  <span className="font-label-sm text-[11px] uppercase tracking-tighter">
+                    Secure Forged Packing
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="order-3 space-y-gutter lg:col-span-7 lg:row-start-2">
             {product.specs && (
               <div className="grid grid-cols-3 gap-stack-sm font-label-sm">
                 {product.specs.material && (
@@ -316,150 +469,6 @@ export function ProductDetailPage({
                 />
               </div>
             )}
-          </div>
-
-          <div className="space-y-stack-lg lg:sticky lg:top-32 lg:col-span-5">
-            <div className="space-y-stack-sm">
-              <div className="flex items-center gap-2">
-                <span className="border border-secondary/20 bg-void-purple px-2 py-0.5 font-label-sm text-[10px] uppercase tracking-widest text-secondary">
-                  Elite Selection
-                </span>
-                <div className="flex text-plasma-glow">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Icon key={i} name="star" className="text-sm" filled />
-                  ))}
-                </div>
-              </div>
-              <h1 className="font-display-lg text-display-lg uppercase leading-tight text-primary">
-                {displayTitle}
-              </h1>
-              {product.subtitle && (
-                <p className="font-body-lg italic text-on-surface-variant">
-                  {product.subtitle}
-                </p>
-              )}
-            </div>
-
-            <p className="font-headline-lg text-headline-lg text-on-surface">
-              {priceLabel}
-            </p>
-
-            <ProductShippingInfo
-              shipping={shipping}
-              loading={shippingLoading}
-              emptyMessage={shippingError}
-            />
-
-            {activeGroups.length > 0 && (
-              <VariantPicker
-                groups={activeGroups}
-                basePriceCents={product.priceCents}
-                selection={variantSelection}
-                quantities={optionQuantities}
-                resetKey={product.slug}
-                imageUrlForRef={(ref) => displayUrlForGalleryRef(product, ref)}
-                onToggle={handleVariantToggle}
-                onQuantityChange={(optionId, quantity) =>
-                  setOptionQuantities((current) => ({
-                    ...current,
-                    [optionId]: quantity,
-                  }))
-                }
-              />
-            )}
-
-            {activeGroups.length > 1 && selectedVariants.length > 0 && (
-              <div className="space-y-2 border border-outline-variant/30 bg-surface-container-low p-4">
-                <p className="font-label-sm uppercase text-on-surface-variant">
-                  Quantities
-                </p>
-                <ul className="space-y-2">
-                  {selectedVariants.map((variant) => (
-                    <li
-                      key={variant.id}
-                      className="flex flex-wrap items-center justify-between gap-3"
-                    >
-                      <span className="min-w-0 flex-1 font-label-md text-on-surface">
-                        {variant.label}
-                      </span>
-                      <QuantityStepper
-                        value={variantQuantities[variant.id] ?? 1}
-                        onChange={(qty) =>
-                          setVariantQuantities((current) => ({
-                            ...current,
-                            [variant.id]: qty,
-                          }))
-                        }
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {!hasVariations && (
-              <div className="flex items-center justify-between gap-4 border border-outline-variant/30 bg-surface-container-low px-4 py-3">
-                <span className="font-label-md uppercase text-on-surface-variant">
-                  Quantity
-                </span>
-                <QuantityStepper
-                  value={baseQuantity}
-                  onChange={setBaseQuantity}
-                />
-              </div>
-            )}
-
-            <div className="space-y-stack-sm">
-              <button
-                type="button"
-                disabled={!canAddToCart}
-                onClick={handleAddToCart}
-                className="molten-glow flex w-full items-center justify-center gap-3 bg-primary py-5 font-headline-md uppercase tracking-wider text-on-primary transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50"
-              >
-                <Icon name="add_shopping_cart" />
-                {addToCartCount > 1
-                  ? `Add ${addToCartCount} to Cart`
-                  : "Add to Cart"}
-              </button>
-              <ProductFavoriteButton
-                productId={product.id}
-                productSlug={product.slug}
-              />
-            </div>
-
-            {product.lore && (
-              <div className="border-t border-outline-variant/20 pt-stack-lg">
-                <h3 className="font-headline-md text-[18px] text-on-surface">
-                  The Lore
-                </h3>
-                <p className="mt-stack-md font-body-md leading-relaxed text-on-surface-variant">
-                  {product.lore}
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-gutter pt-stack-md">
-              <div className="group flex items-center gap-2">
-                <Icon
-                  name="precision_manufacturing"
-                  className="text-primary group-hover:text-plasma-glow"
-                  filled
-                />
-                <span className="font-label-sm text-[11px] uppercase tracking-tighter">
-                  Ultra-Fine Detail
-                </span>
-              </div>
-              <div className="group flex items-center gap-2">
-                <Icon
-                  name="package_2"
-                  className="text-primary group-hover:text-plasma-glow"
-                  filled
-                />
-                <span className="font-label-sm text-[11px] uppercase tracking-tighter">
-                  Secure Forged Packing
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
