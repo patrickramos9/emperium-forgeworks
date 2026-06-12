@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { FeaturedProductsGrid } from "@/components/FeaturedProductsGrid";
+import { FeaturedProductsCarousel } from "@/components/FeaturedProductsCarousel";
+import { Icon } from "@/components/Icon";
 import { ReviewCard } from "@/components/ReviewCard";
 import { ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
@@ -126,27 +127,51 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Featured products */}
-      {(productsLoading || featuredProducts.length > 0) && (
-        <section className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
-          <div className="mb-stack-lg flex items-end justify-between">
-            <h2 className="font-display-lg text-headline-lg uppercase tracking-tighter text-primary">
-              Featured Collections
-            </h2>
-            <Link
-              to="/shop"
-              className="font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
-            >
-              View All Series
-            </Link>
+      {/* Featured collections */}
+      <section className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
+        <div className="mb-stack-lg flex items-end justify-between">
+          <h2 className="font-display-lg text-headline-lg uppercase tracking-tighter text-primary">
+            Featured Collections
+          </h2>
+          <Link
+            to="/shop"
+            className="font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
+          >
+            View All Series
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
+          <FeaturedProductsCarousel
+            products={featuredProducts}
+            loading={productsLoading}
+          />
+          <div className="group relative flex min-h-[220px] flex-col justify-end overflow-hidden bg-surface-container-low iron-bevel">
+            <img
+              src={LEGACY_IMAGES.home.darkFantasy}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-top grayscale brightness-75 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
           </div>
-          {productsLoading ? (
-            <p className="text-on-surface-variant">Loading featured products…</p>
-          ) : (
-            <FeaturedProductsGrid products={featuredProducts} />
-          )}
-        </section>
-      )}
+          <div className="flex min-h-[220px] flex-col items-center justify-center border border-secondary/20 bg-void-purple/30 p-stack-lg text-center iron-bevel backdrop-blur-sm">
+            <Icon name="architecture" className="mb-4 text-5xl text-secondary" />
+            <h3 className="font-display-lg text-headline-md uppercase text-on-surface">
+              Custom Forge
+            </h3>
+            <p className="mt-2 font-body-md text-on-surface-variant">
+              Commission bespoke sculpts and print runs.
+            </p>
+            <button
+              type="button"
+              disabled
+              className="mt-4 cursor-not-allowed font-label-md uppercase tracking-widest text-on-surface-variant opacity-50"
+            >
+              Start Commission
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Tech specs */}
       <section className="border-y border-outline-variant/10 bg-surface-container-lowest">
@@ -235,12 +260,14 @@ export function HomePage() {
           >
             <input
               type="email"
+              disabled
               placeholder="Enter your email"
-              className="flex-grow border border-outline-variant/30 bg-surface-container-high px-4 py-3 text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary"
+              className="flex-grow border border-outline-variant/30 bg-surface-container-high px-4 py-3 text-body-md text-on-surface opacity-50"
             />
             <button
               type="submit"
-              className="bg-primary-container px-6 py-3 font-label-md uppercase tracking-widest text-on-primary transition-all hover:brightness-110"
+              disabled
+              className="cursor-not-allowed bg-primary-container px-6 py-3 font-label-md uppercase tracking-widest text-on-primary opacity-50"
             >
               Subscribe
             </button>
