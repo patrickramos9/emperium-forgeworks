@@ -87,7 +87,7 @@ export function ProductFavoriteButton({
         );
       } else if (result.favorited) {
         setMessage(
-          "Saved to favorites. If you already have an offer for this item, it stays in Account → Notifications.",
+          "Saved to favorites. View them under Account → Saved favorites.",
         );
       }
     } catch (err) {

@@ -61,6 +61,12 @@ export function AccountPage() {
           Order history
         </Link>
         <Link
+          to="/account/favorites"
+          className="border border-outline-variant/30 bg-surface-container-low px-6 py-4 font-label-md uppercase text-primary iron-bevel hover:border-primary"
+        >
+          Saved favorites
+        </Link>
+        <Link
           to="/shop"
           className="border border-outline-variant/30 bg-surface-container-low px-6 py-4 font-label-md uppercase text-on-surface iron-bevel hover:border-primary"
         >

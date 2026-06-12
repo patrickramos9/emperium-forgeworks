@@ -4,32 +4,44 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
-**Roadmap last synced:** 2026-06-03
+**Roadmap last synced:** 2026-06-11
 
 ---
 
-## Testing now (not production-verified)
+## Testing now (promo QA in progress)
 
-Use this list after a deploy that includes **M6b/c** and **M17** backend + frontend (`amplify_outputs.json` fresh). Skip sections marked **verified** unless regressing.
+Use this list after deploys that include **M6b/c** fixes (2026-06-11+): `syncCartSnapshot` JSON persistence, empty-cart grant revoke, catalog-verify race on `/cart`. Skip **verified** sections unless regressing.
 
 | Priority | Milestone | Section | What to verify |
 |----------|-----------|---------|----------------|
+| **P0** | **M6c** | §17 (M6c), §4 | Abandon idle → grant + cart discount; revoke on **empty cart only**; re-abandon after re-add |
 | **P0** | **M6b** | §17 (M6b), §2 PDP | Favorites UI, favorite promo template, line-scoped discount, webhook re-issue |
-| **P0** | **M6c** | §17 (M6c), §4 | Cart snapshot sync, abandoned-cart template + idle hours, grant + notification |
-| **P1** | **M17** | §17b, §4 | Removed/delisted product in cart + stale favorite on deleted PDP |
-| **P2** | **M6 polish** | §4, §5, §17 | Cart line thumbnails; Stripe “Was $X each” / submit summary with promo |
-| **Smoke** | Shipped | Quick smoke, §5 (no promo), §8 | Core paths still work after deploy |
+| **P1** | **M6 admin** | §17 | Issued grants table, revoke, deleted-template display |
+| **P1** | **M17** | §6 (favorites), §17b, §4 | Saved favorites list (`/account/favorites`); removed/delisted in cart + stale favorite on deleted PDP |
+| **P2** | **M6 polish** | §4, §5, §17 | Cart catalog verify banner; Stripe promo summary |
+| **Smoke** | Shipped | Quick smoke, §5, §8 | Core paths still work after deploy |
 
-**Already production-verified (regression optional):** M6 core promos (§17 minus M6b/c), M15 shipping, M3b Stripe, M8b/c/d reviews & sculptors, M7b vault.
+**Partially verified (continue regression):** **M6c** abandoned-cart happy path (grant + admin issued grants + cart discount after deploy fixes).
 
-**Do not test yet (not in repo / deferred):** M19 sales/bundles, M18 price-change notifications, M9a UX polish, M6d abandoned-cart email, M11 print tracking, M10/M12/M13/M16.
+**Already production-verified (regression optional):** M6 core (admin issue, thank-you, best-grant checkout), M15 shipping, M3b Stripe, M8b/c/d, M7b vault.
+
+**Do not test yet (not in repo / deferred):** M19, M18, M9a, M6d email, M11, M10/M12/M13/M16.
 
 ### Deploy prerequisites (M6b/c + M17)
 
-- [ ] Amplify backend deployed: `Favorite`, `CartSnapshot`, `toggleProductFavorite`, `syncCartSnapshot`, `PromoTemplate` flags (`useForFavorite`, `useForAbandonedCart`, `abandonAfterHours`), optional `Favorite.productSlug`
-- [ ] Frontend deployed against current `amplify_outputs.json`
-- [ ] At least one **active** promo template per source you test (thank-you / favorite / abandoned) — exclusive flags clear other templates when enabled
-- [ ] For **M6c** QA: set **abandon after hours** low (e.g. **1**) on the abandoned-cart template for faster idle trigger
+- [ ] Amplify **backend** deployed: `Favorite`, `CartSnapshot`, `toggleProductFavorite`, `syncCartSnapshot` (incl. `grantsRevoked` on empty cart), `PromoTemplate` flags, optional `Favorite.productSlug`
+- [ ] Amplify **frontend** deployed against current `amplify_outputs.json`
+- [ ] At least one **active** promo template per source you test — exclusive flags clear other templates when enabled
+- [ ] For **M6c** QA: set **abandon after hours** low (e.g. **1**) on the abandoned-cart template
+- [ ] **Test data hygiene:** `npx tsx scripts/reset-promo-data.ts` clears grants, templates, marketing notifications, and cart snapshots (keeps system/order notifications)
+
+### Promo test data reset (between runs)
+
+```bash
+npx tsx scripts/reset-promo-data.ts
+```
+
+Then recreate templates in **Admin → Promo codes**. Use a fresh browser session or incognito if local cart state confuses idle-timer tests.
 
 ---
 
@@ -125,6 +137,7 @@ Run after every production deploy.
 - [ ] **Signed in:** **Save to favorites** / heart toggles; state persists after refresh
 - [ ] First favorite on a product (with favorite template active): in-system **notification** + open **favorite** grant (if not already open for that product)
 - [ ] Second favorite on same product: no duplicate grant spam (behavior per template rules)
+- [ ] After save: success copy mentions **Account → Saved favorites** (M17)
 
 ---
 
@@ -180,9 +193,11 @@ Run after every production deploy.
 - [ ] **Mock checkout banner** visible when `VITE_APP_ENV=local`
 - [ ] **Out of stock** line flagged; checkout blocked until fixed or removed
 - [ ] **Removed from catalog** line flagged (§17b); subtotal/promo exclude non-purchasable lines
+- [ ] **Catalog loading:** brief **“Verifying cart against catalog…”** — no false **removed from store** while catalog enriches (§17 M6c regression)
 - [ ] **Price changed** since add-to-cart: flagged; checkout blocked until user refreshes from PDP (re-add)
 - [ ] Clear cart works
-- [ ] **M6c:** signed in with items → idle on `/cart` (debounced sync ~600ms) updates server snapshot; see §17 (M6c)
+- [ ] **M6c:** signed in with items → sync (~600ms on `/cart`, or any page when cart becomes empty) updates server snapshot; see §17 (M6c)
+- [ ] **M6c revoke:** clear cart or remove last line **anywhere** (shop PDP qty→0, `/cart` remove) → open `abandoned_cart` grant **revoked**; partial line removal **keeps** grant on remaining subtotal
 
 See **§17** for grant setup and checkout verification. See **§17b** for removed-product UX (M17).
 
@@ -215,7 +230,7 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 
 ## 6. Customer accounts (M4)
 
-**Routes:** `/account/register`, `/account/login`, `/account/forgot-password`, `/account`, `/account/orders`, `/account/notifications`
+**Routes:** `/account/register`, `/account/login`, `/account/forgot-password`, `/account`, `/account/orders`, `/account/favorites`, `/account/notifications`
 
 ### Auth
 
@@ -227,7 +242,20 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 ### Account home
 
 - [ ] Profile info displays
-- [ ] Links to orders and notifications work
+- [ ] Links to **order history**, **notifications**, and **saved favorites** work
+
+### Saved favorites (M17)
+
+**Route:** `/account/favorites` (also **Account → Saved favorites**)
+
+- [ ] **Signed out:** redirect to login with `returnTo=/account/favorites`; after login, lands on favorites page
+- [ ] **Empty state:** copy + link to shop when no favorites saved
+- [ ] **Add from PDP:** favorite a shop product → appears on list with image, title, price; card links to correct PDP (`/shop/:slug`)
+- [ ] **Vault favorite:** with vault access, favorite a vault-only product → card links to `/vault/:slug` (not `/shop`)
+- [ ] **Remove from list:** **Remove from favorites** removes row without error; PDP heart reflects unfavorited on revisit
+- [ ] **Remove from PDP:** unfavorite on PDP → item disappears from list on refresh
+- [ ] **Removed from store:** after admin deletes a favorited product, row moves to **Removed from the store** section (slug or id shown); remove clears favorite (see also §17b)
+- [ ] **Pre-deploy rows** without `productSlug`: removed section may show product id — still removable
 
 ### Orders (customer)
 
@@ -239,8 +267,10 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 
 - [ ] Inbox lists active notifications for user
 - [ ] Unread badge in account menu decrements when marked read
+- [ ] **Read notifications** do not affect cart, promos, or abandon detection (inbox only)
 - [ ] Vault-grant notification received when admin adds vault access
 - [ ] **Thank-you promo (M6):** after paid order, in-system notification about next-order offer (if thank-you template configured)
+- [ ] **Abandoned cart (M6c):** **Your cart is waiting** notification when grant issued — separate from cart discount UI
 
 ---
 
@@ -431,10 +461,17 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 - [ ] **Deactivate** template: still listed; marked inactive
 - [ ] Delete template (confirm)
 
+### Admin — issued grants (list + revoke)
+
+- [ ] **`/admin/promos` → Issued grants** table loads: **Issued**, **Source**, **Offer**, **Recipient**, **Status**
+- [ ] Grant links to live template name + discount; **Revoke** on open grants from list and template edit page
+- [ ] Orphaned grants (template deleted) show **Deleted template** + short id — not “Unknown template”
+- [ ] Cannot delete template while **open** grants reference it (revoke first)
+
 ### Admin — issue & revoke grants
 
 - [ ] On template edit → **Issue grant** with **Customer A** email → success
-- [ ] Issued grant appears in grant list on template (status **open**)
+- [ ] Issued grant appears in template grant list **and** main **Issued grants** table (status **open**)
 - [ ] **Revoke** open grant → status **revoked**; customer no longer sees it on cart
 - [ ] Issue to unknown email → clear error (no customer found)
 - [ ] **Non-transferable:** issue grant to Customer A; sign in as **Customer B** → Customer B does **not** see Customer A’s offer on cart
@@ -491,14 +528,38 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 
 ### M6c — Abandoned cart (in-system)
 
-- [ ] Template with **Use for abandoned-cart** + idle hours (e.g. **1** hour for test)
-- [ ] Signed in; add items to cart; visit `/cart` once so snapshot sync runs (starts idle timer)
-- [ ] Do **not** change cart contents; waiting ≥ configured hours counts from **last cart change**, not each `/cart` page view
-- [ ] Return to `/cart` → sync runs → **open** `abandoned_cart` grant + notification (if no open grant for same snapshot rules)
-- [ ] Grant auto-applies on cart when eligible
-- [ ] Clear cart or checkout → snapshot cleared or updated; no abandon grant on empty cart
-- [ ] **Favorite + abandoned** both eligible: checkout applies **best savings** (same M6 tie-break as §17)
+**Scope:** One grant per user per abandon event; discount on **whole cart subtotal** (not per line). `cartSnapshotId` = user id.
+
+**Setup**
+
+- [ ] Active template: **Use for abandoned-cart**, **abandon after hours** = **1** (QA), fixed or percent discount
+- [ ] Optional: run `npx tsx scripts/reset-promo-data.ts` for clean grants/snapshots/notifications
+
+**Idle → grant**
+
+- [ ] Signed in; add item(s); visit `/cart` once (catalog finishes → **“Verifying cart against catalog…”** may flash briefly)
+- [ ] Wait ≥ **abandon after hours** without changing cart lines (qty, items, price)
+- [ ] Return to `/cart` → **Welcome-back offer applied** banner; promo line on cart; admin **Issued grants** shows **Abandoned cart** / **Open**
+- [ ] Account → Notifications: **Your cart is waiting** (marketing) — **notifications do not trigger cart sync**; stale old marketing rows are inbox-only
+
+**Grant behavior**
+
+- [ ] Discount applies to **full purchasable subtotal** (all lines in cart)
+- [ ] Remove **one** line but leave others → grant **still applies** to remaining subtotal
+- [ ] **Empty cart** (clear or remove last line, any page) → grant **revoked**; snapshot deleted
+- [ ] Re-add same item immediately → **no** abandon discount until a **new** full idle period
+- [ ] After new idle period + return → new grant (if template still active)
+
+**Tie-break & checkout**
+
+- [ ] **Favorite + abandoned** both eligible: **best savings** wins (§17); after abandon sync issues grant, abandoned grant preferred on that visit when configured
+- [ ] Stripe checkout: discounted merchandise + separate shipping; admin order promo fields populated
 - [ ] **M6d** email — skip (M13)
+
+**Regression (2026-06 fixes)**
+
+- [ ] First `/cart` visit after idle: no false **removed from store**; promo visible without leaving and re-entering cart
+- [ ] CloudWatch: no `Variable 'lineItems' has an invalid value` on `syncCartSnapshot`
 
 ---
 
@@ -517,12 +578,19 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 - [ ] **Out of stock** (product still in catalog): flagged separately from removed; checkout blocked
 - [ ] **Server guard:** tamper `productId` in devtools / retry checkout API → Stripe session rejected with clear error
 
+### Favorites list — cross-check §6
+
+Full happy-path and vault checks live in **§6 Saved favorites**. In this section, verify **removed-from-catalog** behavior only:
+
+- [ ] After admin **deletes** a favorited product: appears under **Removed from the store** on `/account/favorites`; remove clears favorite
+- [ ] Favorites without stored `productSlug` (pre-deploy): removed section may show product id — still removable
+
 ### Favorites / PDP
 
 - [ ] Favorited product still in catalog: heart works as before (§2)
 - [ ] After admin **deletes** product: visiting old `/shop/:slug` shows **stale favorite** notice (if user had favorited **after** deploy with slug stored) with option to clear favorite
 - [ ] No new **favorite** promo issued for removed product
-- [ ] Favorites without stored `productSlug` (pre-deploy rows): stale notice may not appear — acceptable; re-favorite after deploy for full path
+- [ ] Favorites without stored `productSlug` (pre-deploy rows): stale notice may not appear on PDP — acceptable; re-favorite after deploy for full path; list page still shows removed row when product missing from catalog
 
 ### Regression
 
@@ -573,7 +641,7 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 | **M12** | Notification preferences | — |
 | **M13** | Marketing pixels / UTM on orders | — |
 
-**In repo — use §17 / §17b / §2 / §4 (not this table):** M6b, M6c, M17.
+**In repo — use §6 / §17 / §17b / §2 / §4 (not this table):** M6b, M6c, M17.
 
 Add test sections here when each milestone ships.
 

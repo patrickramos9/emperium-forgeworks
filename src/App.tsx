@@ -28,6 +28,7 @@ import { AccountRegisterPage } from "@/pages/account/AccountRegisterPage";
 import { AccountPage } from "@/pages/account/AccountPage";
 import { AccountOrdersPage } from "@/pages/account/AccountOrdersPage";
 import { AccountNotificationsPage } from "@/pages/account/AccountNotificationsPage";
+import { AccountFavoritesPage } from "@/pages/account/AccountFavoritesPage";
 import { VaultPage } from "@/pages/VaultPage";
 import { VaultProductDetailPage } from "@/pages/VaultProductDetailPage";
 import { AdminVaultPage } from "@/pages/admin/AdminVaultPage";
@@ -92,6 +93,7 @@ export default function App() {
               element={<AccountReviewPage />}
             />
             <Route path="/account/notifications" element={<AccountNotificationsPage />} />
+            <Route path="/account/favorites" element={<AccountFavoritesPage />} />
           </Route>
           <Route path="/account/login" element={<AccountLoginPage />} />
           <Route path="/account/forgot-password" element={<AccountForgotPasswordPage />} />

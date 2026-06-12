@@ -20,17 +20,18 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-03
+**Last updated:** 2026-06-11
 
 | Item | State |
 |------|--------|
 | **Phase** | Core commerce + bugs + **initial polish** (print tracking **deferred**) |
-| **Next** | QA **M6b/c** → **M17** (B1) → **M19** → **M18** → **M9a** (UX polish, e.g. add-to-cart feedback) |
+| **Next** | Finish **promo QA** (M6b/c) → **M17** (B1) → **M19** → **M18** → **M9a** |
 | **Blocked** | — |
-| **Recently verified** | **M6 core** — **production verified** (2026-06-02) · **M15** — **production verified** |
-| **In progress** | **M6b + M6c** — implemented in repo; deploy backend + frontend + QA |
+| **Recently verified** | **M6 core** (2026-06-02) · **M15** · **M6c** abandon-cart path (Patrick, 2026-06-11 — continue regression) |
+| **In progress** | **M6b** favorite promos + **M6c** edge cases (revoke, tie-break, checkout); **M17** deploy + QA |
 | **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
-| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — feature-by-feature manual regression |
+| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — §17 promo testing expanded (2026-06-11) |
+| **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
 M8 (done) → **M3b** (done) → **M15** (done) → **M6** (done) → **M6b/c** → **M17** (B1) → **M19** → **M18** → **M9a** (initial UX polish) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M9** (SEO, gallery, perf) → **M11** → M11b → M14  
@@ -168,7 +169,8 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M3b** — Live Stripe Checkout + webhook (`Order` paid, ship-to address, email/phone) — **production verified**
 - **M15** — Shipping profiles, product assignment, Stripe checkout shipping, order totals, PDP shipping (`shippingDisplay` + live fallback), ready-to-ship on profiles — **production verified**
 - **M6 core** — Promo templates, grants, auto-apply cart/checkout, thank-you on paid order, admin tools — **production verified** (2026-06-02)
-- **M6b + M6c** — Favorite grants, abandoned-cart snapshot + return grant (in repo; deploy + QA pending)
+- **M6c** — Abandoned-cart snapshot, idle grant, revoke on empty cart, issued-grants admin table — **deployed; happy path verified** (2026-06-11); full §17 regression in progress
+- **M6b** — Favorite grants + PDP UI — **in repo; QA in progress**
 
 ### Blocked / waiting
 
@@ -176,7 +178,8 @@ _(none)_
 
 ### In progress
 
-- **M6b + M6c** — favorite + abandoned-cart grants (deploy + QA pending)
+- **M6b + M6c** — promo QA (favorite grants, abandon edge cases, checkout with promo, admin issued-grants)
+- **M17** — removed-from-catalog UX (in repo; QA after M6b/c sign-off)
 
 ### Known bugs (queued — not milestones)
 
@@ -252,7 +255,9 @@ _(none)_
 
 ### M6 — Promo codes (templates + grants)
 
-**Status:** **M6 core production verified** (2026-06-02). **M6b** (favorites) and **M6c** (abandoned cart) implemented in repo — deploy + QA. **M6d** (email) deferred to M13.
+**Status:** **M6 core production verified** (2026-06-02). **M6c** abandon-cart happy path verified (2026-06-11). **M6b** + remaining **M6c** cases in QA. **M6d** (email) deferred to M13.
+
+**2026-06-11 deploy fixes (M6c):** `syncCartSnapshot` stores `lineItems` as JSON string; empty-cart sync revokes open `abandoned_cart` grants; cart page waits for catalog verify before false “removed” errors; `useEmptyCartSnapshotSync` in `CartProvider`; admin **Issued grants** table + deleted-template labels.
 
 **Goal:** Etsy-style **issued offers** tied to accounts: auto-apply the single best eligible grant at checkout, persist on `Order`, separate from **M15 shipping**.
 
@@ -277,7 +282,7 @@ _(none)_
 | **admin** | Admin assigns to a user on demand | Per grant scope (cart / product) | Manual only |
 | **thank_you** | On **paid** order (webhook final step) | Next order; template expiry | New grant after each **completed** purchase (while template active) |
 | **favorite** | First time user favorites product **P** (**M6b**) | Discount applies only when **P** is in cart (line-level or allocated to P’s subtotal) | If **P** still favorited after paid order → new grant (**M6b**) |
-| **abandoned_cart** | Cart idle ≥ N hours with items (**M6c**) | Cart-scoped grant for that snapshot | New grant on each new abandon event while template active (**M6c**) |
+| **abandoned_cart** | Cart idle ≥ N hours with items (**M6c**) | **Whole-cart subtotal** (not per line); tied to user + snapshot | Revoked when cart **fully empty**; new grant after new idle period (**M6c**) |
 
 - **Favorite vs abandoned cart** — different triggers; both may exist for a user but only **one** wins at checkout (best savings → soonest expiry).
 - **Unfavorite** (v1): unused grant remains until used/expired (no automatic revoke).
@@ -316,8 +321,8 @@ _(none)_
 
 #### Admin UI
 
-- **`/admin/promos`** — CRUD templates (amount, expiry, active).
-- Issue grant to user; **revoke** one grant (abuse / ToS).
+- **`/admin/promos`** — CRUD templates (amount, expiry, active); **Issued grants** table (all sources, revoke).
+- Issue grant to user; **revoke** one grant (abuse / ToS); block template delete while open grants exist.
 - Order detail shows applied promo fields.
 
 #### Storefront
@@ -814,14 +819,16 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 **Status:** Implemented in repo — deploy backend (`Favorite.productSlug`, optional) + frontend; QA **B1**.
 
-**Goal:** When a product is no longer in the catalog (admin delete, or treat as unavailable if `inStock: false` / hidden — confirm behavior in implementation), customers with it in **cart** or **favorites** see a clear message instead of broken checkout or silent failures.
+**Goal:** When a product is no longer in the catalog (admin delete, or treat as unavailable if `inStock: false` / hidden — confirm behavior in implementation), customers with it in **cart** or **favorites** see a clear message instead of broken checkout or silent failures. Customers can **view and manage** all saved favorites in one place.
 
 **Depends on:** **M6b** (`Favorite` model + PDP favorites UI).
 
 **Storefront:**
 
 - **Cart (`/cart`):** Lines for missing products show **“Removed from the store”** (or similar), no checkout for those lines; one-click **Remove**; block checkout while any removed line remains (extend `validateCartLines`).
-- **Favorites (PDP / future list):** If favorite points at missing product, show **removed** state; offer **Remove from favorites**; do not issue favorite promos for removed products.
+- **Favorites list (`/account/favorites`):** Signed-in customers see saved pieces (shop + vault), link to PDP, **Remove from favorites**; **Removed from the store** section for stale favorites (slug/id) with one-click clear.
+- **Favorites (PDP):** `StaleFavoriteNotice` when favorite points at missing slug; do not issue favorite promos for removed products.
+- **Account home:** link to **Saved favorites**.
 - **CartSnapshot / promo:** Do not apply product-scoped grants for removed `productId`s.
 
 **Admin:**
@@ -831,6 +838,7 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 **Acceptance:**
 
 - Customer with stale cart line for deleted product sees explicit copy, can remove line, checkout works for remaining valid lines.
+- **`/account/favorites`** lists active favorites with product cards; removed favorites in separate section; remove works from list and PDP.
 - Favorite on deleted product shows removed message; toggle clears favorite without error.
 
 ---

@@ -1,5 +1,15 @@
+import type { Product } from "@/data/seedProducts";
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import { hasFavoriteModel } from "@/lib/dataModels";
+
+export type FavoriteRecord = {
+  productId: string;
+  productSlug?: string | null;
+};
+
+export type ResolvedFavorite =
+  | { status: "active"; favorite: FavoriteRecord; product: Product }
+  | { status: "removed"; favorite: FavoriteRecord; displaySlug: string };
 
 export async function isProductFavorited(
   client: AmplifyDataClient,
@@ -18,9 +28,9 @@ export async function isProductFavorited(
 export async function listUserFavorites(
   client: AmplifyDataClient,
   userId: string,
-): Promise<{ productId: string; productSlug?: string | null }[]> {
+): Promise<FavoriteRecord[]> {
   if (!hasFavoriteModel(client)) return [];
-  const rows: { productId: string; productSlug?: string | null }[] = [];
+  const rows: FavoriteRecord[] = [];
   let nextToken: string | undefined;
 
   do {
@@ -44,6 +54,35 @@ export async function listUserFavorites(
   } while (nextToken);
 
   return rows;
+}
+
+/** Match saved favorites to live catalog rows; leftovers are removed-from-store. */
+export function resolveFavoritesAgainstCatalog(
+  favorites: FavoriteRecord[],
+  products: Product[],
+): ResolvedFavorite[] {
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  const resolved: ResolvedFavorite[] = [];
+
+  for (const favorite of favorites) {
+    const product =
+      byId.get(favorite.productId) ??
+      (favorite.productSlug ? bySlug.get(favorite.productSlug) : undefined);
+
+    if (product) {
+      resolved.push({ status: "active", favorite, product });
+      continue;
+    }
+
+    resolved.push({
+      status: "removed",
+      favorite,
+      displaySlug: favorite.productSlug?.trim() || favorite.productId,
+    });
+  }
+
+  return resolved;
 }
 
 /** Favorite for a slug whose product no longer exists in catalog. */
