@@ -1,5 +1,44 @@
 import { normalizeImageRef } from "@/lib/productImageRefs";
 
+/** Ordered gallery refs for storefront (matches admin variant photo linking). */
+export function productGalleryRefs(product: {
+  images?: string[];
+  imageRefs?: string[];
+  detailImage?: string | null;
+}): string[] {
+  const raw =
+    product.imageRefs?.length
+      ? product.imageRefs
+      : (product.images ?? []).map((img) => normalizeImageRef(img)).filter(Boolean);
+  return productToGalleryImages({
+    images: raw,
+    detailImage: product.detailImage ?? undefined,
+  });
+}
+
+/** Resolved browser URL for a gallery ref on a product (if available). */
+export function displayUrlForGalleryRef(
+  product: {
+    images?: string[];
+    imageRefs?: string[];
+    detailImage?: string;
+  },
+  ref: string,
+): string | undefined {
+  const normalized = normalizeImageRef(ref);
+  const refs = product.imageRefs ?? [];
+  const urls = product.images ?? [];
+  const idx = refs.findIndex((item) => normalizeImageRef(item) === normalized);
+  if (idx >= 0 && urls[idx]) return urls[idx];
+  if (
+    product.detailImage &&
+    normalizeImageRef(product.detailImage) === normalized
+  ) {
+    return product.detailImage;
+  }
+  return undefined;
+}
+
 /** Ordered carousel paths (storage paths or static URLs). */
 export function productToGalleryImages(product: {
   images?: string[];

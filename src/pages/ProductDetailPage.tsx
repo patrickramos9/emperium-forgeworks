@@ -10,6 +10,10 @@ import { VariantPicker } from "@/components/VariantPicker";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
 import { productDisplayImages } from "@/lib/productDisplayImages";
+import {
+  displayUrlForGalleryRef,
+  productGalleryRefs,
+} from "@/lib/productGallery";
 import { productPrimaryImage } from "@/lib/productImageUrls";
 import {
   buildSelectedVariants,
@@ -78,13 +82,13 @@ export function ProductDetailPage({
 
   useEffect(() => {
     if (!product) return;
-    const refs = product.imageRefs ?? product.images;
+    const galleryRefs = productGalleryRefs(product);
     const imageRef = selectedVariantImageRef(
       product.variantGroups,
       variantSelection,
       lastToggledOptionId,
     );
-    const index = findGalleryIndexForImageRef(refs, imageRef);
+    const index = findGalleryIndexForImageRef(galleryRefs, imageRef);
     if (index >= 0) setGalleryIndex(index);
   }, [product, variantSelection, lastToggledOptionId]);
 
@@ -353,6 +357,7 @@ export function ProductDetailPage({
                 selection={variantSelection}
                 quantities={optionQuantities}
                 resetKey={product.slug}
+                imageUrlForRef={(ref) => displayUrlForGalleryRef(product, ref)}
                 onToggle={handleVariantToggle}
                 onQuantityChange={(optionId, quantity) =>
                   setOptionQuantities((current) => ({

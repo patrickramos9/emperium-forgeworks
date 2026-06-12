@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { ProductImage } from "@/components/ProductImage";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { formatPrice } from "@/data/seedProducts";
 import {
@@ -14,6 +15,8 @@ interface VariantPickerProps {
   quantities: Record<string, number>;
   onToggle: (groupId: string, optionId: string) => void;
   onQuantityChange: (optionId: string, quantity: number) => void;
+  /** Resolve a variant option's gallery ref to a display URL. */
+  imageUrlForRef?: (imageRef: string) => string | undefined;
   /** Reset open panels when the product changes. */
   resetKey?: string;
 }
@@ -37,6 +40,7 @@ export function VariantPicker({
   quantities,
   onToggle,
   onQuantityChange,
+  imageUrlForRef,
   resetKey,
 }: VariantPickerProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -114,6 +118,9 @@ export function VariantPicker({
               >
                 {group.options.map((option) => {
                   const selected = selectedIds.includes(option.id);
+                  const optionImageUrl = option.imageRef
+                    ? imageUrlForRef?.(option.imageRef)
+                    : undefined;
 
                   return (
                     <li key={option.id}>
@@ -130,8 +137,16 @@ export function VariantPicker({
                           className={`text-xl ${selected ? "text-primary" : "text-on-surface-variant"}`}
                           filled={selected}
                         />
+                        {optionImageUrl && (
+                          <ProductImage
+                            src={optionImageUrl}
+                            alt=""
+                            className="h-12 w-12 shrink-0 iron-bevel"
+                            imageClassName="object-contain"
+                          />
+                        )}
                         <span
-                          className={`flex-1 font-label-md ${
+                          className={`min-w-0 flex-1 font-label-md ${
                             selected ? "text-primary" : "text-on-surface"
                           }`}
                         >

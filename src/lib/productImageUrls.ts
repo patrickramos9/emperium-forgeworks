@@ -1,4 +1,5 @@
 import type { Product } from "@/data/seedProducts";
+import { productToGalleryImages } from "@/lib/productGallery";
 import { isStoragePath, normalizeImageRef, normalizeImageRefs } from "@/lib/productImageRefs";
 import { getPublicCatalogImageUrl } from "@/lib/storefrontStorage";
 
@@ -21,35 +22,32 @@ export async function resolveImageUrl(
 }
 
 export async function resolveProductImages(product: Product): Promise<Product> {
-  const refs = normalizeImageRefs(product.images);
-  const detailRef = product.detailImage
-    ? normalizeImageRef(product.detailImage)
-    : undefined;
-  const detailImage = detailRef
-    ? await resolveImageUrl(detailRef)
-    : undefined;
-  const imageResults = await Promise.allSettled(
-    refs.map((img) => resolveImageUrl(img)),
-  );
-  const images = imageResults
-    .filter(
-      (result): result is PromiseFulfilledResult<string> =>
-        result.status === "fulfilled" && Boolean(result.value),
-    )
-    .map((result) => result.value);
+  const galleryRefs = productToGalleryImages({
+    images: normalizeImageRefs(product.images),
+    detailImage: product.detailImage
+      ? normalizeImageRef(product.detailImage)
+      : undefined,
+  });
 
-  const imageRefs =
-    refs.length > 0
-      ? refs
-      : detailRef
-        ? [detailRef]
-        : product.images.filter(Boolean);
+  const imageResults = await Promise.allSettled(
+    galleryRefs.map((ref) => resolveImageUrl(ref)),
+  );
+
+  const imageRefs: string[] = [];
+  const images: string[] = [];
+  for (let i = 0; i < galleryRefs.length; i++) {
+    const result = imageResults[i];
+    if (result?.status === "fulfilled" && result.value) {
+      imageRefs.push(galleryRefs[i]!);
+      images.push(result.value);
+    }
+  }
 
   return {
     ...product,
-    detailImage,
+    detailImage: images[0],
     imageRefs,
-    images: images.length ? images : detailImage ? [detailImage] : [],
+    images,
   };
 }
 
