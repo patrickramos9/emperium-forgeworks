@@ -3,7 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import { AnnouncementBlock } from "@/components/AnnouncementBlock";
 import { Icon } from "@/components/Icon";
 import { ProductCard } from "@/components/ProductCard";
-import { CATEGORY_FILTERS } from "@/data/seedProducts";
+import {
+  CATEGORY_FILTERS,
+  isShopCategoryFilter,
+  productMatchesCategoryFilter,
+  type ShopCategoryFilter,
+} from "@/data/seedProducts";
 import { useProducts } from "@/hooks/useProducts";
 
 export function ShopPage() {
@@ -11,22 +16,14 @@ export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") ?? "All";
   const initialQuery = searchParams.get("q") ?? "";
-  const [category, setCategory] = useState(
-    CATEGORY_FILTERS.includes(initialCategory as (typeof CATEGORY_FILTERS)[number])
-      ? initialCategory
-      : "All",
+  const [category, setCategory] = useState<ShopCategoryFilter>(
+    isShopCategoryFilter(initialCategory) ? initialCategory : "All",
   );
   const search = initialQuery;
 
   const filtered = useMemo(() => {
     return products
-      .filter((p) => {
-        if (category === "All") return true;
-        if (category === "Sci-Fi") {
-          return p.category === "Sci-Fi" || p.category === "SF & Fantasy";
-        }
-        return p.category === category;
-      })
+      .filter((p) => productMatchesCategoryFilter(p.category, category))
       .filter((p) => {
         if (!search.trim()) return true;
         const q = search.toLowerCase();
@@ -38,7 +35,7 @@ export function ShopPage() {
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }, [products, category, search]);
 
-  function selectCategory(cat: string) {
+  function selectCategory(cat: ShopCategoryFilter) {
     setCategory(cat);
     const next = new URLSearchParams(searchParams);
     if (cat === "All") next.delete("category");

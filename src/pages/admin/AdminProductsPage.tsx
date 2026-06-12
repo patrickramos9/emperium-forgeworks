@@ -1,15 +1,22 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { formatPrice } from "@/data/seedProducts";
+import {
+  CATEGORY_FILTERS,
+  formatPrice,
+  productMatchesCategoryFilter,
+  type ShopCategoryFilter,
+} from "@/data/seedProducts";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { listAllProducts } from "@/lib/listAllProducts";
 import { resolveImageUrl } from "@/lib/productImageUrls";
+import { ProductDescriptionTemplateEditor } from "@/components/admin/ProductDescriptionTemplateEditor";
 
 interface AdminProductRow {
   id: string;
   slug: string;
   title: string;
+  category: string;
   priceCents: number;
   inStock: boolean;
   image?: string;
@@ -19,9 +26,18 @@ export function AdminProductsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [products, setProducts] = useState<AdminProductRow[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<ShopCategoryFilter>("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [amplifyReady, setAmplifyReady] = useState(false);
+
+  const filteredProducts = useMemo(
+    () =>
+      products.filter((p) =>
+        productMatchesCategoryFilter(p.category, categoryFilter),
+      ),
+    [products, categoryFilter],
+  );
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -50,6 +66,7 @@ export function AdminProductsPage() {
           id: row.id,
           slug: row.slug,
           title: row.title,
+          category: row.category,
           priceCents: row.priceCents,
           inStock: row.inStock ?? true,
           image:
@@ -105,7 +122,9 @@ export function AdminProductsPage() {
           </h1>
           {!loading && !error && (
             <p className="mt-1 text-body-sm text-on-surface-variant">
-              {products.length} in catalog (live database)
+              {categoryFilter === "All"
+                ? `${products.length} in catalog (live database)`
+                : `${filteredProducts.length} of ${products.length} in catalog`}
             </p>
           )}
         </div>
@@ -116,6 +135,27 @@ export function AdminProductsPage() {
           Add Product
         </Link>
       </div>
+
+      <ProductDescriptionTemplateEditor />
+
+      {!loading && !error && products.length > 0 && (
+        <div className="mb-stack-md flex flex-wrap gap-2">
+          {CATEGORY_FILTERS.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategoryFilter(cat)}
+              className={
+                categoryFilter === cat
+                  ? "bg-primary px-3 py-1.5 font-label-sm uppercase text-on-primary"
+                  : "border border-outline-variant/30 bg-surface-container-high px-3 py-1.5 font-label-sm uppercase text-on-surface-variant transition-colors hover:text-primary"
+              }
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
       {loading ? (
         <p className="text-on-surface-variant">Loading...</p>
       ) : error ? (
@@ -130,6 +170,19 @@ export function AdminProductsPage() {
             </p>
           )}
         </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
+          <p className="text-on-surface">
+            No products in the &ldquo;{categoryFilter}&rdquo; category.
+          </p>
+          <button
+            type="button"
+            onClick={() => setCategoryFilter("All")}
+            className="mt-3 font-label-sm uppercase text-primary hover:underline"
+          >
+            Show all products
+          </button>
+        </div>
       ) : (
         <div className="overflow-x-auto border border-outline-variant/20 iron-bevel">
           <table className="w-full text-left text-body-md">
@@ -137,13 +190,14 @@ export function AdminProductsPage() {
               <tr>
                 <th className="p-3">Image</th>
                 <th className="p-3">Title</th>
+                <th className="p-3">Category</th>
                 <th className="p-3">Price</th>
                 <th className="p-3">Stock</th>
                 <th className="p-3" />
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
+              {filteredProducts.map((p) => (
                 <tr
                   key={p.id}
                   className="border-t border-outline-variant/10"
@@ -158,6 +212,7 @@ export function AdminProductsPage() {
                     )}
                   </td>
                   <td className="p-3 text-on-surface">{p.title}</td>
+                  <td className="p-3 text-on-surface-variant">{p.category}</td>
                   <td className="p-3 text-primary">
                     {formatPrice(p.priceCents)}
                   </td>

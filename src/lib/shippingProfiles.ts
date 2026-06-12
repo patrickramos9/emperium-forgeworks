@@ -162,6 +162,33 @@ export function resolveProductShippingProfile<
   return active.find((profile) => profile.isDefault) ?? null;
 }
 
+/** Admin product list: assigned profile name + shipping kind label. */
+export function productShippingAdminLabels(
+  product: { shippingProfileId?: string | null },
+  profiles: ProductShippingProfileLike[],
+): { profileLabel: string; kindLabel: string } {
+  const active = profiles.filter((profile) => profile.active !== false);
+  const assigned = product.shippingProfileId
+    ? active.find((profile) => profile.id === product.shippingProfileId)
+    : undefined;
+  const profile = assigned ?? active.find((p) => p.isDefault) ?? null;
+
+  if (!profile) {
+    return { profileLabel: "No profile", kindLabel: "—" };
+  }
+
+  const kind = profile.kind;
+  const kindLabel =
+    kind && kind in SHIPPING_PROFILE_KIND_LABELS
+      ? SHIPPING_PROFILE_KIND_LABELS[kind]
+      : "—";
+  const profileLabel = assigned
+    ? profile.name?.trim() || "Assigned profile"
+    : `Store default${profile.name ? ` · ${profile.name}` : ""}`;
+
+  return { profileLabel, kindLabel };
+}
+
 /** Single-item shipping summary for product detail pages. */
 export function formatProductShippingDisplay(
   profile: ProductShippingProfileLike,

@@ -3,9 +3,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   type Product,
   type ProductCategory,
+  PRODUCT_CATEGORIES,
   getProductBySlug,
 } from "@/data/seedProducts";
 import { AdminProductGalleryEditor } from "@/components/admin/AdminProductGalleryEditor";
+import { LoadProductDescriptionTemplate } from "@/components/admin/LoadProductDescriptionTemplate";
 import { AdminProductVariantsEditor } from "@/components/admin/AdminProductVariantsEditor";
 import {
   normalizeRichTextForSave,
@@ -39,14 +41,6 @@ import {
   productSlugFromTitle,
   validateProductSlug,
 } from "@/lib/productSlug";
-
-const CATEGORIES: ProductCategory[] = [
-  "Horror",
-  "Dark Fantasy",
-  "Sci-Fi",
-  "Terrain",
-  "SF & Fantasy",
-];
 
 function parseJsonField<T>(raw: string, label: string): T | null {
   const trimmed = raw.trim();
@@ -374,6 +368,10 @@ export function AdminProductEditPage() {
               value={description}
               onChange={setDescription}
             />
+            <LoadProductDescriptionTemplate
+              currentDescription={description}
+              onLoad={setDescription}
+            />
           </div>
         </div>
         <label className="block">
@@ -400,7 +398,7 @@ export function AdminProductEditPage() {
             onChange={(e) => setCategory(e.target.value as ProductCategory)}
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           >
-            {CATEGORIES.map((c) => (
+            {PRODUCT_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
