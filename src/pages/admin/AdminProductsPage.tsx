@@ -6,11 +6,14 @@ import {
   productMatchesCategoryFilter,
   type ShopCategoryFilter,
 } from "@/data/seedProducts";
+import { ProductDescriptionTemplateEditor } from "@/components/admin/ProductDescriptionTemplateEditor";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
+import { hasShippingProfileModel } from "@/lib/dataModels";
 import { listAllProducts } from "@/lib/listAllProducts";
 import { resolveImageUrl } from "@/lib/productImageUrls";
-import { ProductDescriptionTemplateEditor } from "@/components/admin/ProductDescriptionTemplateEditor";
+import { productShippingAdminLabels } from "@/lib/shippingProfiles";
+import { listAllShippingProfiles } from "@/services/shippingProfileService";
 
 interface AdminProductRow {
   id: string;
@@ -18,7 +21,8 @@ interface AdminProductRow {
   title: string;
   category: string;
   priceCents: number;
-  inStock: boolean;
+  shippingProfileLabel: string;
+  shippingKindLabel: string;
   image?: string;
 }
 
@@ -60,19 +64,34 @@ export function AdminProductsPage() {
     }
 
     try {
-      const rows = await listAllProducts(client);
+      const [rows, shippingProfiles] = await Promise.all([
+        listAllProducts(client),
+        hasShippingProfileModel(client)
+          ? listAllShippingProfiles(client)
+          : Promise.resolve([]),
+      ]);
+
       const mapped = await Promise.all(
-        rows.map(async (row) => ({
-          id: row.id,
-          slug: row.slug,
-          title: row.title,
-          category: row.category,
-          priceCents: row.priceCents,
-          inStock: row.inStock ?? true,
-          image:
-            (await resolveImageUrl(row.images?.[0] ?? row.detailImage ?? undefined)) ??
-            undefined,
-        })),
+        rows.map(async (row) => {
+          const { profileLabel, kindLabel } = productShippingAdminLabels(
+            { shippingProfileId: row.shippingProfileId },
+            shippingProfiles,
+          );
+
+          return {
+            id: row.id,
+            slug: row.slug,
+            title: row.title,
+            category: row.category,
+            priceCents: row.priceCents,
+            shippingProfileLabel: profileLabel,
+            shippingKindLabel: kindLabel,
+            image:
+              (await resolveImageUrl(
+                row.images?.[0] ?? row.detailImage ?? undefined,
+              )) ?? undefined,
+          };
+        }),
       );
       setProducts(mapped);
     } catch (err) {
@@ -192,7 +211,7 @@ export function AdminProductsPage() {
                 <th className="p-3">Title</th>
                 <th className="p-3">Category</th>
                 <th className="p-3">Price</th>
-                <th className="p-3">Stock</th>
+                <th className="p-3">Shipping</th>
                 <th className="p-3" />
               </tr>
             </thead>
@@ -217,7 +236,10 @@ export function AdminProductsPage() {
                     {formatPrice(p.priceCents)}
                   </td>
                   <td className="p-3">
-                    {p.inStock ? "In stock" : "Out"}
+                    <span className="text-on-surface">{p.shippingProfileLabel}</span>
+                    <span className="mt-0.5 block font-label-sm text-on-surface-variant">
+                      {p.shippingKindLabel}
+                    </span>
                   </td>
                   <td className="space-x-3 p-3">
                     <Link
