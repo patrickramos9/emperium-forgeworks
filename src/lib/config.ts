@@ -11,6 +11,9 @@ export const SITE_DOMAIN =
 
 export const CONTACT_EMAIL = "melissa@emperiumforgeworks.com";
 
+export const ETSY_SHOP_REVIEWS_URL =
+  "https://www.etsy.com/shop/EmperiumForgeworks?ref=shop_sugg_market#reviews";
+
 export const PLAUSIBLE_DOMAIN =
   import.meta.env.VITE_PLAUSIBLE_DOMAIN?.trim() || undefined;
 

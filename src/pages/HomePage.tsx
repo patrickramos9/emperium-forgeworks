@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { ReviewCard } from "@/components/ReviewCard";
-import { CONTACT_EMAIL } from "@/lib/config";
+import { CONTACT_EMAIL, ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
 import { useSiteLayout } from "@/context/AnnouncementContext";
@@ -219,12 +219,22 @@ export function HomePage() {
             <h2 className="font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
               Voices From The Void
             </h2>
-            <Link
-              to="/reviews"
-              className="font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
-            >
-              See all reviews
-            </Link>
+            <div className="flex flex-wrap items-center gap-4">
+              <Link
+                to="/reviews"
+                className="font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
+              >
+                See all reviews
+              </Link>
+              <a
+                href={ETSY_SHOP_REVIEWS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
+              >
+                More on Etsy
+              </a>
+            </div>
           </div>
           <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
             {reviews.map((review) => (

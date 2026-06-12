@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ReviewCard } from "@/components/ReviewCard";
 import { useSiteLayout } from "@/context/AnnouncementContext";
+import { ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
 import {
@@ -45,6 +46,14 @@ export function ReviewsPage() {
           <p className="mt-2 font-body-md text-on-surface-variant">
             Real reviews from customers who summoned darkness from the forge.
           </p>
+          <a
+            href={ETSY_SHOP_REVIEWS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
+          >
+            More reviews on Etsy
+          </a>
         </div>
         <Link
           to="/shop"
