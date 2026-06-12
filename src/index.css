@@ -59,7 +59,12 @@
 
 .rich-text-content p,
 .rich-text-editor p {
-  @apply mb-3;
+  @apply mb-3 min-h-[1.5em];
+}
+
+.rich-text-content p:last-child,
+.rich-text-editor p:last-child {
+  @apply mb-0;
 }
 
 .rich-text-content ul,

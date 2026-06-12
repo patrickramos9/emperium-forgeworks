@@ -7,6 +7,7 @@ import { Color } from "@tiptap/extension-color";
 import {
   isRichTextEmpty,
   normalizeRichTextForSave,
+  preserveEmptyParagraphs,
   prepareRichTextForDisplay,
 } from "@/lib/richTextUtils";
 
@@ -134,6 +135,9 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     () => [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        hardBreak: {
+          keepMarks: true,
+        },
       }),
       Underline,
       TextStyle,
@@ -144,7 +148,7 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
 
   const handleUpdate = useCallback(
     ({ editor: ed }: { editor: { getHTML: () => string } }) => {
-      const html = ed.getHTML();
+      const html = preserveEmptyParagraphs(ed.getHTML());
       lastEmittedHtml.current = html;
       onChange(html);
     },
@@ -169,7 +173,7 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     if (value === lastEmittedHtml.current) return;
 
     const prepared = prepareRichTextForDisplay(value || "");
-    const current = editor.getHTML();
+    const current = preserveEmptyParagraphs(editor.getHTML());
     if (prepared !== current) {
       editor.commands.setContent(prepared || "", { emitUpdate: false });
       lastEmittedHtml.current = prepared || "";
@@ -284,7 +288,9 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           Clear
         </ToolbarButton>
       </div>
-      <EditorContent editor={editor} />
+      <div className="rich-text-editor-scroll max-h-[min(50vh,420px)] overflow-y-auto overscroll-contain">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

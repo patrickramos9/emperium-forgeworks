@@ -20,8 +20,16 @@ export function isRichTextEmpty(html: string | null | undefined): boolean {
   return text.length === 0;
 }
 
+/** Keep blank lines visible in editors and on the storefront (TipTap/DOMPurify drop bare empty `<p>`). */
+export function preserveEmptyParagraphs(html: string): string {
+  return html
+    .replace(/<p><br\s+class="ProseMirror-trailingBreak"\s*\/?><\/p>/gi, "<p><br></p>")
+    .replace(/<p>\s*<\/p>/gi, "<p><br></p>");
+}
+
 export function normalizeRichTextForSave(html: string): string | undefined {
-  return isRichTextEmpty(html) ? undefined : html.trim();
+  const normalized = preserveEmptyParagraphs(html.trim());
+  return isRichTextEmpty(normalized) ? undefined : normalized;
 }
 
 /** Normalize stored value for TipTap or DOM render. */
@@ -29,14 +37,18 @@ export function prepareRichTextForDisplay(html: string): string {
   const trimmed = html.trim();
   if (!trimmed) return "";
   const decoded = decodeRichTextHtml(trimmed);
-  if (looksLikeRichTextHtml(decoded)) return decoded;
-  return decoded
-    .split(/\n{2,}/)
-    .map((block) => {
-      const escaped = escapeHtml(block).replace(/\n/g, "<br>");
-      return `<p>${escaped}</p>`;
-    })
-    .join("");
+  if (looksLikeRichTextHtml(decoded)) {
+    return preserveEmptyParagraphs(decoded);
+  }
+  return preserveEmptyParagraphs(
+    decoded
+      .split(/\n{2,}/)
+      .map((block) => {
+        const escaped = escapeHtml(block).replace(/\n/g, "<br>");
+        return block.trim() ? `<p>${escaped}</p>` : "<p><br></p>";
+      })
+      .join(""),
+  );
 }
 
 function escapeHtml(value: string): string {
