@@ -1,4 +1,4 @@
-const STORAGE_PREFIXES = ["products/", "sculptors/"] as const;
+const STORAGE_PREFIXES = ["products/", "sculptors/", "reviews/"] as const;
 
 export function isStoragePath(ref: string): boolean {
   return STORAGE_PREFIXES.some((prefix) => ref.startsWith(prefix));

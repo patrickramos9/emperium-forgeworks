@@ -3,14 +3,34 @@ import type { Schema } from "../../amplify/data/resource";
 import { getCustomerUserId } from "@/lib/customerAuth";
 
 export type ReviewRecord = Schema["Review"]["type"];
+export type ReviewSource = NonNullable<ReviewRecord["source"]>;
+
+/** Placeholder owner for admin-imported testimonials (not a real Cognito user). */
+export const IMPORTED_REVIEW_USER_ID = "imported";
 
 export function reviewDisplayName(review: ReviewRecord): string {
   const name = review.displayName?.trim();
   return name || "Verified Customer";
 }
 
+export function isImportedReview(review: ReviewRecord): boolean {
+  return review.source === "etsy";
+}
+
+export function reviewBadgeLabel(review: ReviewRecord): string {
+  return isImportedReview(review) ? "Etsy Customer" : "Verified Purchase";
+}
+
 export function isReviewApproved(review: ReviewRecord): boolean {
   return review.approved === true;
+}
+
+export function reviewImagePaths(review: ReviewRecord): string[] {
+  return (review.images ?? []).filter(Boolean);
+}
+
+export function generateImportedReviewId(): string {
+  return `etsy-${crypto.randomUUID()}`;
 }
 
 export async function listApprovedReviews(
@@ -137,6 +157,7 @@ export async function createReview(
     text,
     displayName: input.displayName?.trim() || undefined,
     approved: false,
+    source: "site",
   });
 
   if (result.errors?.length) {
@@ -144,6 +165,52 @@ export async function createReview(
   }
   if (!result.data) {
     throw new Error("Could not save review.");
+  }
+  return result.data;
+}
+
+export type CreateImportedReviewInput = {
+  rating: number;
+  text: string;
+  displayName?: string;
+  approved?: boolean;
+  source?: Extract<ReviewSource, "etsy">;
+  orderId?: string;
+  images?: string[];
+};
+
+export async function createImportedReview(
+  client: AmplifyDataClient,
+  input: CreateImportedReviewInput,
+): Promise<ReviewRecord> {
+  const rating = Math.round(input.rating);
+  if (rating < 1 || rating > 5) {
+    throw new Error("Rating must be between 1 and 5 stars.");
+  }
+
+  const text = input.text.trim();
+  if (text.length < 10) {
+    throw new Error("Review must be at least 10 characters.");
+  }
+
+  const orderId = input.orderId ?? generateImportedReviewId();
+  const images = input.images?.filter(Boolean);
+  const result = await client.models.Review.create({
+    orderId,
+    userId: IMPORTED_REVIEW_USER_ID,
+    rating,
+    text,
+    displayName: input.displayName?.trim() || undefined,
+    approved: input.approved ?? true,
+    source: input.source ?? "etsy",
+    images: images?.length ? images : undefined,
+  });
+
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+  if (!result.data) {
+    throw new Error("Could not save imported review.");
   }
   return result.data;
 }

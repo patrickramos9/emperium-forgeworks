@@ -1,6 +1,10 @@
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { resolveImageUrl } from "@/lib/productImageUrls";
 import {
+  reviewBadgeLabel,
   reviewDisplayName,
+  reviewImagePaths,
   type ReviewRecord,
 } from "@/services/reviewService";
 
@@ -9,8 +13,55 @@ type ReviewCardProps = {
   compact?: boolean;
 };
 
+function ReviewPhotos({
+  paths,
+  compact = false,
+}: {
+  paths: string[];
+  compact?: boolean;
+}) {
+  const [urls, setUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      const resolved = await Promise.all(paths.map((path) => resolveImageUrl(path)));
+      if (!cancelled) {
+        setUrls(resolved.filter((url): url is string => Boolean(url)));
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [paths]);
+
+  if (urls.length === 0) return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {urls.map((url) => (
+        <img
+          key={url}
+          src={url}
+          alt="Customer product photo"
+          loading="lazy"
+          className={
+            compact
+              ? "h-16 w-16 border border-outline-variant/20 object-cover"
+              : "h-24 w-24 border border-outline-variant/20 object-cover"
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
 export function ReviewCard({ review, compact = false }: ReviewCardProps) {
   const rating = Math.min(5, Math.max(1, review.rating ?? 5));
+  const imagePaths = reviewImagePaths(review);
 
   return (
     <blockquote
@@ -35,12 +86,15 @@ export function ReviewCard({ review, compact = false }: ReviewCardProps) {
       >
         &ldquo;{review.text}&rdquo;
       </p>
+      {imagePaths.length > 0 && (
+        <ReviewPhotos paths={imagePaths} compact={compact} />
+      )}
       <footer className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <cite className="font-label-md uppercase not-italic text-on-surface">
           {reviewDisplayName(review)}
         </cite>
         <span className="bg-secondary-container/30 px-2 py-1 font-label-sm uppercase tracking-widest text-secondary">
-          Verified Purchase
+          {reviewBadgeLabel(review)}
         </span>
       </footer>
     </blockquote>

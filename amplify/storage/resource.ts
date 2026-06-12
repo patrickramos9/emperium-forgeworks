@@ -22,5 +22,11 @@ export const storage = defineStorage({
       allow.groups(["customer"]).to(["read", "write", "delete"]),
       allow.groups(["admin"]).to(["read", "write", "delete"]),
     ],
+    "reviews/*": [
+      allow.guest.to(["read"]),
+      allow.authenticated.to(["read"]),
+      allow.groups(["customer"]).to(["read"]),
+      allow.groups(["admin"]).to(["read", "write", "delete"]),
+    ],
   }),
 });
