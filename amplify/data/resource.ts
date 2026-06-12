@@ -407,6 +407,8 @@ const schema = a.schema({
       settingsKey: a.string().required(),
       /** Ordered category filters (excludes reserved `All`). */
       categoryFilters: a.string().array(),
+      /** Shared HTML template for new product descriptions (admin). */
+      productDescriptionTemplate: a.string(),
     })
     .identifier(["settingsKey"])
     .authorization((allow) => [

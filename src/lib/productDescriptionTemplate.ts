@@ -1,21 +1,18 @@
-const STORAGE_KEY = "efw:admin:product-description-template";
+const LEGACY_STORAGE_KEY = "efw:admin:product-description-template";
 
-export function readProductDescriptionTemplate(): string {
+/** One-time migration from browser localStorage (pre-database template). */
+export function readLegacyProductDescriptionTemplate(): string {
   try {
-    return localStorage.getItem(STORAGE_KEY) ?? "";
+    return localStorage.getItem(LEGACY_STORAGE_KEY) ?? "";
   } catch {
     return "";
   }
 }
 
-export function writeProductDescriptionTemplate(html: string): void {
+export function clearLegacyProductDescriptionTemplate(): void {
   try {
-    if (!html.trim()) {
-      localStorage.removeItem(STORAGE_KEY);
-      return;
-    }
-    localStorage.setItem(STORAGE_KEY, html);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
-    /* private browsing / quota */
+    /* private browsing */
   }
 }

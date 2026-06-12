@@ -100,3 +100,51 @@ export async function saveCatalogCategoryFilters(
 
   return normalized;
 }
+
+export async function getProductDescriptionTemplate(
+  client: AmplifyDataClient,
+): Promise<string> {
+  const model = client.models.CatalogSettings;
+  if (!model) return "";
+
+  const { data, errors } = await model.get({ settingsKey: CATALOG_SETTINGS_KEY });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+
+  return data?.productDescriptionTemplate?.trim() ?? "";
+}
+
+export async function saveProductDescriptionTemplate(
+  client: AmplifyDataClient,
+  html: string,
+): Promise<void> {
+  const CatalogSettings = requireCatalogSettingsModel(client);
+  const trimmed = html.trim();
+
+  const existing = await CatalogSettings.get({ settingsKey: CATALOG_SETTINGS_KEY });
+  if (existing.errors?.length) {
+    throw new Error(existing.errors.map((e) => e.message).join("; "));
+  }
+
+  const value = trimmed || null;
+
+  if (existing.data) {
+    const result = await CatalogSettings.update({
+      settingsKey: CATALOG_SETTINGS_KEY,
+      productDescriptionTemplate: value,
+    });
+    if (result.errors?.length) {
+      throw new Error(result.errors.map((e) => e.message).join("; "));
+    }
+  } else {
+    const result = await CatalogSettings.create({
+      settingsKey: CATALOG_SETTINGS_KEY,
+      categoryFilters: [...DEFAULT_PRODUCT_CATEGORY_FILTERS],
+      productDescriptionTemplate: value,
+    });
+    if (result.errors?.length) {
+      throw new Error(result.errors.map((e) => e.message).join("; "));
+    }
+  }
+}
