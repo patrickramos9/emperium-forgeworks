@@ -214,7 +214,7 @@ export function getProductBySlug(slug: string): Product | undefined {
   return SEED_PRODUCTS.find((p) => p.slug === slug);
 }
 
-/** Canonical list — keep in sync with admin product edit and shop filters. */
+/** Seed/default categories — live filters come from CatalogSettings. */
 export const PRODUCT_CATEGORIES: ProductCategory[] = [
   "Horror",
   "Dark Fantasy",
@@ -223,20 +223,10 @@ export const PRODUCT_CATEGORIES: ProductCategory[] = [
   "SF & Fantasy",
 ];
 
-export const CATEGORY_FILTERS = ["All", ...PRODUCT_CATEGORIES] as const;
-
-export type ShopCategoryFilter = (typeof CATEGORY_FILTERS)[number];
-
-export function isShopCategoryFilter(
-  value: string,
-): value is ShopCategoryFilter {
-  return (CATEGORY_FILTERS as readonly string[]).includes(value);
-}
-
-export function productMatchesCategoryFilter(
-  productCategory: string,
-  filter: ShopCategoryFilter,
-): boolean {
-  if (filter === "All") return true;
-  return productCategory === filter;
-}
+export {
+  ALL_CATEGORY_FILTER,
+  buildShopCategoryFilters,
+  DEFAULT_PRODUCT_CATEGORY_FILTERS,
+  isCategoryFilter,
+  productMatchesCategoryFilter,
+} from "@/lib/productCategories";

@@ -1,11 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  type Product,
-  type ProductCategory,
-  PRODUCT_CATEGORIES,
-  getProductBySlug,
-} from "@/data/seedProducts";
+import { type Product, getProductBySlug } from "@/data/seedProducts";
+import { useCategoryFilters } from "@/hooks/useCategoryFilters";
+import { DEFAULT_PRODUCT_CATEGORY_FILTERS } from "@/lib/productCategories";
 import { AdminProductGalleryEditor } from "@/components/admin/AdminProductGalleryEditor";
 import { LoadProductDescriptionTemplate } from "@/components/admin/LoadProductDescriptionTemplate";
 import { AdminProductVariantsEditor } from "@/components/admin/AdminProductVariantsEditor";
@@ -56,7 +53,7 @@ function newProductDefaults(): Pick<Product, "title" | "slug" | "category"> {
   return {
     slug: "",
     title: "",
-    category: "Horror",
+    category: DEFAULT_PRODUCT_CATEGORY_FILTERS[0],
   };
 }
 
@@ -72,7 +69,16 @@ export function AdminProductEditPage() {
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
   const [priceDollars, setPriceDollars] = useState("");
-  const [category, setCategory] = useState<ProductCategory>("Horror");
+  const { categoryFilters } = useCategoryFilters();
+  const [category, setCategory] = useState<string>(
+    DEFAULT_PRODUCT_CATEGORY_FILTERS[0],
+  );
+  const categoryOptions = useMemo(() => {
+    if (category && !categoryFilters.includes(category)) {
+      return [category, ...categoryFilters];
+    }
+    return categoryFilters;
+  }, [category, categoryFilters]);
   const [inStock, setInStock] = useState(true);
   const [featured, setFeatured] = useState(false);
   const [vaultOnly, setVaultOnly] = useState(false);
@@ -395,12 +401,12 @@ export function AdminProductEditPage() {
           </span>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value as ProductCategory)}
+            onChange={(e) => setCategory(e.target.value)}
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           >
-            {PRODUCT_CATEGORIES.map((c) => (
+            {categoryOptions.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {categoryFilters.includes(c) ? c : `${c} (removed filter)`}
               </option>
             ))}
           </select>

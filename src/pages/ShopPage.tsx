@@ -1,29 +1,38 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnnouncementBlock } from "@/components/AnnouncementBlock";
 import { Icon } from "@/components/Icon";
 import { ProductCard } from "@/components/ProductCard";
-import {
-  CATEGORY_FILTERS,
-  isShopCategoryFilter,
-  productMatchesCategoryFilter,
-  type ShopCategoryFilter,
-} from "@/data/seedProducts";
+import { productMatchesCategoryFilter } from "@/data/seedProducts";
+import { useCategoryFilters } from "@/hooks/useCategoryFilters";
 import { useProducts } from "@/hooks/useProducts";
+import {
+  ALL_CATEGORY_FILTER,
+  isCategoryFilter,
+} from "@/lib/productCategories";
 
 export function ShopPage() {
   const { products, loading, source, loadError } = useProducts();
+  const { categoryFilters, shopFilters } = useCategoryFilters();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialCategory = searchParams.get("category") ?? "All";
+  const initialCategory = searchParams.get("category") ?? ALL_CATEGORY_FILTER;
   const initialQuery = searchParams.get("q") ?? "";
-  const [category, setCategory] = useState<ShopCategoryFilter>(
-    isShopCategoryFilter(initialCategory) ? initialCategory : "All",
-  );
+  const [category, setCategory] = useState(initialCategory);
   const search = initialQuery;
+
+  useEffect(() => {
+    if (isCategoryFilter(category, categoryFilters)) return;
+    setCategory(ALL_CATEGORY_FILTER);
+    const next = new URLSearchParams(searchParams);
+    next.delete("category");
+    setSearchParams(next, { replace: true });
+  }, [category, categoryFilters, searchParams, setSearchParams]);
 
   const filtered = useMemo(() => {
     return products
-      .filter((p) => productMatchesCategoryFilter(p.category, category))
+      .filter((p) =>
+        productMatchesCategoryFilter(p.category, category, categoryFilters),
+      )
       .filter((p) => {
         if (!search.trim()) return true;
         const q = search.toLowerCase();
@@ -33,12 +42,12 @@ export function ShopPage() {
         );
       })
       .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [products, category, search]);
+  }, [products, category, categoryFilters, search]);
 
-  function selectCategory(cat: ShopCategoryFilter) {
+  function selectCategory(cat: string) {
     setCategory(cat);
     const next = new URLSearchParams(searchParams);
-    if (cat === "All") next.delete("category");
+    if (cat === ALL_CATEGORY_FILTER) next.delete("category");
     else next.set("category", cat);
     setSearchParams(next, { replace: true });
   }
@@ -56,7 +65,7 @@ export function ShopPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {CATEGORY_FILTERS.map((cat) => (
+          {shopFilters.map((cat) => (
             <button
               key={cat}
               type="button"

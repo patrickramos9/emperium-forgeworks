@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  CATEGORY_FILTERS,
-  formatPrice,
-  productMatchesCategoryFilter,
-  type ShopCategoryFilter,
-} from "@/data/seedProducts";
+import { formatPrice, productMatchesCategoryFilter } from "@/data/seedProducts";
+import { CategoryFiltersEditor } from "@/components/admin/CategoryFiltersEditor";
 import { ProductDescriptionTemplateEditor } from "@/components/admin/ProductDescriptionTemplateEditor";
+import { useCategoryFilters } from "@/hooks/useCategoryFilters";
+import { ALL_CATEGORY_FILTER, isCategoryFilter } from "@/lib/productCategories";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { hasShippingProfileModel } from "@/lib/dataModels";
@@ -22,7 +20,6 @@ interface AdminProductRow {
   category: string;
   priceCents: number;
   shippingProfileLabel: string;
-  shippingKindLabel: string;
   image?: string;
 }
 
@@ -30,7 +27,9 @@ export function AdminProductsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [products, setProducts] = useState<AdminProductRow[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<ShopCategoryFilter>("All");
+  const { categoryFilters, shopFilters, reload: reloadCategoryFilters } =
+    useCategoryFilters();
+  const [categoryFilter, setCategoryFilter] = useState(ALL_CATEGORY_FILTER);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [amplifyReady, setAmplifyReady] = useState(false);
@@ -38,9 +37,13 @@ export function AdminProductsPage() {
   const filteredProducts = useMemo(
     () =>
       products.filter((p) =>
-        productMatchesCategoryFilter(p.category, categoryFilter),
+        productMatchesCategoryFilter(
+          p.category,
+          categoryFilter,
+          categoryFilters,
+        ),
       ),
-    [products, categoryFilter],
+    [products, categoryFilter, categoryFilters],
   );
 
   const loadProducts = useCallback(async () => {
@@ -73,7 +76,7 @@ export function AdminProductsPage() {
 
       const mapped = await Promise.all(
         rows.map(async (row) => {
-          const { profileLabel, kindLabel } = productShippingAdminLabels(
+          const { profileLabel } = productShippingAdminLabels(
             { shippingProfileId: row.shippingProfileId },
             shippingProfiles,
           );
@@ -85,7 +88,6 @@ export function AdminProductsPage() {
             category: row.category,
             priceCents: row.priceCents,
             shippingProfileLabel: profileLabel,
-            shippingKindLabel: kindLabel,
             image:
               (await resolveImageUrl(
                 row.images?.[0] ?? row.detailImage ?? undefined,
@@ -104,6 +106,12 @@ export function AdminProductsPage() {
   useEffect(() => {
     void loadProducts();
   }, [loadProducts, location.key]);
+
+  useEffect(() => {
+    if (!isCategoryFilter(categoryFilter, categoryFilters)) {
+      setCategoryFilter(ALL_CATEGORY_FILTER);
+    }
+  }, [categoryFilter, categoryFilters]);
 
   useEffect(() => {
     function onFocus() {
@@ -141,7 +149,7 @@ export function AdminProductsPage() {
           </h1>
           {!loading && !error && (
             <p className="mt-1 text-body-sm text-on-surface-variant">
-              {categoryFilter === "All"
+              {categoryFilter === ALL_CATEGORY_FILTER
                 ? `${products.length} in catalog (live database)`
                 : `${filteredProducts.length} of ${products.length} in catalog`}
             </p>
@@ -157,9 +165,17 @@ export function AdminProductsPage() {
 
       <ProductDescriptionTemplateEditor />
 
+      <CategoryFiltersEditor
+        filters={categoryFilters}
+        onSaved={() => {
+          void reloadCategoryFilters();
+          void loadProducts();
+        }}
+      />
+
       {!loading && !error && products.length > 0 && (
         <div className="mb-stack-md flex flex-wrap gap-2">
-          {CATEGORY_FILTERS.map((cat) => (
+          {shopFilters.map((cat) => (
             <button
               key={cat}
               type="button"
@@ -196,7 +212,7 @@ export function AdminProductsPage() {
           </p>
           <button
             type="button"
-            onClick={() => setCategoryFilter("All")}
+            onClick={() => setCategoryFilter(ALL_CATEGORY_FILTER)}
             className="mt-3 font-label-sm uppercase text-primary hover:underline"
           >
             Show all products
@@ -235,11 +251,8 @@ export function AdminProductsPage() {
                   <td className="p-3 text-primary">
                     {formatPrice(p.priceCents)}
                   </td>
-                  <td className="p-3">
-                    <span className="text-on-surface">{p.shippingProfileLabel}</span>
-                    <span className="mt-0.5 block font-label-sm text-on-surface-variant">
-                      {p.shippingKindLabel}
-                    </span>
+                  <td className="p-3 text-on-surface-variant">
+                    {p.shippingProfileLabel}
                   </td>
                   <td className="space-x-3 p-3">
                     <Link

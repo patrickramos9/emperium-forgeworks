@@ -3,6 +3,8 @@
  * Usage: npx tsx scripts/seed-products.ts
  */
 import { SEED_PRODUCTS } from "../src/data/seedProducts";
+import { CATALOG_SETTINGS_KEY } from "../src/lib/catalogSettings";
+import { DEFAULT_PRODUCT_CATEGORY_FILTERS } from "../src/lib/productCategories";
 import { buildProductMutationPayload } from "../src/lib/productPayload";
 
 async function main() {
@@ -55,6 +57,20 @@ async function main() {
     } else {
       await client.models.Product.create(payload);
       console.log(`Created: ${product.slug}`);
+    }
+  }
+
+  if (client.models.CatalogSettings) {
+    const { data: existingSettings } = await client.models.CatalogSettings.get({
+      settingsKey: CATALOG_SETTINGS_KEY,
+    });
+
+    if (!existingSettings) {
+      await client.models.CatalogSettings.create({
+        settingsKey: CATALOG_SETTINGS_KEY,
+        categoryFilters: [...DEFAULT_PRODUCT_CATEGORY_FILTERS],
+      });
+      console.log("Created catalog category filters.");
     }
   }
 

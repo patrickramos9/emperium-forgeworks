@@ -400,6 +400,21 @@ const schema = a.schema({
       allow.group("admin"),
     ]),
 
+  /** Singleton store catalog config (category filter chips for shop + admin). */
+  CatalogSettings: a
+    .model({
+      /** Always `store`. */
+      settingsKey: a.string().required(),
+      /** Ordered category filters (excludes reserved `All`). */
+      categoryFilters: a.string().array(),
+    })
+    .identifier(["settingsKey"])
+    .authorization((allow) => [
+      allow.guest().to(["read"]),
+      allow.authenticated().to(["read"]),
+      allow.group("admin"),
+    ]),
+
   Sculptor: a
     .model({
       slug: a.string().required(),
