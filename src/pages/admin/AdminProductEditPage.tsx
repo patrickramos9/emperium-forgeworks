@@ -31,6 +31,8 @@ import {
   validateVariantGroups,
 } from "@/lib/productVariants";
 import { nextProductSortOrder } from "@/services/productSortService";
+import { countFeaturedProducts } from "@/services/featuredProductService";
+import { MAX_FEATURED_PRODUCTS } from "@/lib/featuredProducts";
 import {
   formatCentsForInput,
   parseDollarInputToCents,
@@ -83,6 +85,7 @@ export function AdminProductEditPage() {
   }, [category, categoryFilters]);
   const [inStock, setInStock] = useState(true);
   const [featured, setFeatured] = useState(false);
+  const [wasFeaturedOnLoad, setWasFeaturedOnLoad] = useState(false);
   const [vaultOnly, setVaultOnly] = useState(false);
   const [sortOrder, setSortOrder] = useState(0);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
@@ -112,6 +115,7 @@ export function AdminProductEditPage() {
     setCategory(p.category);
     setInStock(p.inStock);
     setFeatured(p.featured);
+    setWasFeaturedOnLoad(p.featured);
     setVaultOnly(p.vaultOnly ?? false);
     setSortOrder(p.sortOrder);
     setLore(p.lore ?? "");
@@ -200,6 +204,18 @@ export function AdminProductEditPage() {
       const slugValidation = validateProductSlug(productSlug);
       if (slugValidation) {
         throw new Error(slugValidation);
+      }
+
+      if (featured && !wasFeaturedOnLoad) {
+        const featuredCount = await countFeaturedProducts(
+          client,
+          recordId ?? undefined,
+        );
+        if (featuredCount >= MAX_FEATURED_PRODUCTS) {
+          throw new Error(
+            `Only ${MAX_FEATURED_PRODUCTS} products can be featured on the home page. Unfeature another product first.`,
+          );
+        }
       }
 
       const priceCents = parseDollarInputToCents(priceDollars);
@@ -469,6 +485,10 @@ export function AdminProductEditPage() {
             />
             <span className="font-label-sm uppercase">Featured</span>
           </label>
+          <p className="w-full text-body-sm text-on-surface-variant">
+            Featured products appear on the home page (up to{" "}
+            {MAX_FEATURED_PRODUCTS}).
+          </p>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"

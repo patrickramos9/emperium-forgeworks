@@ -25,6 +25,7 @@ interface AdminProductRow {
   category: string;
   priceCents: number;
   sortOrder: number;
+  featured: boolean;
   shippingProfileLabel: string;
   image?: string;
 }
@@ -108,6 +109,7 @@ export function AdminProductsPage() {
             category: row.category,
             priceCents: row.priceCents,
             sortOrder: row.sortOrder ?? 0,
+            featured: row.featured ?? false,
             shippingProfileLabel: profileLabel,
             image:
               (await resolveImageUrl(
@@ -353,6 +355,15 @@ export function AdminProductsPage() {
                     aria-hidden
                   >
                     <Icon name="drag_indicator" className="text-xl" />
+                  </div>
+                )}
+                {product.featured && (
+                  <div
+                    className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center bg-surface-container-highest/90 text-secondary"
+                    title="Featured on home page"
+                    aria-label="Featured on home page"
+                  >
+                    <Icon name="star" filled className="text-xl" />
                   </div>
                 )}
 

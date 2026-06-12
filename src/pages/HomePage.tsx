@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Icon } from "@/components/Icon";
+import { FeaturedProductsGrid } from "@/components/FeaturedProductsGrid";
 import { ReviewCard } from "@/components/ReviewCard";
-import { CONTACT_EMAIL, ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
+import { ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { SculptorCard } from "@/components/SculptorCard";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
+import { useProducts } from "@/hooks/useProducts";
+import { pickFeaturedProducts } from "@/lib/featuredProducts";
 import { resolveImageUrl } from "@/lib/productImageUrls";
 import { hasSculptorModel } from "@/lib/dataModels";
 import {
@@ -41,6 +43,11 @@ type SculptorWithLogo = SculptorRecord & { logoUrl?: string };
 
 export function HomePage() {
   const { mainTopPadding } = useSiteLayout();
+  const { products, loading: productsLoading } = useProducts();
+  const featuredProducts = useMemo(
+    () => pickFeaturedProducts(products),
+    [products],
+  );
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
   const [sculptors, setSculptors] = useState<SculptorWithLogo[]>([]);
 
@@ -119,76 +126,27 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Featured collections */}
-      <section className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
-        <div className="mb-stack-lg flex items-end justify-between">
-          <h2 className="font-display-lg text-headline-lg uppercase tracking-tighter text-primary">
-            Featured Collections
-          </h2>
-          <Link
-            to="/shop"
-            className="font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
-          >
-            View All Series
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 gap-gutter md:grid-cols-2">
-          <Link
-            to="/shop?category=Sci-Fi"
-            className="group relative flex min-h-[320px] flex-col justify-end overflow-hidden bg-surface-container-low iron-bevel md:row-span-2 md:min-h-[480px]"
-          >
-            <img
-              src={LEGACY_IMAGES.home.voidboundSentinel}
-              alt="Voidbound Sentinels"
-              className="absolute inset-0 h-full w-full object-cover grayscale brightness-75 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-            <div className="relative z-10 p-stack-lg">
-              <span className="font-label-sm uppercase tracking-widest text-secondary">
-                Series 01
-              </span>
-              <h3 className="mt-1 font-display-lg text-headline-lg uppercase text-on-surface">
-                Voidbound Sentinels
-              </h3>
-              <span className="mt-4 inline-flex items-center gap-1 font-label-md uppercase text-primary">
-                Deploy Forces
-                <Icon name="arrow_forward" className="text-sm" />
-              </span>
-            </div>
-          </Link>
-          <Link
-            to="/shop?category=Dark%20Fantasy"
-            className="group relative flex min-h-[220px] flex-col justify-end overflow-hidden bg-surface-container-low iron-bevel"
-          >
-            <img
-              src={LEGACY_IMAGES.home.darkFantasy}
-              alt="Dark Fantasy"
-              className="absolute inset-0 h-full w-full object-cover object-top grayscale brightness-75 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-            <div className="relative z-10 p-stack-lg">
-              <h3 className="font-display-lg text-headline-md uppercase text-on-surface">
-                Dark Fantasy
-              </h3>
-            </div>
-          </Link>
-          <div className="flex min-h-[220px] flex-col items-center justify-center border border-secondary/20 bg-void-purple/30 p-stack-lg text-center iron-bevel backdrop-blur-sm">
-            <Icon name="architecture" className="mb-4 text-5xl text-secondary" />
-            <h3 className="font-display-lg text-headline-md uppercase text-on-surface">
-              Custom Forge
-            </h3>
-            <p className="mt-2 font-body-md text-on-surface-variant">
-              Commission bespoke sculpts and print runs.
-            </p>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="mt-4 font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
+      {/* Featured products */}
+      {(productsLoading || featuredProducts.length > 0) && (
+        <section className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
+          <div className="mb-stack-lg flex items-end justify-between">
+            <h2 className="font-display-lg text-headline-lg uppercase tracking-tighter text-primary">
+              Featured Collections
+            </h2>
+            <Link
+              to="/shop"
+              className="font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
             >
-              Start Commission
-            </a>
+              View All Series
+            </Link>
           </div>
-        </div>
-      </section>
+          {productsLoading ? (
+            <p className="text-on-surface-variant">Loading featured products…</p>
+          ) : (
+            <FeaturedProductsGrid products={featuredProducts} />
+          )}
+        </section>
+      )}
 
       {/* Tech specs */}
       <section className="border-y border-outline-variant/10 bg-surface-container-lowest">
