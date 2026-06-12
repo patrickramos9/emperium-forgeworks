@@ -13,7 +13,13 @@ backend:
         - npm ci --prefix amplify/functions/create-stripe-checkout --cache .npm-fn-stripe-checkout --prefer-offline
         - npm ci --prefix amplify/functions/stripe-webhook --cache .npm-fn-stripe-webhook --prefer-offline
         - export CI=1
-        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+        - echo "pipeline-deploy branch=$AWS_BRANCH app-id=$AWS_APP_ID"
+        - |
+          if [ -z "$AWS_BRANCH" ] || [ -z "$AWS_APP_ID" ]; then
+            echo "ERROR: AWS_BRANCH and AWS_APP_ID must be set (Amplify Hosting provides these on fullstack builds)."
+            exit 1
+          fi
+        - npx ampx pipeline-deploy --branch "$AWS_BRANCH" --app-id "$AWS_APP_ID"
   cache:
     paths:
       - node_modules/**/*

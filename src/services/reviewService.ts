@@ -13,8 +13,12 @@ export function reviewDisplayName(review: ReviewRecord): string {
   return name || "Verified Customer";
 }
 
+export function reviewSource(review: ReviewRecord): ReviewSource {
+  return review.source ?? "site";
+}
+
 export function isImportedReview(review: ReviewRecord): boolean {
-  return review.source === "etsy";
+  return reviewSource(review) === "etsy";
 }
 
 export function reviewBadgeLabel(review: ReviewRecord): string {
@@ -26,7 +30,9 @@ export function isReviewApproved(review: ReviewRecord): boolean {
 }
 
 export function reviewImagePaths(review: ReviewRecord): string[] {
-  return (review.images ?? []).filter(Boolean);
+  return (review.images ?? []).filter(
+    (path): path is string => Boolean(path?.trim()),
+  );
 }
 
 export function generateImportedReviewId(): string {

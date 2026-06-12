@@ -388,7 +388,7 @@ const schema = a.schema({
       /** Admin must approve before the review appears on the storefront. */
       approved: a.boolean().default(false),
       /** On-site order review vs admin-imported testimonial (e.g. from Etsy). */
-      source: a.enum(["site", "etsy"]).default("site"),
+      source: a.enum(["site", "etsy"]),
       /** S3 paths under `reviews/{orderId}/…` for customer product photos. */
       images: a.string().array(),
     })
