@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { VariantPhotoPicker } from "@/components/admin/VariantPhotoPicker";
 import {
   createVariantGroup,
   createVariantOption,
   groupDisplayName,
+  moveVariantOptionsInGroup,
+  VARIANT_OPTION_DRAG_TYPE,
   type ProductOptionGroup,
   type ProductVariantOption,
   type VariationKind,
@@ -54,12 +57,68 @@ function updateOption(
   );
 }
 
+type VariantDragState = { groupId: string; index: number };
+
+function parseVariantDragPayload(raw: string): VariantDragState | null {
+  const colon = raw.indexOf(":");
+  if (colon <= 0) return null;
+  const groupId = raw.slice(0, colon);
+  const index = Number.parseInt(raw.slice(colon + 1), 10);
+  if (!groupId || Number.isNaN(index)) return null;
+  return { groupId, index };
+}
+
 export function AdminProductVariantsEditor({
   groups,
   galleryImages,
   onChange,
   disabled = false,
 }: AdminProductVariantsEditorProps) {
+  const [dragState, setDragState] = useState<VariantDragState | null>(null);
+  const [dropState, setDropState] = useState<VariantDragState | null>(null);
+
+  function clearDragState() {
+    setDragState(null);
+    setDropState(null);
+  }
+
+  function handleOptionDragOver(
+    e: React.DragEvent,
+    groupId: string,
+    index: number,
+  ) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDropState({ groupId, index });
+  }
+
+  function handleOptionDrop(
+    e: React.DragEvent,
+    groupId: string,
+    toIndex: number,
+  ) {
+    e.preventDefault();
+    setDropState(null);
+
+    const payload = parseVariantDragPayload(
+      e.dataTransfer.getData(VARIANT_OPTION_DRAG_TYPE),
+    );
+    if (!payload || payload.groupId !== groupId) {
+      clearDragState();
+      return;
+    }
+
+    onChange(
+      moveVariantOptionsInGroup(
+        groups,
+        groupId,
+        payload.index,
+        toIndex,
+      ),
+    );
+    clearDragState();
+  }
+
   function addGroup(kind: VariationKind) {
     onChange([...groups, createVariantGroup(kind)]);
   }
@@ -97,8 +156,8 @@ export function AdminProductVariantsEditor({
             Variations
           </p>
           <p className="mt-1 text-body-sm text-on-surface-variant">
-            Offer size, type, or custom options — link a gallery photo to each
-            option so shoppers see the matching image.
+            Offer size, type, or custom options — drag to reorder within each
+            variation. Link a gallery photo so shoppers see the matching image.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -171,12 +230,58 @@ export function AdminProductVariantsEditor({
                 </p>
               ) : (
                 <div className="mb-3 space-y-3">
-                  {group.options.map((option) => (
+                  {group.options.map((option, optionIndex) => {
+                    const isDragging =
+                      dragState?.groupId === group.id &&
+                      dragState.index === optionIndex;
+                    const isDropTarget =
+                      dropState?.groupId === group.id &&
+                      dropState.index === optionIndex &&
+                      !isDragging;
+
+                    return (
                     <div
                       key={option.id}
-                      className="space-y-2 border border-outline-variant/10 p-3"
+                      onDragOver={(e) =>
+                        handleOptionDragOver(e, group.id, optionIndex)
+                      }
+                      onDragLeave={() => setDropState(null)}
+                      onDrop={(e) => handleOptionDrop(e, group.id, optionIndex)}
+                      className={`space-y-2 border p-3 transition-colors ${
+                        isDragging ? "opacity-50" : ""
+                      } ${
+                        isDropTarget
+                          ? "border-primary ring-1 ring-primary"
+                          : "border-outline-variant/10"
+                      }`}
                     >
-                      <div className="grid gap-2 sm:grid-cols-[1fr_120px_40px]">
+                      <div className="grid gap-2 sm:grid-cols-[auto_1fr_120px_40px]">
+                        <span
+                          role="button"
+                          tabIndex={disabled ? -1 : 0}
+                          draggable={!disabled}
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData(
+                              VARIANT_OPTION_DRAG_TYPE,
+                              `${group.id}:${optionIndex}`,
+                            );
+                            e.dataTransfer.effectAllowed = "move";
+                            setDragState({
+                              groupId: group.id,
+                              index: optionIndex,
+                            });
+                          }}
+                          onDragEnd={clearDragState}
+                          className={`flex h-10 w-8 items-center justify-center text-on-surface-variant transition-colors ${
+                            disabled
+                              ? "cursor-not-allowed opacity-50"
+                              : "cursor-grab hover:text-primary active:cursor-grabbing"
+                          }`}
+                          aria-label="Drag to reorder"
+                          title="Drag to reorder"
+                        >
+                          <Icon name="drag_indicator" className="text-xl" />
+                        </span>
                         <input
                           value={option.label}
                           disabled={disabled}
@@ -243,7 +348,8 @@ export function AdminProductVariantsEditor({
                         />
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

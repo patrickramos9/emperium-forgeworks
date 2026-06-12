@@ -378,3 +378,43 @@ export function findGalleryIndexForImageRef(
   const normalized = normalizeImageRef(imageRef);
   return imageRefs.findIndex((ref) => normalizeImageRef(ref) === normalized);
 }
+
+export const VARIANT_OPTION_DRAG_TYPE =
+  "application/x-emperium-variant-option";
+
+export function moveVariantOption(
+  options: ProductVariantOption[],
+  fromIndex: number,
+  toIndex: number,
+): ProductVariantOption[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= options.length
+  ) {
+    return options;
+  }
+
+  const next = [...options];
+  const [item] = next.splice(fromIndex, 1);
+  const clampedTo = Math.max(0, Math.min(toIndex, next.length));
+  next.splice(clampedTo, 0, item);
+  return next;
+}
+
+export function moveVariantOptionsInGroup(
+  groups: ProductOptionGroup[],
+  groupId: string,
+  fromIndex: number,
+  toIndex: number,
+): ProductOptionGroup[] {
+  return groups.map((group) =>
+    group.id === groupId
+      ? {
+          ...group,
+          options: moveVariantOption(group.options, fromIndex, toIndex),
+        }
+      : group,
+  );
+}
