@@ -18,6 +18,7 @@ import { startCheckout } from "@/services/checkoutService";
 import { syncCartSnapshot, cartLinesReadyForSnapshot } from "@/services/cartSnapshotService";
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { Link } from "react-router-dom";
+import { PoweredByStripeBadge } from "@/components/PoweredByStripeBadge";
 
 export function CartPage() {
   const {
@@ -390,22 +391,27 @@ export function CartPage() {
             : "Secure checkout via Stripe (cards, Apple Pay, Google Pay). Shipping at checkout."}
         </p>
         {error && <p className="mt-2 text-right text-error">{error}</p>}
-        <div className="mt-4 flex flex-wrap justify-end gap-4">
-          <button
-            type="button"
-            onClick={clearCart}
-            className="border border-outline-variant/30 px-4 py-2 font-label-md uppercase text-on-surface-variant"
-          >
-            Clear
-          </button>
-          <button
-            type="button"
-            disabled={!canCheckout}
-            onClick={() => void handleCheckout()}
-            className="molten-glow bg-primary px-6 py-3 font-label-md uppercase tracking-widest text-on-primary disabled:opacity-50"
-          >
-            {checkingOut ? "Forging..." : "Checkout"}
-          </button>
+        <div className="mt-4 flex justify-end">
+          <div className="flex w-fit flex-col items-stretch gap-4">
+            <div className="flex flex-wrap justify-end gap-4">
+              <button
+                type="button"
+                onClick={clearCart}
+                className="border border-outline-variant/30 px-4 py-2 font-label-md uppercase text-on-surface-variant"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                disabled={!canCheckout}
+                onClick={() => void handleCheckout()}
+                className="molten-glow bg-primary px-6 py-3 font-label-md uppercase tracking-widest text-on-primary disabled:opacity-50"
+              >
+                {checkingOut ? "Forging..." : "Checkout"}
+              </button>
+            </div>
+            <PoweredByStripeBadge fullWidth />
+          </div>
         </div>
       </div>
     </main>

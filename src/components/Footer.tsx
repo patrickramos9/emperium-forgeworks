@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { CONTACT_EMAIL } from "@/lib/config";
 import { Icon } from "./Icon";
+import { TrustedSiteBadges } from "./TrustedSiteBadges";
 
 type FooterLink =
   | { label: string; to: string }
@@ -31,6 +32,7 @@ export function Footer({ showPowerLine = false }: { showPowerLine?: boolean }) {
             © {new Date().getFullYear()} Emperium Forgeworks. Forged in Resin.
             Born in Shadow.
           </p>
+          <TrustedSiteBadges />
         </div>
         <nav className="flex flex-wrap justify-center gap-stack-lg">
           {FOOTER_LINKS.map((link) =>

@@ -13,3 +13,12 @@ export const CONTACT_EMAIL = "melissa@emperiumforgeworks.com";
 
 export const PLAUSIBLE_DOMAIN =
   import.meta.env.VITE_PLAUSIBLE_DOMAIN?.trim() || undefined;
+
+/** Inline TrustedSite badges for the footer — copy types from TrustedSite dashboard → Trustmarks. */
+export const TRUSTED_SITE_FOOTER_BADGES: ReadonlyArray<{
+  type: number;
+  width: number;
+  height: number;
+}> = [
+  { type: 202, width: 120, height: 50 },
+];
