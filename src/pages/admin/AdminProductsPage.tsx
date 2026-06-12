@@ -2,15 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { formatPrice, productMatchesCategoryFilter } from "@/data/seedProducts";
 import { CategoryFiltersEditor } from "@/components/admin/CategoryFiltersEditor";
+import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { ProductDescriptionTemplateEditor } from "@/components/admin/ProductDescriptionTemplateEditor";
+import { Icon } from "@/components/Icon";
 import { useCategoryFilters } from "@/hooks/useCategoryFilters";
 import { ALL_CATEGORY_FILTER, isCategoryFilter } from "@/lib/productCategories";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { hasShippingProfileModel } from "@/lib/dataModels";
 import { listAllProducts } from "@/lib/listAllProducts";
+import { PRODUCT_DRAG_TYPE } from "@/lib/productSortOrder";
+import { reorderList } from "@/lib/reorderList";
 import { resolveImageUrl } from "@/lib/productImageUrls";
 import { productShippingAdminLabels } from "@/lib/shippingProfiles";
+import { saveProductSortOrders } from "@/services/productSortService";
 import { listAllShippingProfiles } from "@/services/shippingProfileService";
 
 interface AdminProductRow {
@@ -19,8 +24,16 @@ interface AdminProductRow {
   title: string;
   category: string;
   priceCents: number;
+  sortOrder: number;
   shippingProfileLabel: string;
   image?: string;
+}
+
+function applySortOrders(products: AdminProductRow[]): AdminProductRow[] {
+  return products.map((product, index) => ({
+    ...product,
+    sortOrder: index + 1,
+  }));
 }
 
 export function AdminProductsPage() {
@@ -33,6 +46,13 @@ export function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [amplifyReady, setAmplifyReady] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const canReorder = categoryFilter === ALL_CATEGORY_FILTER;
 
   const filteredProducts = useMemo(
     () =>
@@ -87,6 +107,7 @@ export function AdminProductsPage() {
             title: row.title,
             category: row.category,
             priceCents: row.priceCents,
+            sortOrder: row.sortOrder ?? 0,
             shippingProfileLabel: profileLabel,
             image:
               (await resolveImageUrl(
@@ -121,22 +142,87 @@ export function AdminProductsPage() {
     return () => window.removeEventListener("focus", onFocus);
   }, [loadProducts]);
 
-  async function handleDelete(id: string, title: string) {
-    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) {
+  function clearDragState() {
+    setDragId(null);
+    setDropIndex(null);
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    if (!canReorder || reordering) return;
+    e.preventDefault();
+    setDropIndex(index);
+  }
+
+  async function handleDrop(e: React.DragEvent, toIndex: number) {
+    if (!canReorder || reordering) return;
+    e.preventDefault();
+
+    const draggedId = e.dataTransfer.getData(PRODUCT_DRAG_TYPE) || dragId;
+    if (!draggedId) {
+      clearDragState();
       return;
     }
 
+    const fromIndex = products.findIndex((product) => product.id === draggedId);
+    if (fromIndex < 0 || fromIndex === toIndex) {
+      clearDragState();
+      return;
+    }
+
+    const previous = products.map((product) => ({
+      id: product.id,
+      sortOrder: product.sortOrder,
+    }));
+    const reordered = applySortOrders(
+      reorderList(products, fromIndex, toIndex),
+    );
+
+    setProducts(reordered);
+    clearDragState();
+    setReordering(true);
+    setError(null);
+
+    const client = await requireAdminSession(navigate);
+    if (!client) {
+      setProducts(products);
+      setReordering(false);
+      return;
+    }
+
+    try {
+      await saveProductSortOrders(client, reordered, previous);
+    } catch (err) {
+      setProducts(products);
+      setError(err instanceof Error ? err.message : "Could not save order");
+    } finally {
+      setReordering(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
     const client = await requireAdminSession(navigate);
     if (!client) return;
+
+    setDeletingId(id);
+    setError(null);
 
     try {
       const result = await client.models.Product.delete({ id });
       if (result.errors?.length) {
         throw new Error(result.errors.map((e) => e.message).join("; "));
       }
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      const previous = products.map((product) => ({
+        id: product.id,
+        sortOrder: product.sortOrder,
+      }));
+      const next = applySortOrders(products.filter((p) => p.id !== id));
+      setProducts(next);
+      await saveProductSortOrders(client, next, previous);
+      setDeleteConfirmId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -191,6 +277,19 @@ export function AdminProductsPage() {
           ))}
         </div>
       )}
+
+      {!loading && !error && products.length > 0 && canReorder && (
+        <p className="mb-stack-md text-body-sm text-on-surface-variant">
+          Drag products to set shop order. {reordering ? "Saving order…" : ""}
+        </p>
+      )}
+
+      {!loading && !error && products.length > 0 && !canReorder && (
+        <p className="mb-stack-md text-body-sm text-on-surface-variant">
+          Switch to {ALL_CATEGORY_FILTER} to drag and reorder the catalog.
+        </p>
+      )}
+
       {loading ? (
         <p className="text-on-surface-variant">Loading...</p>
       ) : error ? (
@@ -219,60 +318,91 @@ export function AdminProductsPage() {
           </button>
         </div>
       ) : (
-        <div className="overflow-x-auto border border-outline-variant/20 iron-bevel">
-          <table className="w-full text-left text-body-md">
-            <thead className="bg-surface-container-high font-label-sm uppercase text-on-surface-variant">
-              <tr>
-                <th className="p-3">Image</th>
-                <th className="p-3">Title</th>
-                <th className="p-3">Category</th>
-                <th className="p-3">Price</th>
-                <th className="p-3">Shipping</th>
-                <th className="p-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-t border-outline-variant/10"
-                >
-                  <td className="p-3">
-                    {p.image && (
-                      <img
-                        src={p.image}
-                        alt=""
-                        className="h-12 w-12 object-cover"
-                      />
-                    )}
-                  </td>
-                  <td className="p-3 text-on-surface">{p.title}</td>
-                  <td className="p-3 text-on-surface-variant">{p.category}</td>
-                  <td className="p-3 text-primary">
-                    {formatPrice(p.priceCents)}
-                  </td>
-                  <td className="p-3 text-on-surface-variant">
-                    {p.shippingProfileLabel}
-                  </td>
-                  <td className="space-x-3 p-3">
+        <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredProducts.map((product, index) => {
+            const isDragging = dragId === product.id;
+            const isDropTarget =
+              canReorder && dropIndex === index && dragId !== product.id;
+
+            return (
+              <article
+                key={product.id}
+                draggable={canReorder && !reordering && deletingId === null}
+                onDragStart={(e) => {
+                  if (!canReorder) return;
+                  e.dataTransfer.setData(PRODUCT_DRAG_TYPE, product.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  setDragId(product.id);
+                }}
+                onDragEnd={clearDragState}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={() => setDropIndex(null)}
+                onDrop={(e) => void handleDrop(e, index)}
+                className={`relative flex flex-col overflow-hidden border bg-surface-container-low iron-bevel transition-all ${
+                  isDragging ? "opacity-50" : ""
+                } ${
+                  isDropTarget
+                    ? "border-primary ring-1 ring-primary"
+                    : "border-outline-variant/20"
+                }`}
+              >
+                {canReorder && (
+                  <div
+                    className="absolute left-2 top-2 z-10 flex h-8 w-8 cursor-grab items-center justify-center bg-surface-container-highest/90 text-on-surface-variant active:cursor-grabbing"
+                    title="Drag to reorder"
+                    aria-hidden
+                  >
+                    <Icon name="drag_indicator" className="text-xl" />
+                  </div>
+                )}
+
+                <div className="aspect-[1.26] bg-surface-container-high">
+                  {product.image ? (
+                    <img
+                      src={product.image}
+                      alt=""
+                      draggable={false}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-on-surface-variant">
+                      No image
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-1 flex-col gap-2 p-3">
+                  <h2 className="line-clamp-2 font-headline-sm text-on-surface">
+                    {product.title}
+                  </h2>
+                  <p className="text-body-sm text-on-surface-variant">
+                    {product.category}
+                  </p>
+                  <p className="text-primary">{formatPrice(product.priceCents)}</p>
+                  <p className="text-body-sm text-on-surface-variant">
+                    {product.shippingProfileLabel}
+                  </p>
+
+                  <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">
                     <Link
-                      to={`/admin/products/${p.slug}`}
-                      className="text-primary hover:underline"
+                      to={`/admin/products/${product.slug}`}
+                      className="font-label-sm uppercase text-primary hover:underline"
                     >
                       Edit
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete(p.id, p.title)}
-                      className="text-error hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <ConfirmDeleteActions
+                      itemLabel={product.title}
+                      pending={deleteConfirmId === product.id}
+                      busy={deletingId === product.id}
+                      onBegin={() => setDeleteConfirmId(product.id)}
+                      onCancel={() => setDeleteConfirmId(null)}
+                      onConfirm={() => void handleDelete(product.id)}
+                    />
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

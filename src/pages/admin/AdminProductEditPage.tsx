@@ -4,6 +4,7 @@ import { type Product, getProductBySlug } from "@/data/seedProducts";
 import { useCategoryFilters } from "@/hooks/useCategoryFilters";
 import { DEFAULT_PRODUCT_CATEGORY_FILTERS } from "@/lib/productCategories";
 import { AdminProductGalleryEditor } from "@/components/admin/AdminProductGalleryEditor";
+import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { LoadProductDescriptionTemplate } from "@/components/admin/LoadProductDescriptionTemplate";
 import { AdminProductVariantsEditor } from "@/components/admin/AdminProductVariantsEditor";
 import {
@@ -29,6 +30,7 @@ import {
   stripInvalidVariantImageRefs,
   validateVariantGroups,
 } from "@/lib/productVariants";
+import { nextProductSortOrder } from "@/services/productSortService";
 import {
   formatCentsForInput,
   parseDollarInputToCents,
@@ -82,7 +84,8 @@ export function AdminProductEditPage() {
   const [inStock, setInStock] = useState(true);
   const [featured, setFeatured] = useState(false);
   const [vaultOnly, setVaultOnly] = useState(false);
-  const [sortOrder, setSortOrder] = useState(99);
+  const [sortOrder, setSortOrder] = useState(0);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [lore, setLore] = useState("");
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [badgesText, setBadgesText] = useState("");
@@ -217,6 +220,9 @@ export function AdminProductEditPage() {
             : undefined,
       });
 
+      const effectiveSortOrder =
+        isNew || !recordId ? await nextProductSortOrder(client) : sortOrder;
+
       const payload = buildProductMutationPayload({
         slug: normalizeProductSlug(productSlug),
         title,
@@ -228,7 +234,7 @@ export function AdminProductEditPage() {
         inStock,
         featured,
         vaultOnly,
-        sortOrder,
+        sortOrder: effectiveSortOrder,
         shippingProfileId: shippingProfileId || undefined,
         weightOz:
           weightOzParsed != null && Number.isFinite(weightOzParsed)
@@ -267,7 +273,6 @@ export function AdminProductEditPage() {
 
   async function handleDelete() {
     if (!recordId || isNew) return;
-    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
 
     const client = await requireAdminSession(navigate);
     if (!client) return;
@@ -475,17 +480,6 @@ export function AdminProductEditPage() {
         </div>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
-            Sort order
-          </span>
-          <input
-            type="number"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(Number(e.target.value))}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
-          />
-        </label>
-        <label className="block">
-          <span className="font-label-sm uppercase text-on-surface-variant">
             Lore
           </span>
           <textarea
@@ -526,14 +520,15 @@ export function AdminProductEditPage() {
             {saving ? "Saving..." : "Save"}
           </button>
           {!isNew && recordId && (
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void handleDelete()}
-              className="border border-error px-6 py-3 font-label-md uppercase text-error disabled:opacity-50"
-            >
-              Delete
-            </button>
+            <ConfirmDeleteActions
+              itemLabel={title || "product"}
+              pending={deleteConfirming}
+              busy={saving}
+              onBegin={() => setDeleteConfirming(true)}
+              onCancel={() => setDeleteConfirming(false)}
+              onConfirm={() => void handleDelete()}
+              className="px-2 py-3"
+            />
           )}
         </div>
       </form>
