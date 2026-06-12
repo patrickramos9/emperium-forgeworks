@@ -35,7 +35,7 @@ export function PoweredByStripeBadge({
         height={39}
         className={
           fullWidth
-            ? "h-14 w-full object-cover object-center sm:h-16"
+            ? "h-20 w-full object-contain object-center sm:h-24"
             : `${heightClass} w-auto`
         }
         loading="lazy"
