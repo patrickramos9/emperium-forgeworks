@@ -4,6 +4,7 @@ import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtim
 import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import Stripe from "stripe";
 import type { Schema } from "../../data/resource";
+import { sendSupportOrderEmail } from "../order-shared/notifySupport.js";
 import {
   issueThankYouGrant,
   redeemPromoGrantForOrder,
@@ -146,6 +147,20 @@ export const handler = async (event: {
 
     const order = updateResult.data;
     if (order) {
+      if (!order.supportNotifiedAt) {
+        try {
+          const sent = await sendSupportOrderEmail(order);
+          if (sent) {
+            await dataClient.models.Order.update({
+              id: order.id,
+              supportNotifiedAt: new Date().toISOString(),
+            });
+          }
+        } catch (err) {
+          console.error("Support order email failed", err);
+        }
+      }
+
       try {
         await redeemPromoGrantForOrder(dataClient, order);
         if (order.userId) {

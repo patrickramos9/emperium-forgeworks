@@ -4,10 +4,12 @@ import { formatPrice } from "@/data/seedProducts";
 import {
   computeAdminOrderStats,
   formatRevenueLabel,
+  isUnacknowledgedPaidOrder,
 } from "@/lib/adminOrderStats";
 import { PLAUSIBLE_DOMAIN } from "@/lib/config";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import {
+  acknowledgeOrders,
   formatOrderDate,
   listAllOrders,
   orderLineItemsSummary,
@@ -70,6 +72,29 @@ export function AdminDashboardPage() {
   const [ga4, setGa4] = useState<Ga4DashboardResult | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [acknowledging, setAcknowledging] = useState(false);
+
+  async function handleAcknowledgeNewOrders() {
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+
+    const orders = await listAllOrders(client);
+    const ids = orders
+      .filter(isUnacknowledgedPaidOrder)
+      .map((order) => order.id);
+
+    if (!ids.length) return;
+
+    setAcknowledging(true);
+    try {
+      await acknowledgeOrders(client, ids);
+      setStats(computeAdminOrderStats(await listAllOrders(client)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update orders");
+    } finally {
+      setAcknowledging(false);
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -134,6 +159,36 @@ export function AdminDashboardPage() {
 
       {error && <p className="mt-4 text-error">{error}</p>}
 
+      {!error && stats.newOrderCount > 0 && (
+        <div className="mt-stack-lg flex flex-wrap items-center justify-between gap-4 border border-primary/40 bg-primary/10 p-4 iron-bevel">
+          <div>
+            <p className="font-headline-sm text-on-surface">
+              {stats.newOrderCount} new order
+              {stats.newOrderCount === 1 ? "" : "s"} placed
+            </p>
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              Paid orders waiting for review in the admin queue.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/admin/orders"
+              className="bg-primary px-4 py-2 font-label-sm uppercase text-on-primary"
+            >
+              View orders
+            </Link>
+            <button
+              type="button"
+              disabled={acknowledging}
+              onClick={() => void handleAcknowledgeNewOrders()}
+              className="border border-outline-variant/30 px-4 py-2 font-label-sm uppercase text-on-surface-variant transition-colors hover:text-on-surface disabled:opacity-50"
+            >
+              {acknowledging ? "Updating…" : "Mark as seen"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {!error && stats.orderCount === 0 && (
         <div className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
           <p className="text-on-surface-variant">
@@ -151,7 +206,12 @@ export function AdminDashboardPage() {
 
       {!error && stats.orderCount > 0 && (
         <>
-          <div className="mt-stack-lg grid gap-4 sm:grid-cols-3">
+          <div className="mt-stack-lg grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              label="New orders"
+              value={String(stats.newOrderCount)}
+              hint="Paid, not yet marked seen"
+            />
             <StatCard
               label="Total orders"
               value={String(stats.orderCount)}

@@ -156,6 +156,35 @@ export async function updateOrderStatus(
   return data;
 }
 
+export async function acknowledgeOrder(
+  client: AmplifyDataClient,
+  id: string,
+): Promise<void> {
+  const { errors } = await client.models.Order.update({
+    id,
+    adminAcknowledgedAt: new Date().toISOString(),
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+}
+
+export async function acknowledgeOrders(
+  client: AmplifyDataClient,
+  ids: string[],
+): Promise<void> {
+  const timestamp = new Date().toISOString();
+  for (const id of ids) {
+    const { errors } = await client.models.Order.update({
+      id,
+      adminAcknowledgedAt: timestamp,
+    });
+    if (errors?.length) {
+      throw new Error(errors.map((e) => e.message).join("; "));
+    }
+  }
+}
+
 export function orderLineItemsSummary(items: OrderLineItemSnapshot[]): string {
   if (!items.length) return "No items";
   const count = items.reduce((n, item) => n + item.quantity, 0);

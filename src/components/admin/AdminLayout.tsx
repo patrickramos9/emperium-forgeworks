@@ -6,6 +6,7 @@ import {
   isAdminIdleExpired,
   touchAdminActivity,
 } from "@/lib/adminSessionPolicy";
+import { useUnacknowledgedOrderCount } from "@/hooks/useUnacknowledgedOrderCount";
 
 type NavItem = { label: string; to: string; end?: boolean };
 
@@ -35,6 +36,7 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const { count: newOrderCount } = useUnacknowledgedOrderCount();
 
   useEffect(() => {
     async function guard() {
@@ -116,7 +118,14 @@ export function AdminLayout() {
                 end={item.end}
                 className={navLinkClass}
               >
-                {item.label}
+                <span className="flex items-center justify-between gap-2">
+                  <span>{item.label}</span>
+                  {item.to === "/admin/orders" && newOrderCount > 0 && (
+                    <span className="bg-primary px-2 py-0.5 font-label-sm text-on-primary">
+                      {newOrderCount}
+                    </span>
+                  )}
+                </span>
               </NavLink>
             ))}
           </nav>
@@ -133,12 +142,17 @@ export function AdminLayout() {
                 end={item.end}
                 className={({ isActive }) =>
                   [
-                    "shrink-0 px-3 py-1 font-label-sm uppercase",
+                    "relative shrink-0 px-3 py-1 font-label-sm uppercase",
                     isActive ? "text-primary" : "text-on-surface-variant",
                   ].join(" ")
                 }
               >
                 {item.label}
+                {item.to === "/admin/orders" && newOrderCount > 0 && (
+                  <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center bg-primary px-1 text-[10px] text-on-primary">
+                    {newOrderCount}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>

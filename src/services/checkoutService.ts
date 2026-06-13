@@ -58,6 +58,14 @@ async function saveMockOrder(
   if (!data) {
     throw new Error("Order could not be saved.");
   }
+
+  if (client.mutations.notifyOrderPlaced) {
+    try {
+      await client.mutations.notifyOrderPlaced({ orderId: data.id });
+    } catch {
+      /* Support email is best-effort for local mock checkout. */
+    }
+  }
 }
 
 async function startStripeCheckout(

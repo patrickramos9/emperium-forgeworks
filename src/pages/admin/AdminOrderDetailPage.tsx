@@ -7,7 +7,9 @@ import {
   missingShippingAddressMessage,
 } from "@/lib/adminOrderCustomer";
 import { resolveCustomerLabelsForUserIds, type CustomerLabel } from "@/lib/customerAdmin";
+import { isUnacknowledgedPaidOrder } from "@/lib/adminOrderStats";
 import {
+  acknowledgeOrder,
   formatOrderDate,
   formatShippingAddress,
   getOrderById,
@@ -58,6 +60,15 @@ export function AdminOrderDetailPage() {
           setCustomerLabel(labels.get(row.userId) ?? null);
         } else {
           setCustomerLabel(null);
+        }
+
+        if (isUnacknowledgedPaidOrder(row)) {
+          try {
+            await acknowledgeOrder(client, row.id);
+            setOrder({ ...row, adminAcknowledgedAt: new Date().toISOString() });
+          } catch {
+            /* dashboard badge is best-effort */
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load order");

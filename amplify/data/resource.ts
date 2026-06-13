@@ -6,6 +6,7 @@ import { createStripeCheckout as createStripeCheckoutFn } from "../functions/cre
 import { stripeWebhook as stripeWebhookFn } from "../functions/stripe-webhook/resource";
 import { toggleProductFavorite as toggleProductFavoriteFn } from "../functions/toggle-product-favorite/resource";
 import { syncCartSnapshot as syncCartSnapshotFn } from "../functions/sync-cart-snapshot/resource";
+import { notifyOrderPlaced as notifyOrderPlacedFn } from "../functions/notify-order-placed/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -92,6 +93,10 @@ const schema = a.schema({
     grantsRevoked: a.boolean().required(),
   }),
 
+  NotifyOrderPlacedResult: a.customType({
+    notified: a.boolean().required(),
+  }),
+
   listCustomers: a
     .query()
     .arguments({
@@ -152,6 +157,13 @@ const schema = a.schema({
     .returns(a.ref("SyncCartSnapshotResult"))
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(syncCartSnapshotFn)),
+
+  notifyOrderPlaced: a
+    .mutation()
+    .arguments({ orderId: a.id().required() })
+    .returns(a.ref("NotifyOrderPlacedResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(notifyOrderPlacedFn)),
 
   VaultAccess: a
     .model({
@@ -270,6 +282,10 @@ const schema = a.schema({
       promoSource: a.enum(["admin", "thank_you", "favorite", "abandoned_cart"]),
       promoLabel: a.string(),
       promoExpiresAt: a.datetime(),
+      /** When support inbox email was sent for this order. */
+      supportNotifiedAt: a.datetime(),
+      /** When an admin marked the order as seen on the dashboard. */
+      adminAcknowledgedAt: a.datetime(),
     })
     .authorization((allow) => [
       allow.guest().to(["create"]),
@@ -454,6 +470,7 @@ const schema = a.schema({
   allow.resource(stripeWebhookFn),
   allow.resource(toggleProductFavoriteFn),
   allow.resource(syncCartSnapshotFn),
+  allow.resource(notifyOrderPlacedFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

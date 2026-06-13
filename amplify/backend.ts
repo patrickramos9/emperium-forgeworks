@@ -10,6 +10,8 @@ import { createStripeCheckout } from "./functions/create-stripe-checkout/resourc
 import { stripeWebhook } from "./functions/stripe-webhook/resource";
 import { toggleProductFavorite } from "./functions/toggle-product-favorite/resource";
 import { syncCartSnapshot } from "./functions/sync-cart-snapshot/resource";
+import { notifyOrderPlaced } from "./functions/notify-order-placed/resource";
+import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
   auth,
@@ -22,6 +24,7 @@ const backend = defineBackend({
   stripeWebhook,
   toggleProductFavorite,
   syncCartSnapshot,
+  notifyOrderPlaced,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -60,6 +63,35 @@ backend.stripeWebhook.addEnvironment(
   "STRIPE_WEBHOOK_SECRET",
   process.env.STRIPE_WEBHOOK_SECRET ?? "",
 );
+backend.stripeWebhook.addEnvironment("SITE_URL", siteUrl);
+backend.stripeWebhook.addEnvironment(
+  "SUPPORT_INBOX_EMAIL",
+  process.env.SUPPORT_INBOX_EMAIL ?? "melissa@emperiumforgeworks.com",
+);
+backend.stripeWebhook.addEnvironment(
+  "ORDER_NOTIFICATION_FROM_EMAIL",
+  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
+    "melissa@emperiumforgeworks.com",
+);
+
+backend.notifyOrderPlaced.addEnvironment("SITE_URL", siteUrl);
+backend.notifyOrderPlaced.addEnvironment(
+  "SUPPORT_INBOX_EMAIL",
+  process.env.SUPPORT_INBOX_EMAIL ?? "melissa@emperiumforgeworks.com",
+);
+backend.notifyOrderPlaced.addEnvironment(
+  "ORDER_NOTIFICATION_FROM_EMAIL",
+  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
+    "melissa@emperiumforgeworks.com",
+);
+
+const sesSendPolicy = new PolicyStatement({
+  actions: ["ses:SendEmail", "ses:SendRawEmail"],
+  resources: ["*"],
+});
+
+backend.stripeWebhook.resources.lambda.addToRolePolicy(sesSendPolicy);
+backend.notifyOrderPlaced.resources.lambda.addToRolePolicy(sesSendPolicy);
 
 const stripeWebhookUrl = backend.stripeWebhook.resources.lambda.addFunctionUrl({
   authType: FunctionUrlAuthType.NONE,
