@@ -60,12 +60,6 @@ export function Footer({ showPowerLine = false }: { showPowerLine?: boolean }) {
           >
             About
           </Link>
-          <Link
-            to="/admin/login"
-            className="font-body-md text-on-surface-variant underline-offset-4 transition-colors hover:text-on-surface hover:underline decoration-primary/50"
-          >
-            Admin
-          </Link>
         </nav>
         <div className="flex items-center gap-stack-md">
           <a

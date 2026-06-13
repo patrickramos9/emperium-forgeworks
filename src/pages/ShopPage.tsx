@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnnouncementBlock } from "@/components/AnnouncementBlock";
-import { Icon } from "@/components/Icon";
 import { ProductCard } from "@/components/ProductCard";
 import { productMatchesCategoryFilter } from "@/data/seedProducts";
 import { useCategoryFilters } from "@/hooks/useCategoryFilters";
@@ -115,22 +114,7 @@ export function ShopPage() {
         </div>
       )}
 
-      <section className="mt-section-gap grid grid-cols-1 gap-gutter md:grid-cols-3">
-        <AnnouncementBlock className="md:col-span-2" />
-        <div className="flex flex-col justify-center border border-secondary/10 bg-void-purple/20 p-stack-lg text-center iron-bevel backdrop-blur-sm">
-          <Icon name="verified" className="mb-4 text-5xl text-secondary" />
-          <h4 className="mb-2 font-headline-md text-secondary">
-            High Fidelity Prints
-          </h4>
-          <p className="px-4 text-label-md text-on-surface-variant">
-            &ldquo;unbelievably clean prints! Will definitely be ordering some
-            more from this shop!&rdquo;
-          </p>
-          <div className="mt-4 font-label-sm uppercase tracking-widest text-primary">
-            — Christian
-          </div>
-        </div>
-      </section>
+      <AnnouncementBlock className="mt-section-gap" />
     </main>
   );
 }

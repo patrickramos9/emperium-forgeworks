@@ -47,6 +47,7 @@ import { AdminSculptorEditPage } from "@/pages/admin/AdminSculptorEditPage";
 import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayout";
 import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage";
 import { TrustedSiteScript } from "@/components/TrustedSiteScript";
+import { ScrollToTopOnNavigate } from "@/components/ScrollToTopOnNavigate";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -69,6 +70,7 @@ export default function App() {
     <CartProvider>
       <AnnouncementProvider>
         <BrowserRouter>
+          <ScrollToTopOnNavigate />
           <AnalyticsTracker />
           <TrustedSiteScript />
           <SiteSystemBanner />
