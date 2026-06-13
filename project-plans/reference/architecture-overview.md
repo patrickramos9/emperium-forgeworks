@@ -134,8 +134,9 @@ emperiumforgeworks-store/
 | M3b | Stripe Checkout + webhooks → `Order.status` |
 | M8c | `Sculptor` model + public `/sculptors/:slug` |
 | M10 | Admin–customer chat (Conversation / Message models) |
-| M11 | Print progress tracker (`PrintJob` + stage enum) |
-| M11b | Raspberry Pi SDCP bridge → stage API (shop LAN) |
+| M11 | Customer order status + shipping (`fulfillmentStatus`, tracking, order detail) |
+| M11a | Fabrication sub-stages (`PrintJob` — admin-only, optional) |
+| M11b | Raspberry Pi SDCP bridge → M11a stage API (shop LAN) |
 | M12 | Per-user notification preferences |
 
 See [cursor-roadmap.md](../cursor-roadmap.md).

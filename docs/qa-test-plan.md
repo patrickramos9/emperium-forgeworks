@@ -10,7 +10,9 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 ## Testing now
 
-Pre-launch **QA/deploy sign-off** (M6b, M6c, M17, go-live polish) — **closed 2026-06-11**. Everything deployed to production; **monitor for bugs** and run targeted regression when changing related code.
+**Next milestone:** **M11** — customer order status (paid → received → processing → shipped + tracking). See §19 when spec is implemented.
+
+Pre-launch sign-off closed 2026-06-11. Run smoke after deploys; full §6–§18 checklists for regression when touching related code.
 
 | When | What to run |
 |------|-------------|
@@ -626,12 +628,13 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 | Milestone | Feature | Notes |
 |-----------|---------|--------|
-| **M19** | Catalog sales & bundles (list/compare pricing) | Separate from M6 account promos |
+| **M11** | Customer order status + shipping tracking | **Next** — paid/received/processing/shipped; §19 when built |
+| **M19** | Catalog sales & bundles (list/compare pricing) | After M11 |
 | **M18** | Cart price-change in-system notifications | After M19 + M6c |
 | **M9a** | Initial UX polish (e.g. add-to-cart toast/feedback) | Scroll-to-top shipped §18; rest planned |
 | **M6d** | Abandoned-cart **email** | In-system M6c only today |
 | **M10** | Admin–customer chat | — |
-| **M11** / **M11b** / **M14** | Print tracker, Pi bridge, ForgeLink | Deferred |
+| **M11** / **M11b** / **M14** | Fabrication sub-stages (M11a), Pi bridge, ForgeLink | Deferred after M11 |
 | **M15b** | Cart shipping estimate preview; Stripe ETA UI | — |
 | **M16** | Returns, refunds, exchanges | Email-only policy today |
 | **M12** | Notification preferences | — |
@@ -640,6 +643,35 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 **Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c), §17b (M17), §18 (go-live polish).
 
 Add test sections here when each **new** milestone ships.
+
+---
+
+## §19 — Customer order status + shipping (M11) — planned
+
+**Not built yet.** Use when M11 ships. Customer must see **paid → received → processing → shipped** with tracking on ship.
+
+### Data & admin
+
+- [ ] Paid order gets `fulfillmentStatus = paid` (webhook + mock path)
+- [ ] Admin can advance: paid → received → processing → shipped (forward only)
+- [ ] **Shipped** requires carrier + tracking number; `shippedAt` set
+- [ ] Payment `status` unchanged (still pending/paid/failed)
+
+### Customer UI
+
+- [ ] `/account/orders/:orderId` — timeline (4 stages), line items, ship-to, tracking when shipped
+- [ ] Order history list shows fulfillment label + links to detail
+- [ ] Notifications (`kind: order`) on each transition; shipped includes tracking link
+
+### Email (when SES production ready)
+
+- [ ] Customer receives confirmation email on **paid** (optional but recommended)
+- [ ] Customer receives **shipped** email with carrier + tracking to `Order.email`
+
+### Regression
+
+- [ ] Thank-you promo (M6) still fires separately (`kind: marketing`)
+- [ ] Support new-order email (admin) unaffected
 
 ---
 
