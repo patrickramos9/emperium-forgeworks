@@ -20,21 +20,21 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-13
+**Last updated:** 2026-06-11
 
 | Item | State |
 |------|--------|
-| **Phase** | Core commerce + **go-live polish** (print tracking **deferred**) |
-| **Next** | Finish **promo QA** (M6b/c) → **M17** (B1) → **M19** → **M18** → remaining **M9a** |
+| **Phase** | **Core commerce live** — pre-launch QA/deploy closed; monitor production for bugs |
+| **Next** | **M19** → **M18** → remaining **M9a** |
 | **Blocked** | _(none)_ |
-| **Recently verified** | **M6 core** (2026-06-02) · **M15** · **M6c** abandon-cart happy path (2026-06-11) · **Order notification email** (2026-06-11) · **Go-live polish batch** (2026-06-13, in repo) |
-| **In progress** | **M6b** favorite promos + **M6c** edge cases; **M17** deploy + QA |
+| **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** (2026-06-11) |
+| **In progress** | _(none)_ — ad-hoc bug fixes only |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
-| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — §18 go-live polish (2026-06-13) |
+| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
-M8 (done) → **M3b** (done) → **M15** (done) → **M6** (done) → **M6b/c** → **M17** (B1) → **M19** → **M18** → **M9a** (initial UX polish) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M9** (SEO, gallery, perf) → **M11** → M11b → M14  
+M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M19** → **M18** → **M9a** (initial UX polish) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M9** (SEO, gallery, perf) → **M11** → M11b → M14  
 
 **Deferred (ops / hardware — after core + polish above):** **M11**, **M11b**, **M14** — print progress, Pi bridge, ForgeLink™.
 
@@ -169,13 +169,14 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M3b** — Live Stripe Checkout + webhook (`Order` paid, ship-to address, email/phone) — **production verified**
 - **M15** — Shipping profiles, product assignment, Stripe checkout shipping, order totals, PDP shipping (`shippingDisplay` + live fallback), ready-to-ship on profiles — **production verified**
 - **M6 core** — Promo templates, grants, auto-apply cart/checkout, thank-you on paid order, admin tools — **production verified** (2026-06-02)
-- **M6c** — Abandoned-cart snapshot, idle grant, revoke on empty cart, issued-grants admin table — **deployed; happy path verified** (2026-06-11); full §17 regression in progress
-- **M6b** — Favorite grants + PDP UI — **in repo; QA in progress**
-- **Go-live polish (2026-06-13)** — see **§3.1** below (order notifications, catalog/admin UX, legal pages, storefront polish — **in repo**; order email **production verified** 2026-06-11)
+- **M6c** — Abandoned-cart snapshot, idle grant, revoke on empty cart, issued-grants admin table — **production verified** (2026-06-11)
+- **M6b** — Favorite grants + PDP UI + favorites list — **production verified** (2026-06-11)
+- **M17** — Removed-from-catalog UX (cart + favorites) — fixes **B1** — **production verified** (2026-06-11)
+- **Go-live polish (2026-06-13)** — see **§3.1** below — **production verified** (2026-06-11; monitor for bugs)
 
 ### 3.1 Go-live polish batch (2026-06-13)
 
-Shipped in repo during pre-launch polish. Not separate milestones; regression in [docs/qa-test-plan.md](../docs/qa-test-plan.md) §18.
+Shipped in repo during pre-launch polish. **Signed off** 2026-06-11 (deployed; monitor for bugs). Regression checklists in [docs/qa-test-plan.md](../docs/qa-test-plan.md) §18.
 
 | Area | What shipped |
 |------|----------------|
@@ -198,20 +199,18 @@ _(none)_
 
 ### In progress
 
-- **M6b + M6c** — promo QA (favorite grants, abandon edge cases, checkout with promo, admin issued-grants)
-- **M17** — removed-from-catalog UX (in repo; QA after M6b/c sign-off)
+_(none — monitor production; fix bugs ad hoc)_
 
-### Known bugs (queued — not milestones)
+### Resolved bugs
 
-| ID | Issue | When to fix | Planned fix |
-|----|--------|-------------|-------------|
-| **B1** | Admin **deletes** (or delists) a product while it remains in a customer **cart** or **favorites** → broken UX / checkout errors | **After M6b/c** deployed and QA’d | **M17** — implemented in repo; deploy + QA |
+| ID | Issue | Resolution |
+|----|--------|------------|
+| **B1** | Admin deletes/delists product while in customer cart or favorites | **M17** deployed 2026-06-11 — monitor for edge cases |
 
 ### Planned (not started)
 
-**Core + bugs + initial polish (current focus)**
+**Core + initial polish (current focus)**
 
-- **M17** — Removed-from-catalog UX (cart + favorites) — fixes **B1** (in repo; deploy + QA)
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
 - **M18** — **Cart price-change** in-system notifications (sale or list price up/down for items in cart)
 - **M9a** — **Initial UX polish** (micro-interactions, cart feedback, consistency — see §4)
@@ -275,7 +274,7 @@ _(none)_
 
 ### M6 — Promo codes (templates + grants)
 
-**Status:** **M6 core production verified** (2026-06-02). **M6c** abandon-cart happy path verified (2026-06-11). **M6b** + remaining **M6c** cases in QA. **M6d** (email) deferred to M13.
+**Status:** **Production verified** (2026-06-02 core; **M6b** + **M6c** 2026-06-11). **M6d** (abandoned-cart email) deferred to M13.
 
 **2026-06-11 deploy fixes (M6c):** `syncCartSnapshot` stores `lineItems` as JSON string; empty-cart sync revokes open `abandoned_cart` grants; cart page waits for catalog verify before false “removed” errors; `useEmptyCartSnapshotSync` in `CartProvider`; admin **Issued grants** table + deleted-template labels.
 
@@ -876,7 +875,7 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ### M17 — Removed-from-catalog UX (bug **B1**)
 
-**Status:** Implemented in repo — deploy backend (`Favorite.productSlug`, optional) + frontend; QA **B1**.
+**Status:** **Production verified** (2026-06-11) — deployed; monitor for edge cases.
 
 **Goal:** When a product is no longer in the catalog (admin delete, or treat as unavailable if `inStock: false` / hidden — confirm behavior in implementation), customers with it in **cart** or **favorites** see a clear message instead of broken checkout or silent failures. Customers can **view and manage** all saved favorites in one place.
 

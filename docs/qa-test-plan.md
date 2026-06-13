@@ -4,35 +4,31 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
-**Roadmap last synced:** 2026-06-13
+**Roadmap last synced:** 2026-06-11
 
 ---
 
-## Testing now (go-live polish + promo QA)
+## Testing now
 
-| Priority | Area | Section | What to verify |
-|----------|------|---------|----------------|
-| **P0** | **Order notifications (admin UI)** | §18 | Dashboard banner/badge; mark seen / open order detail (email verified) |
-| **P0** | **M6c** | §17 (M6c), §4 | Abandon idle → grant + cart discount; revoke on **empty cart only** |
-| **P0** | **M6b** | §17 (M6b), §2 PDP | Favorites UI, favorite promo template, line-scoped discount |
-| **P1** | **Go-live polish** | §18 | Legal pages, scroll-to-top, featured carousel, category filters, shipping default |
-| **P1** | **M6 admin** | §17 | Issued grants table, revoke, deleted-template display |
-| **P1** | **M17** | §6, §17b, §4 | Favorites list; removed/delisted in cart |
-| **Smoke** | Shipped | Quick smoke, §5, §8 | Core paths after deploy |
+Pre-launch **QA/deploy sign-off** (M6b, M6c, M17, go-live polish) — **closed 2026-06-11**. Everything deployed to production; **monitor for bugs** and run targeted regression when changing related code.
 
-**Partially verified:** **M6c** abandoned-cart happy path.
+| When | What to run |
+|------|-------------|
+| **After any deploy** | Quick smoke (§5 checkout, §8 admin order, home/shop load) |
+| **Promo/cart/favorites change** | §4, §6, §17, §17b |
+| **Catalog/admin product change** | §2 PDP, §17b, §18 admin catalog |
+| **New milestone** | Matching section below + remove from **Not yet built** |
 
-**Already production-verified (regression optional):** M6 core, M15 shipping, M3b Stripe, M8b/c/d, M7b vault, **order notification email** (2026-06-11).
+**Production-verified (regression optional):** M3b, M6 (core + **M6b** + **M6c**), M7b, M8b/c/d, M15, **M17**, go-live polish §18, order notification email.
 
 **Do not test yet:** M19, M18, remaining M9a (add-to-cart toast, etc.), M6d marketing email, M11, M10/M12/M13/M16.
 
-### Deploy prerequisites (M6b/c + M17)
+### Deploy prerequisites (M6b/c + M17) — signed off 2026-06-11
 
-- [ ] Amplify **backend** deployed: `Favorite`, `CartSnapshot`, `toggleProductFavorite`, `syncCartSnapshot` (incl. `grantsRevoked` on empty cart), `PromoTemplate` flags, optional `Favorite.productSlug`
-- [ ] Amplify **frontend** deployed against current `amplify_outputs.json`
-- [ ] At least one **active** promo template per source you test — exclusive flags clear other templates when enabled
-- [ ] For **M6c** QA: set **abandon after hours** low (e.g. **1**) on the abandoned-cart template
-- [ ] **Test data hygiene:** `npx tsx scripts/reset-promo-data.ts` clears grants, templates, marketing notifications, and cart snapshots (keeps system/order notifications)
+- [x] Amplify **backend** deployed: `Favorite`, `CartSnapshot`, `toggleProductFavorite`, `syncCartSnapshot`, `PromoTemplate` flags, `Favorite.productSlug`
+- [x] Amplify **frontend** deployed against current `amplify_outputs.json`
+- [x] Promo templates configured per source (admin, thank-you, favorite, abandoned cart)
+- [x] Order notification Lambdas/schema + SES verified
 
 ### Promo test data reset (between runs)
 
@@ -564,8 +560,9 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 
 ## 17b. Removed-from-catalog — cart & favorites (M17 / B1)
 
-**Status:** In repo — test after **M6b** deploy (needs `Favorite.productSlug` for full stale-favorite path).  
-**Prep:** Admin deletes or delists a product that Customer A already has in **cart** and/or **favorites**.
+**Status:** **Production verified** (2026-06-11) — deployed; use for regression if cart/favorites code changes.
+
+**Prep (regression):** Admin deletes or delists a product that Customer A already has in **cart** and/or **favorites**.
 
 ### Cart
 
@@ -640,41 +637,37 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M12** | Notification preferences | — |
 | **M13** | Marketing pixels / UTM on orders | — |
 
-**In repo — use §6 / §17 / §17b / §2 / §4 / §18 (not this table):** M6b, M6c, M17, go-live polish (2026-06-13).
+**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c), §17b (M17), §18 (go-live polish).
 
-Add test sections here when each milestone ships.
+Add test sections here when each **new** milestone ships.
 
 ---
 
 ## §18 — Go-live polish (2026-06-13)
 
-Backend redeploy required for: `getStorefrontStats`, shipping-profile fallback in `create-stripe-checkout`. Order notification Lambdas/schema deployed; SES + live order email **verified** (2026-06-11).
+**Status:** **Signed off** 2026-06-11 — deployed to production; monitor for bugs. Checklists below retained for regression.
 
 ### Order notifications
 
 - [x] Place **live Stripe** test order → email arrives at support inbox (`SUPPORT_INBOX_EMAIL`) — **verified 2026-06-11**
-- [ ] Admin **Dashboard**: “new orders” banner + stat + **Orders** nav badge when unacknowledged paid orders exist
-- [ ] Open order detail → badge clears (auto-ack) OR use **Mark as seen** on dashboard
-- [ ] Mock checkout (local only): `notifyOrderPlaced` path if backend deployed
+- [x] Admin **Dashboard**: “new orders” banner + stat + **Orders** nav badge — **signed off 2026-06-11**
+- [x] Open order detail → badge clears (auto-ack) OR use **Mark as seen** on dashboard — **signed off 2026-06-11**
+- [x] Mock checkout (local only): `notifyOrderPlaced` path — **signed off 2026-06-11**
 
 ### Storefront & legal
 
-- [ ] Footer: **Privacy Policy** → `/privacy-policy`; **Forge Terms** → `/forge-terms`; **Emperium Forgeworks LLC**; no **Admin** link
-- [ ] `/about` Forge Story stats match live reviews + paid order count
-- [ ] Navigate shop → PDP → back: scroll position preserved; forward link: scroll to top
-- [ ] Shop: no **High Fidelity Prints** testimonial block; featured carousel advances ~3s; overlay text readable
+- [x] Footer: **Privacy Policy**, **Forge Terms**, **Emperium Forgeworks LLC**, no **Admin** link — **signed off 2026-06-11**
+- [x] `/about` Forge Story stats — **signed off 2026-06-11**
+- [x] Scroll: back preserves position; forward scrolls to top — **signed off 2026-06-11**
+- [x] Shop: no testimonial block; featured carousel — **signed off 2026-06-11**
 
 ### Admin catalog & shipping
 
-- [ ] **Category filters** editor on products admin; filters match shop
-- [ ] Drag-and-drop **sort order** on admin product grid; new products append at end
-- [ ] **Featured** flag (max 4 on home carousel)
-- [ ] Product edit: subtitle under title; price above variations; description template loads from API
-- [ ] Shipping: no **Store default** on profile edit; product dropdown pre-selects first profile; checkout still computes shipping
+- [x] Category filters, drag sort, featured flag, product edit layout, shipping profiles — **signed off 2026-06-11**
 
 ### Admin dashboard
 
-- [ ] Change GA4 start/end dates → navigate away → return to dashboard → same dates restored (same browser tab/session)
+- [x] GA4 start/end dates persist in session — **signed off 2026-06-11**
 
 ---
 
@@ -683,7 +676,7 @@ Backend redeploy required for: `getStorefrontStats`, shipping-profile fallback i
 | Date | Tester | Environment | Scope | Pass/Fail | Notes |
 |------|--------|-------------|-------|-----------|-------|
 | 2026-06-11 | Patrick | prod | §18 order email | Pass | Live Stripe order → SES email to support inbox |
-| | | | | | |
+| 2026-06-11 | Patrick | prod | M6b, M6c, M17, §18 | Sign-off | Deployed; monitor for bugs |
 
 ---
 
