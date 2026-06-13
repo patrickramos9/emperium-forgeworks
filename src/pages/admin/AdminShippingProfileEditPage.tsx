@@ -42,7 +42,6 @@ export function AdminShippingProfileEditPage() {
   const [freeThresholdDollars, setFreeThresholdDollars] = useState("100.00");
   const [allowedCountries, setAllowedCountries] = useState("US");
   const [active, setActive] = useState(true);
-  const [isDefault, setIsDefault] = useState(false);
   const [sortOrder, setSortOrder] = useState(0);
   const [weightTiers, setWeightTiers] = useState<WeightTier[]>([
     { maxWeightOz: 16, amountCents: 899 },
@@ -86,7 +85,6 @@ export function AdminShippingProfileEditPage() {
         setFreeThresholdDollars(centsToDollars(row.freeThresholdCents));
         setAllowedCountries(formatCountryCodes(row.allowedCountries));
         setActive(row.active ?? true);
-        setIsDefault(row.isDefault ?? false);
         setWeightTiers(parseWeightTiers(row.weightTiers));
         setSortOrder(row.sortOrder ?? 0);
         setMinReadyToShipDays(
@@ -182,7 +180,7 @@ export function AdminShippingProfileEditPage() {
       weightTiers: kind === "weight_tier" ? weightTiers : undefined,
       allowedCountries: countries,
       active,
-      isDefault,
+      isDefault: false,
       sortOrder,
       minReadyToShipDays: Number.isFinite(minReady) ? minReady : undefined,
       maxReadyToShipDays: Number.isFinite(maxReady) ? maxReady : undefined,
@@ -437,17 +435,6 @@ export function AdminShippingProfileEditPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2"
           />
         </Field>
-
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={isDefault}
-            onChange={(e) => setIsDefault(e.target.checked)}
-          />
-          <span className="font-label-sm uppercase text-on-surface-variant">
-            Store default (used when a product has no profile assigned)
-          </span>
-        </label>
 
         <label className="flex items-center gap-2">
           <input

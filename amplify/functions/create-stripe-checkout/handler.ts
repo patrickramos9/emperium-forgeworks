@@ -323,7 +323,11 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     }
 
     const profileById = new Map(activeProfiles.map((p) => [p.id, p]));
-    const defaultProfile = activeProfiles.find((p) => p.isDefault) ?? null;
+    const sortedActiveProfiles = [...activeProfiles].sort(
+      (a, b) =>
+        (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name),
+    );
+    const defaultProfile = sortedActiveProfiles[0] ?? null;
 
     for (const item of lineItems) {
       const product = productById.get(item.productId);

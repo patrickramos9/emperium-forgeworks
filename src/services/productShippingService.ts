@@ -110,7 +110,7 @@ export async function resolveShippingDisplayForProduct(
         display: null,
         error: product.shippingProfileId
           ? "Assigned shipping profile could not be loaded."
-          : "No default shipping profile is configured.",
+          : "No shipping profiles are configured.",
       };
     }
 

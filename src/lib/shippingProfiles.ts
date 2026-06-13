@@ -148,6 +148,25 @@ export type ProductShippingDisplay = {
   readyToShipLabel: string | null;
 };
 
+export function sortShippingProfiles<
+  T extends { sortOrder?: number | null; name?: string | null },
+>(profiles: T[]): T[] {
+  return [...profiles].sort(
+    (a, b) =>
+      (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+      (a.name ?? "").localeCompare(b.name ?? ""),
+  );
+}
+
+export function firstActiveShippingProfile<
+  T extends ProductShippingProfileLike,
+>(profiles: T[]): T | null {
+  const active = sortShippingProfiles(
+    profiles.filter((profile) => profile.active !== false),
+  );
+  return active[0] ?? null;
+}
+
 export function resolveProductShippingProfile<
   T extends ProductShippingProfileLike,
 >(
@@ -159,7 +178,7 @@ export function resolveProductShippingProfile<
     const assigned = active.find((profile) => profile.id === product.shippingProfileId);
     if (assigned) return assigned;
   }
-  return active.find((profile) => profile.isDefault) ?? null;
+  return firstActiveShippingProfile(profiles);
 }
 
 /** Admin product list: assigned profile name + shipping kind label. */
@@ -171,7 +190,7 @@ export function productShippingAdminLabels(
   const assigned = product.shippingProfileId
     ? active.find((profile) => profile.id === product.shippingProfileId)
     : undefined;
-  const profile = assigned ?? active.find((p) => p.isDefault) ?? null;
+  const profile = assigned ?? firstActiveShippingProfile(profiles);
 
   if (!profile) {
     return { profileLabel: "No profile", kindLabel: "—" };
@@ -182,9 +201,7 @@ export function productShippingAdminLabels(
     kind && kind in SHIPPING_PROFILE_KIND_LABELS
       ? SHIPPING_PROFILE_KIND_LABELS[kind]
       : "—";
-  const profileLabel = assigned
-    ? profile.name?.trim() || "Assigned profile"
-    : `Store default${profile.name ? ` · ${profile.name}` : ""}`;
+  const profileLabel = profile.name?.trim() || "Shipping profile";
 
   return { profileLabel, kindLabel };
 }

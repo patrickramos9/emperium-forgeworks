@@ -119,7 +119,6 @@ export function AdminShippingProfilesPage() {
                     );
                     return ready ? ` · ${ready}` : "";
                   })()}
-                  {row.isDefault ? " · Default" : ""}
                   {row.active ? " · Active" : " · Inactive"}
                 </p>
               </div>

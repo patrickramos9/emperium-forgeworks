@@ -74,7 +74,19 @@ export async function listAllShippingProfiles(
     nextToken = response.nextToken ?? undefined;
   } while (nextToken);
 
-  return rows.sort(
+  return listSortedShippingProfiles(rows);
+}
+
+export function firstShippingProfileId(
+  profiles: ShippingProfileRecord[],
+): string {
+  return listSortedShippingProfiles(profiles)[0]?.id ?? "";
+}
+
+function listSortedShippingProfiles(
+  profiles: ShippingProfileRecord[],
+): ShippingProfileRecord[] {
+  return [...profiles].sort(
     (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name),
   );
 }

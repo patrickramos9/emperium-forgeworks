@@ -23,6 +23,7 @@ import type { ProductOptionGroup } from "@/lib/productVariants";
 import { hasShippingProfileModel } from "@/lib/dataModels";
 import {
   listAllShippingProfiles,
+  firstShippingProfileId,
   type ShippingProfileRecord,
 } from "@/services/shippingProfileService";
 import { buildShippingDisplaySnapshot } from "@/services/productShippingService";
@@ -183,6 +184,11 @@ export function AdminProductEditPage() {
     }
     void load();
   }, [isNew, slug, seedFallback, navigate]);
+
+  useEffect(() => {
+    if (!shippingProfiles.length || shippingProfileId) return;
+    setShippingProfileId(firstShippingProfileId(shippingProfiles));
+  }, [shippingProfiles, shippingProfileId]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -439,19 +445,19 @@ export function AdminProductEditPage() {
           <select
             value={shippingProfileId}
             onChange={(e) => setShippingProfileId(e.target.value)}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
+            disabled={!shippingProfiles.length}
+            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2 disabled:opacity-60"
           >
-            <option value="">Store default</option>
             {shippingProfiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
                 {profile.name}
-                {profile.isDefault ? " (default)" : ""}
               </option>
             ))}
           </select>
           <p className="mt-1 text-label-sm text-on-surface-variant">
-            Assign a profile per product (Etsy-style). Manage profiles under
-            Admin → Shipping.
+            {shippingProfiles.length
+              ? "The first profile in Admin → Shipping is pre-selected for new products."
+              : "Create a shipping profile under Admin → Shipping first."}
           </p>
         </label>
         <label className="block">

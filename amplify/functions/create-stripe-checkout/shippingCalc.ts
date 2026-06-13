@@ -155,7 +155,7 @@ export function resolveCartShipping(
     const profileId = product.shippingProfileId ?? defaultProfile?.id;
     if (!profileId) {
       throw new Error(
-        `No shipping profile for "${line.title}". Assign a profile on the product or mark a store default in Admin → Shipping.`,
+        `No shipping profile for "${line.title}". Assign a profile on the product or create one in Admin → Shipping.`,
       );
     }
 
