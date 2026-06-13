@@ -95,16 +95,16 @@ export function FeaturedProductsCarousel({
               <div className="absolute inset-0 bg-surface-container-high" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-            <div className="relative z-10 p-stack-lg">
+            <div className="relative z-10 p-stack-md md:p-stack-lg">
               <span className="font-label-sm uppercase tracking-widest text-secondary">
                 {product.category}
               </span>
-              <h3 className="mt-1 font-display-lg text-headline-lg uppercase text-on-surface">
+              <h3 className="mt-1 line-clamp-2 font-headline-md text-headline-md uppercase leading-tight text-on-surface">
                 {product.title}
               </h3>
-              <span className="mt-4 inline-flex items-center gap-1 font-label-md uppercase text-primary">
+              <span className="mt-2 inline-flex items-center gap-1 font-label-sm uppercase text-primary">
                 View in the Vault
-                <Icon name="arrow_forward" className="text-sm" />
+                <Icon name="arrow_forward" className="text-xs" />
               </span>
             </div>
           </Link>
