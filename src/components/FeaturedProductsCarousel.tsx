@@ -4,7 +4,7 @@ import type { Product } from "@/data/seedProducts";
 import { Icon } from "@/components/Icon";
 import { productPrimaryImage } from "@/lib/productImageUrls";
 
-const CAROUSEL_INTERVAL_MS = 5000;
+const CAROUSEL_INTERVAL_MS = 3000;
 
 const FEATURED_BOX_CLASS =
   "relative flex min-h-[320px] flex-col justify-end overflow-hidden bg-surface-container-low iron-bevel md:row-span-2 md:min-h-[480px]";
