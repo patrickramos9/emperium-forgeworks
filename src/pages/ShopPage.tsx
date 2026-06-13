@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnnouncementBlock } from "@/components/AnnouncementBlock";
+import { CatalogPagination } from "@/components/CatalogPagination";
 import { ProductCard } from "@/components/ProductCard";
 import { productMatchesCategoryFilter } from "@/data/seedProducts";
 import { useCategoryFilters } from "@/hooks/useCategoryFilters";
@@ -9,6 +10,13 @@ import {
   ALL_CATEGORY_FILTER,
   isCategoryFilter,
 } from "@/lib/productCategories";
+import {
+  catalogPageRange,
+  catalogTotalPages,
+  paginateCatalogItems,
+  parseCatalogPage,
+  SHOP_PRODUCTS_PAGE_SIZE,
+} from "@/lib/catalogPagination";
 
 export function ShopPage() {
   const { products, loading, source, loadError } = useProducts();
@@ -18,6 +26,7 @@ export function ShopPage() {
   const initialQuery = searchParams.get("q") ?? "";
   const [category, setCategory] = useState(initialCategory);
   const search = initialQuery;
+  const prevFiltersRef = useRef({ category: initialCategory, search: initialQuery });
 
   useEffect(() => {
     if (isCategoryFilter(category, categoryFilters)) return;
@@ -43,11 +52,57 @@ export function ShopPage() {
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }, [products, category, categoryFilters, search]);
 
+  const totalPages = catalogTotalPages(
+    filtered.length,
+    SHOP_PRODUCTS_PAGE_SIZE,
+  );
+  const requestedPage = searchParams.get("page");
+  const currentPage = parseCatalogPage(requestedPage, totalPages);
+  const pagedProducts = useMemo(
+    () =>
+      paginateCatalogItems(filtered, currentPage, SHOP_PRODUCTS_PAGE_SIZE),
+    [filtered, currentPage],
+  );
+  const pageRange = catalogPageRange(
+    currentPage,
+    SHOP_PRODUCTS_PAGE_SIZE,
+    filtered.length,
+  );
+
+  useEffect(() => {
+    if (requestedPage == null && currentPage === 1) return;
+    if (requestedPage === String(currentPage)) return;
+
+    const next = new URLSearchParams(searchParams);
+    if (currentPage <= 1) next.delete("page");
+    else next.set("page", String(currentPage));
+    setSearchParams(next, { replace: true });
+  }, [requestedPage, currentPage, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const prev = prevFiltersRef.current;
+    if (prev.category === category && prev.search === search) return;
+    prevFiltersRef.current = { category, search };
+    if (!searchParams.get("page")) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("page");
+    setSearchParams(next, { replace: true });
+  }, [category, search, searchParams, setSearchParams]);
+
+  function goToPage(page: number) {
+    const next = new URLSearchParams(searchParams);
+    if (page <= 1) next.delete("page");
+    else next.set("page", String(page));
+    setSearchParams(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function selectCategory(cat: string) {
     setCategory(cat);
     const next = new URLSearchParams(searchParams);
     if (cat === ALL_CATEGORY_FILTER) next.delete("category");
     else next.set("category", cat);
+    next.delete("page");
     setSearchParams(next, { replace: true });
   }
 
@@ -107,11 +162,25 @@ export function ShopPage() {
           No artifacts match your search. Try another category or term.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 lg:grid-cols-4">
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          {filtered.length > SHOP_PRODUCTS_PAGE_SIZE && (
+            <p className="mb-4 text-body-sm text-on-surface-variant">
+              Showing {pageRange.start}–{pageRange.end} of {filtered.length}{" "}
+              {filtered.length === 1 ? "product" : "products"}
+            </p>
+          )}
+          <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 lg:grid-cols-4">
+            {pagedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          <CatalogPagination
+            className="mt-stack-lg"
+            page={currentPage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+          />
+        </>
       )}
 
       <AnnouncementBlock className="mt-section-gap" />
