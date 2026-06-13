@@ -1,22 +1,6 @@
 import type { Schema } from "../../data/resource";
 import { sendCustomerFulfillmentEmail } from "./notifyCustomer.js";
 
-type DataClient = {
-  models: {
-    Order: {
-      update: (input: Record<string, unknown>) => Promise<{
-        data?: Schema["Order"]["type"] | null;
-        errors?: { message: string }[];
-      }>;
-    };
-    Notification: {
-      create: (input: Record<string, unknown>) => Promise<{
-        errors?: { message: string }[];
-      }>;
-    };
-  };
-};
-
 export type FulfillmentStatus = "paid" | "received" | "processing" | "shipped";
 
 const FULFILLMENT_STAGES: FulfillmentStatus[] = [
@@ -27,6 +11,35 @@ const FULFILLMENT_STAGES: FulfillmentStatus[] = [
 ];
 
 type OrderRow = Schema["Order"]["type"];
+
+type FulfillmentDataClient = {
+  models: {
+    Order: {
+      update: (input: {
+        id: string;
+        fulfillmentStatus?: FulfillmentStatus;
+        fulfillmentUpdatedAt?: string | null;
+        carrier?: string | null;
+        trackingNumber?: string | null;
+        trackingUrl?: string | null;
+        shippedAt?: string | null;
+      }) => Promise<{
+        data?: OrderRow | null;
+        errors?: { message: string }[] | null;
+      }>;
+    };
+    Notification: {
+      create: (input: {
+        title: string;
+        body: string;
+        kind: "order";
+        userId: string;
+        active: boolean;
+        sortOrder: number;
+      }) => Promise<{ errors?: { message: string }[] | null }>;
+    };
+  };
+};
 
 export function effectiveFulfillmentStatus(order: {
   fulfillmentStatus?: string | null;
@@ -129,7 +142,7 @@ function notificationCopy(
 }
 
 export async function createFulfillmentNotification(
-  client: DataClient,
+  client: FulfillmentDataClient,
   order: OrderRow,
   status: FulfillmentStatus,
 ): Promise<boolean> {
@@ -166,7 +179,7 @@ export type ApplyFulfillmentInput = {
 };
 
 export async function applyFulfillmentStatus(
-  client: DataClient,
+  client: FulfillmentDataClient,
   order: OrderRow,
   targetStatus: FulfillmentStatus,
   input: ApplyFulfillmentInput = {},
@@ -191,20 +204,19 @@ export async function applyFulfillmentStatus(
   }
 
   const now = new Date().toISOString();
-  const updatePayload: Record<string, unknown> = {
+  const updateResult = await client.models.Order.update({
     id: order.id,
     fulfillmentStatus: targetStatus,
     fulfillmentUpdatedAt: now,
-  };
-
-  if (targetStatus === "shipped") {
-    updatePayload.carrier = input.carrier?.trim();
-    updatePayload.trackingNumber = input.trackingNumber?.trim();
-    updatePayload.trackingUrl = input.trackingUrl?.trim() || null;
-    updatePayload.shippedAt = now;
-  }
-
-  const updateResult = await client.models.Order.update(updatePayload);
+    ...(targetStatus === "shipped"
+      ? {
+          carrier: input.carrier?.trim(),
+          trackingNumber: input.trackingNumber?.trim(),
+          trackingUrl: input.trackingUrl?.trim() || null,
+          shippedAt: now,
+        }
+      : {}),
+  });
   if (updateResult.errors?.length) {
     throw new Error(updateResult.errors.map((e) => e.message).join("; "));
   }
