@@ -6,6 +6,49 @@ export type Ga4DashboardResult = NonNullable<
 >;
 
 const CACHE_PREFIX = "admin:ga4:";
+const DATE_RANGE_KEY = "admin:ga4:dateRange";
+
+export type Ga4DateRange = {
+  startDate: string;
+  endDate: string;
+};
+
+export function defaultGa4DateRange(): Ga4DateRange {
+  return {
+    startDate: daysAgoIsoDate(30),
+    endDate: todayIsoDate(),
+  };
+}
+
+export function readGa4DateRange(): Ga4DateRange | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(DATE_RANGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Ga4DateRange>;
+    if (
+      typeof parsed.startDate === "string" &&
+      typeof parsed.endDate === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(parsed.startDate) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(parsed.endDate) &&
+      parsed.startDate <= parsed.endDate
+    ) {
+      return { startDate: parsed.startDate, endDate: parsed.endDate };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeGa4DateRange(range: Ga4DateRange): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(DATE_RANGE_KEY, JSON.stringify(range));
+  } catch {
+    // Ignore cache write failures (private mode/quota limits).
+  }
+}
 
 export function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);

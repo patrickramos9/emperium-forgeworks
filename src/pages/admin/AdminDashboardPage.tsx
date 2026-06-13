@@ -17,11 +17,13 @@ import {
   parseOrderLineItems,
 } from "@/services/orderService";
 import {
-  daysAgoIsoDate,
+  defaultGa4DateRange,
   fetchGa4Dashboard,
   readGa4Cache,
+  readGa4DateRange,
   todayIsoDate,
   writeGa4Cache,
+  writeGa4DateRange,
   type Ga4DashboardResult,
 } from "@/services/adminAnalyticsService";
 
@@ -67,8 +69,12 @@ export function AdminDashboardPage() {
   const [stats, setStats] = useState(
     computeAdminOrderStats([]),
   );
-  const [startDate, setStartDate] = useState(() => daysAgoIsoDate(30));
-  const [endDate, setEndDate] = useState(() => todayIsoDate());
+  const [startDate, setStartDate] = useState(
+    () => readGa4DateRange()?.startDate ?? defaultGa4DateRange().startDate,
+  );
+  const [endDate, setEndDate] = useState(
+    () => readGa4DateRange()?.endDate ?? defaultGa4DateRange().endDate,
+  );
   const [ga4, setGa4] = useState<Ga4DashboardResult | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
@@ -114,6 +120,10 @@ export function AdminDashboardPage() {
     }
     void load();
   }, [navigate]);
+
+  useEffect(() => {
+    writeGa4DateRange({ startDate, endDate });
+  }, [startDate, endDate]);
 
   useEffect(() => {
     async function loadGa4() {
@@ -305,7 +315,8 @@ export function AdminDashboardPage() {
               Traffic (GA4)
             </h2>
             <p className="mt-1 text-label-sm text-on-surface-variant">
-              Cached for fast loads; refreshes on page reload.
+              Date range is remembered for this browser session. GA4 data is
+              cached per range.
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
