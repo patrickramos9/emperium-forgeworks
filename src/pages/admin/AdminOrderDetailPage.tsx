@@ -26,13 +26,12 @@ import {
   orderStatusLabel,
   parseOrderLineItems,
   parseShippingAddress,
+  PAYMENT_STATUS_OPTIONS,
   updateOrderStatus,
   type OrderRecord,
   type OrderStatus,
 } from "@/services/orderService";
 import { updateOrderFulfillment } from "@/services/orderFulfillmentService";
-
-const PAYMENT_STATUS_OPTIONS: OrderStatus[] = ["pending", "paid", "failed"];
 
 export function AdminOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -469,9 +468,10 @@ export function AdminOrderDetailPage() {
           Payment status
         </h2>
         <p className="mt-2 text-body-sm text-on-surface-variant">
-          Stripe / checkout payment only (Pending, Paid, Failed). To update what
-          the <strong>customer</strong> sees (Received → Processing → Shipped),
-          use <strong>Customer fulfillment</strong> above — not this dropdown.
+          Stripe / checkout payment (Pending, Paid, Failed, Cancelled, Refunded). To
+          update what the <strong>customer</strong> sees (Received → Processing →
+          Shipped), use <strong>Customer fulfillment</strong> above — not this
+          dropdown.
         </p>
         <label className="mt-4 block">
           <span className="font-label-sm uppercase text-on-surface-variant">

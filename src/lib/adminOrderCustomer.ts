@@ -66,5 +66,11 @@ export function missingShippingAddressMessage(
   if (status === "failed") {
     return "Checkout was not completed — no shipping address was collected.";
   }
+  if (status === "cancelled") {
+    return "This order was cancelled — shipping may not apply.";
+  }
+  if (status === "refunded") {
+    return "This order was refunded.";
+  }
   return "No shipping address recorded for this order.";
 }

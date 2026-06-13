@@ -296,7 +296,7 @@ const schema = a.schema({
     .model({
       externalSessionId: a.string().required(),
       paymentProvider: a.enum(["mock", "stripe"]),
-      status: a.enum(["pending", "paid", "failed"]),
+      status: a.enum(["pending", "paid", "failed", "cancelled", "refunded"]),
       userId: a.string(),
       email: a.string(),
       customerName: a.string(),

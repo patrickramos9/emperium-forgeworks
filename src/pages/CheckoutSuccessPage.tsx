@@ -60,7 +60,7 @@ export function CheckoutSuccessPage() {
         to="/shop"
         className="molten-glow mt-8 inline-block bg-primary px-6 py-3 font-label-md uppercase text-on-primary"
       >
-        Return to the Vault
+        Return to the Lair
       </Link>
     </main>
   );

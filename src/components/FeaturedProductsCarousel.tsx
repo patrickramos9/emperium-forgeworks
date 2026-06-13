@@ -103,7 +103,7 @@ export function FeaturedProductsCarousel({
                 {product.title}
               </h3>
               <span className="mt-2 inline-flex items-center gap-1 font-label-sm uppercase text-primary">
-                View in the Vault
+                View in the Lair
                 <Icon name="arrow_forward" className="text-xs" />
               </span>
             </div>

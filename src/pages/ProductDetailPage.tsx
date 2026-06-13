@@ -41,7 +41,7 @@ type ProductDetailPageProps = {
 export function ProductDetailPage({
   catalogMode = "public",
   listPath = "/shop",
-  listLabel = "Shop",
+  listLabel = "The Lair",
   productBasePath = "/shop",
   requiresVaultUnlock = false,
 }: ProductDetailPageProps) {

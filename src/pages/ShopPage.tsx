@@ -56,7 +56,7 @@ export function ShopPage() {
       <div className="mb-stack-lg flex flex-col justify-between gap-stack-md md:flex-row md:items-end">
         <div>
           <h1 className="mb-2 font-display-lg text-display-lg uppercase tracking-tighter text-primary">
-            The Vault
+            The Lair
           </h1>
           <p className="max-w-2xl font-body-lg text-on-surface-variant">
             Forged in resin, born in shadow. Explore our collection of premium
@@ -95,12 +95,12 @@ export function ShopPage() {
       )}
 
       {loading ? (
-        <p className="text-on-surface-variant">Loading the vault...</p>
+        <p className="text-on-surface-variant">Loading the lair...</p>
       ) : products.length === 0 ? (
         <p className="text-on-surface-variant">
           {loadError
             ? "The catalog could not be loaded."
-            : "No products in the vault yet."}
+            : "No products in the lair yet."}
         </p>
       ) : filtered.length === 0 ? (
         <p className="text-on-surface-variant">

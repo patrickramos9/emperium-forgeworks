@@ -13,6 +13,8 @@ export function ProductCard({
 }) {
   const productPath = `${shopBasePath}/${product.slug}`;
   const imageSrc = productPrimaryImage(product);
+  const viewLabel =
+    shopBasePath === "/vault" ? "View in the Vault" : "View in the Lair";
 
   return (
     <article className="group relative flex flex-col overflow-hidden bg-surface-container-low iron-bevel transition-all duration-300 hover:bg-surface-container-high">
@@ -59,7 +61,7 @@ export function ProductCard({
           to={productPath}
           className="mt-auto inline-block w-full border border-outline-variant/30 py-2 text-center font-label-md uppercase tracking-widest text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
         >
-          View in the Vault
+          {viewLabel}
         </Link>
       </div>
     </article>

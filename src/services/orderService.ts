@@ -76,6 +76,16 @@ export function formatOrderDate(createdAt: string | null | undefined): string {
   });
 }
 
+export type OrderStatus = NonNullable<OrderRecord["status"]>;
+
+export const PAYMENT_STATUS_OPTIONS: OrderStatus[] = [
+  "pending",
+  "paid",
+  "failed",
+  "cancelled",
+  "refunded",
+];
+
 export function orderStatusLabel(
   status: OrderRecord["status"] | null | undefined,
 ): string {
@@ -86,6 +96,10 @@ export function orderStatusLabel(
       return "Pending";
     case "failed":
       return "Failed";
+    case "cancelled":
+      return "Cancelled";
+    case "refunded":
+      return "Refunded";
     default:
       return "Unknown";
   }
@@ -138,8 +152,6 @@ export async function getOrderById(
   }
   return data ?? null;
 }
-
-export type OrderStatus = NonNullable<OrderRecord["status"]>;
 
 export async function updateOrderStatus(
   client: AmplifyDataClient,

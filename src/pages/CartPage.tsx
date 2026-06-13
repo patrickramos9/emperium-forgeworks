@@ -200,7 +200,7 @@ export function CartPage() {
         <h1 className="font-display-lg text-headline-lg uppercase text-primary">
           Your Cart
         </h1>
-        <p className="mt-4 text-on-surface-variant">The vault is empty.</p>
+        <p className="mt-4 text-on-surface-variant">The lair is empty.</p>
         <Link
           to="/shop"
           className="molten-glow mt-6 inline-block bg-primary px-6 py-3 font-label-md uppercase text-on-primary"
