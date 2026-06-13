@@ -11,6 +11,7 @@ import { ProductDetailPage } from "@/pages/ProductDetailPage";
 import { AboutPage } from "@/pages/AboutPage";
 import { ShippingReturnsPage } from "@/pages/ShippingReturnsPage";
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
+import { ForgeTermsPage } from "@/pages/ForgeTermsPage";
 import { CartPage } from "@/pages/CartPage";
 import { CheckoutSuccessPage } from "@/pages/CheckoutSuccessPage";
 import { CheckoutCancelPage } from "@/pages/CheckoutCancelPage";
@@ -87,6 +88,7 @@ export default function App() {
             <Route path="/process/*" element={<Navigate to="/about" replace />} />
             <Route path="/shipping-returns" element={<ShippingReturnsPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/forge-terms" element={<ForgeTermsPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/sculptors/:slug" element={<SculptorDetailPage />} />
             <Route path="/cart" element={<CartPage />} />
