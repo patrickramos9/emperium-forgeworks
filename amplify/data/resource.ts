@@ -7,6 +7,7 @@ import { stripeWebhook as stripeWebhookFn } from "../functions/stripe-webhook/re
 import { toggleProductFavorite as toggleProductFavoriteFn } from "../functions/toggle-product-favorite/resource";
 import { syncCartSnapshot as syncCartSnapshotFn } from "../functions/sync-cart-snapshot/resource";
 import { notifyOrderPlaced as notifyOrderPlacedFn } from "../functions/notify-order-placed/resource";
+import { getStorefrontStats as getStorefrontStatsFn } from "../functions/get-storefront-stats/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -97,6 +98,10 @@ const schema = a.schema({
     notified: a.boolean().required(),
   }),
 
+  StorefrontStatsResult: a.customType({
+    paidSalesCount: a.integer().required(),
+  }),
+
   listCustomers: a
     .query()
     .arguments({
@@ -164,6 +169,12 @@ const schema = a.schema({
     .returns(a.ref("NotifyOrderPlacedResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(notifyOrderPlacedFn)),
+
+  getStorefrontStats: a
+    .query()
+    .returns(a.ref("StorefrontStatsResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(getStorefrontStatsFn)),
 
   VaultAccess: a
     .model({
@@ -471,6 +482,7 @@ const schema = a.schema({
   allow.resource(toggleProductFavoriteFn),
   allow.resource(syncCartSnapshotFn),
   allow.resource(notifyOrderPlacedFn),
+  allow.resource(getStorefrontStatsFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

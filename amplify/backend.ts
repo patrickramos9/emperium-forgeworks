@@ -11,6 +11,7 @@ import { stripeWebhook } from "./functions/stripe-webhook/resource";
 import { toggleProductFavorite } from "./functions/toggle-product-favorite/resource";
 import { syncCartSnapshot } from "./functions/sync-cart-snapshot/resource";
 import { notifyOrderPlaced } from "./functions/notify-order-placed/resource";
+import { getStorefrontStats } from "./functions/get-storefront-stats/resource";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
@@ -25,6 +26,7 @@ const backend = defineBackend({
   toggleProductFavorite,
   syncCartSnapshot,
   notifyOrderPlaced,
+  getStorefrontStats,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;

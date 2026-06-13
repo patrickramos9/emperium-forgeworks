@@ -1,6 +1,18 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
+import { getGuestDataClient } from "@/lib/amplifyDataClient";
+import { hasReviewModel } from "@/lib/dataModels";
+import {
+  computeAverageReviewRating,
+  formatQualityIndex,
+} from "@/lib/reviewStats";
+import { listApprovedReviews } from "@/services/reviewService";
+import {
+  fetchPaidSalesCount,
+  formatSuccessfulForgings,
+} from "@/services/storefrontStatsService";
 
 const STEPS = [
   {
@@ -35,6 +47,36 @@ const STEPS = [
 
 export function AboutPage() {
   const { mainTopPadding } = useSiteLayout();
+  const [qualityIndex, setQualityIndex] = useState("—");
+  const [successfulForgings, setSuccessfulForgings] = useState("—");
+
+  useEffect(() => {
+    async function loadForgeStats() {
+      const client = await getGuestDataClient();
+      if (!client) return;
+
+      try {
+        if (hasReviewModel(client)) {
+          const reviews = await listApprovedReviews(client, 500);
+          setQualityIndex(
+            formatQualityIndex(computeAverageReviewRating(reviews)),
+          );
+        }
+      } catch {
+        /* About page keeps placeholder stats when reviews are unavailable. */
+      }
+
+      try {
+        const paidSalesCount = await fetchPaidSalesCount(client);
+        setSuccessfulForgings(formatSuccessfulForgings(paidSalesCount));
+      } catch {
+        /* Sales count requires the storefront stats query after deploy. */
+      }
+    }
+
+    void loadForgeStats();
+  }, []);
+
   return (
     <main className={`pb-section-gap ${mainTopPadding}`}>
       <section className="relative flex h-[614px] items-center overflow-hidden border-b border-outline-variant/10">
@@ -128,13 +170,15 @@ export function AboutPage() {
               </p>
               <div className="grid grid-cols-2 gap-gutter pt-stack-md">
                 <div>
-                  <h5 className="font-headline-md text-primary">31+</h5>
+                  <h5 className="font-headline-md text-primary">
+                    {successfulForgings}
+                  </h5>
                   <p className="font-label-sm uppercase text-on-surface-variant">
                     Successful Forgings
                   </p>
                 </div>
                 <div>
-                  <h5 className="font-headline-md text-primary">5.0</h5>
+                  <h5 className="font-headline-md text-primary">{qualityIndex}</h5>
                   <p className="font-label-sm uppercase text-on-surface-variant">
                     Quality Index
                   </p>

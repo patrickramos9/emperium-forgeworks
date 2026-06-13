@@ -13,6 +13,7 @@ backend:
         - npm ci --prefix amplify/functions/create-stripe-checkout --cache .npm-fn-stripe-checkout --prefer-offline
         - npm ci --prefix amplify/functions/stripe-webhook --cache .npm-fn-stripe-webhook --prefer-offline
         - npm ci --prefix amplify/functions/notify-order-placed --cache .npm-fn-notify-order --prefer-offline
+        - npm ci --prefix amplify/functions/get-storefront-stats --cache .npm-fn-storefront-stats --prefer-offline
         - export CI=1
         - echo "pipeline-deploy branch=$AWS_BRANCH app-id=$AWS_APP_ID"
         - |
@@ -41,6 +42,8 @@ backend:
       - .npm-fn-stripe-webhook/**/*
       - amplify/functions/notify-order-placed/node_modules/**/*
       - .npm-fn-notify-order/**/*
+      - amplify/functions/get-storefront-stats/node_modules/**/*
+      - .npm-fn-storefront-stats/**/*
 frontend:
   phases:
     preBuild:
