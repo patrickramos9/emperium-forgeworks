@@ -222,6 +222,8 @@ const schema = a.schema({
       category: a.string().required(),
       priceCents: a.integer().required(),
       badges: a.string().array(),
+      /** Storefront star rating (1–5) when no approved reviews are linked to this product. */
+      displayRating: a.integer(),
       images: a.string().array(),
       detailImage: a.string(),
       variants: a.json(),
@@ -447,6 +449,8 @@ const schema = a.schema({
       approved: a.boolean().default(false),
       /** On-site order review vs admin-imported testimonial (e.g. from Etsy). */
       source: a.enum(["site", "etsy"]),
+      /** When set, review counts toward that product's PDP star average. */
+      productSlug: a.string(),
       /** S3 paths under `reviews/{orderId}/…` for customer product photos. */
       images: a.string().array(),
     })

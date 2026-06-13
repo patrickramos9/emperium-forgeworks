@@ -17,6 +17,7 @@ export function mapAmplifyProduct(row: {
   category: string;
   priceCents: number;
   badges?: (string | null)[] | null;
+  displayRating?: number | null;
   images?: (string | null)[] | null;
   variants?: unknown;
   specs?: unknown;
@@ -48,6 +49,12 @@ export function mapAmplifyProduct(row: {
     category: row.category as ProductCategory,
     priceCents: row.priceCents,
     badges: (row.badges ?? []).filter(Boolean) as string[],
+    displayRating:
+      row.displayRating != null &&
+      row.displayRating >= 1 &&
+      row.displayRating <= 5
+        ? row.displayRating
+        : undefined,
     images,
     variantGroups,
     variants,

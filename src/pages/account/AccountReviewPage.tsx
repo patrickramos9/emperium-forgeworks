@@ -104,6 +104,7 @@ export function AccountReviewPage() {
         rating,
         text,
         displayName: displayName.trim() || undefined,
+        lineItems: order?.lineItems,
       });
       navigate("/account/orders");
     } catch (err) {

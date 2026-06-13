@@ -59,6 +59,7 @@ export function buildProductMutationPayload(input: {
   shippingDisplay?: ProductShippingDisplay | null;
   detailImage?: string;
   badges: string[];
+  displayRating?: number | null;
   images: string[];
   variantGroups: ProductOptionGroup[];
   specs?: Product["specs"] | null;
@@ -93,6 +94,11 @@ export function buildProductMutationPayload(input: {
     ...(input.lore ? { lore: input.lore } : {}),
     ...(detailImage ? { detailImage } : {}),
     badges: normalizeStringArray(input.badges),
+    ...(input.displayRating != null &&
+    input.displayRating >= 1 &&
+    input.displayRating <= 5
+      ? { displayRating: Math.round(input.displayRating) }
+      : { displayRating: null }),
     images: normalizeStringArray(images),
     variants: toJsonField(serializeVariantGroups(input.variantGroups)),
     specs: toJsonField(normalizeSpecs(input.specs)),

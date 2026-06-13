@@ -93,6 +93,7 @@ export function AdminProductEditPage() {
   const [lore, setLore] = useState("");
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [badgesText, setBadgesText] = useState("");
+  const [displayRating, setDisplayRating] = useState("");
   const [variantGroups, setVariantGroups] = useState<ProductOptionGroup[]>([]);
   const [specsJson, setSpecsJson] = useState("");
   const [shippingProfileId, setShippingProfileId] = useState("");
@@ -122,6 +123,11 @@ export function AdminProductEditPage() {
     setLore(p.lore ?? "");
     setGalleryImages(productToGalleryImages(p));
     setBadgesText(p.badges.join(", "));
+    setDisplayRating(
+      p.displayRating != null && p.displayRating >= 1 && p.displayRating <= 5
+        ? String(p.displayRating)
+        : "",
+    );
     setVariantGroups(p.variantGroups ?? []);
     setSpecsJson(p.specs ? JSON.stringify(p.specs, null, 2) : "");
   }
@@ -245,6 +251,10 @@ export function AdminProductEditPage() {
       const effectiveSortOrder =
         isNew || !recordId ? await nextProductSortOrder(client) : sortOrder;
 
+      const displayRatingParsed = displayRating.trim()
+        ? Number.parseInt(displayRating, 10)
+        : undefined;
+
       const payload = buildProductMutationPayload({
         slug: normalizeProductSlug(productSlug),
         title,
@@ -268,6 +278,10 @@ export function AdminProductEditPage() {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
+        displayRating:
+          displayRatingParsed != null && Number.isFinite(displayRatingParsed)
+            ? displayRatingParsed
+            : null,
         images,
         variantGroups: stripInvalidVariantImageRefs(variantGroups, galleryImages),
         specs: specs ?? null,
@@ -522,8 +536,32 @@ export function AdminProductEditPage() {
           <input
             value={badgesText}
             onChange={(e) => setBadgesText(e.target.value)}
+            placeholder="e.g. Elite Selection, Popular"
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
+          <p className="mt-1 text-label-sm text-on-surface-variant">
+            First badge appears on the product page and shop card. Leave empty
+            for no badge.
+          </p>
+        </label>
+        <label className="block">
+          <span className="font-label-sm uppercase text-on-surface-variant">
+            Star rating (1–5, optional)
+          </span>
+          <input
+            type="number"
+            min={1}
+            max={5}
+            step={1}
+            value={displayRating}
+            onChange={(e) => setDisplayRating(e.target.value)}
+            placeholder="Leave empty to hide stars"
+            className="mt-1 w-full max-w-[8rem] border border-outline-variant/30 bg-surface-container-low px-3 py-2"
+          />
+          <p className="mt-1 text-label-sm text-on-surface-variant">
+            Shown when no approved reviews are linked to this product. Linked
+            reviews override this value.
+          </p>
         </label>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">

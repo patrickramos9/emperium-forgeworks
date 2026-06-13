@@ -27,7 +27,15 @@ import { useProduct, useProducts } from "@/hooks/useProducts";
 import { useProductShippingDisplay } from "@/hooks/useProductShippingDisplay";
 import { ProductShippingInfo } from "@/components/ProductShippingInfo";
 import { ProductFavoriteButton } from "@/components/ProductFavoriteButton";
+import { ProductStarRating } from "@/components/ProductStarRating";
 import { StaleFavoriteNotice } from "@/components/StaleFavoriteNotice";
+import { getGuestDataClient } from "@/lib/amplifyDataClient";
+import { hasReviewModel } from "@/lib/dataModels";
+import { resolveProductStarRating } from "@/lib/reviewStats";
+import {
+  listApprovedReviewsForProduct,
+  type ReviewRecord,
+} from "@/services/reviewService";
 import { isVaultUnlocked } from "@/lib/vaultSession";
 
 type ProductDetailPageProps = {
@@ -68,6 +76,37 @@ export function ProductDetailPage({
   const [variantQuantities, setVariantQuantities] = useState<
     Record<string, number>
   >({});
+  const [productReviews, setProductReviews] = useState<ReviewRecord[]>([]);
+
+  useEffect(() => {
+    if (!product?.slug) {
+      setProductReviews([]);
+      return;
+    }
+
+    let cancelled = false;
+    const productSlug = product.slug;
+
+    async function loadReviews() {
+      const client = await getGuestDataClient();
+      if (!client || !hasReviewModel(client)) {
+        if (!cancelled) setProductReviews([]);
+        return;
+      }
+
+      try {
+        const rows = await listApprovedReviewsForProduct(client, productSlug);
+        if (!cancelled) setProductReviews(rows);
+      } catch {
+        if (!cancelled) setProductReviews([]);
+      }
+    }
+
+    void loadReviews();
+    return () => {
+      cancelled = true;
+    };
+  }, [product?.slug]);
 
   useEffect(() => {
     if (product) {
@@ -238,6 +277,11 @@ export function ProductDetailPage({
     product.inStock && (!hasVariations || selectedVariants.length > 0);
   const displayTitle = product.title.split("–")[0]?.trim() ?? product.title;
   const galleryImages = productDisplayImages(product);
+  const starSummary = resolveProductStarRating(
+    productReviews,
+    product.displayRating,
+  );
+  const primaryBadge = product.badges[0];
   const related = products
     .filter((p) => p.slug !== product.slug)
     .slice(0, 4);
@@ -276,16 +320,29 @@ export function ProductDetailPage({
 
           <div className="order-2 flex min-h-0 flex-col gap-stack-md lg:col-span-5 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100vh-7rem)] lg:gap-stack-sm">
             <div className="shrink-0 space-y-stack-sm">
-              <div className="flex items-center gap-2">
-                <span className="border border-secondary/20 bg-void-purple px-2 py-0.5 font-label-sm text-[10px] uppercase tracking-widest text-secondary">
-                  Elite Selection
-                </span>
-                <div className="flex text-plasma-glow">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Icon key={i} name="star" className="text-sm" filled />
-                  ))}
+              {(primaryBadge || starSummary.rating != null) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {primaryBadge && (
+                    <span
+                      className={`px-2 py-0.5 font-label-sm uppercase tracking-widest ${
+                        primaryBadge === "Popular"
+                          ? "bg-blood-red text-white"
+                          : "bg-primary text-on-primary"
+                      }`}
+                    >
+                      {primaryBadge}
+                    </span>
+                  )}
+                  {starSummary.rating != null && (
+                    <ProductStarRating
+                      rating={starSummary.rating}
+                      reviewCount={
+                        starSummary.fromReviews ? starSummary.reviewCount : 0
+                      }
+                    />
+                  )}
                 </div>
-              </div>
+              )}
               <h1 className="font-display-lg text-headline-md uppercase leading-tight text-primary md:text-headline-lg">
                 {displayTitle}
               </h1>

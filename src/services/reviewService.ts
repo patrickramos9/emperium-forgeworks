@@ -1,6 +1,8 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import type { Schema } from "../../amplify/data/resource";
 import { getCustomerUserId } from "@/lib/customerAuth";
+import { parseOrderLineItems } from "@/services/orderService";
+import type { OrderRecord } from "@/services/orderService";
 
 export type ReviewRecord = Schema["Review"]["type"];
 export type ReviewSource = NonNullable<ReviewRecord["source"]>;
@@ -27,6 +29,44 @@ export function reviewBadgeLabel(review: ReviewRecord): string {
 
 export function isReviewApproved(review: ReviewRecord): boolean {
   return review.approved === true;
+}
+
+/** Link a review to a product when the order contains a single catalog item. */
+export function primaryProductSlugFromLineItems(
+  lineItems: OrderRecord["lineItems"],
+): string | undefined {
+  const items = parseOrderLineItems(lineItems);
+  const slugs = [
+    ...new Set(items.map((item) => item.slug.trim()).filter(Boolean)),
+  ];
+  return slugs.length === 1 ? slugs[0] : undefined;
+}
+
+export async function listApprovedReviewsForProduct(
+  client: AmplifyDataClient,
+  productSlug: string,
+): Promise<ReviewRecord[]> {
+  const rows: ReviewRecord[] = [];
+  let nextToken: string | undefined;
+
+  do {
+    const response = await client.models.Review.list({
+      limit: 100,
+      nextToken,
+      filter: { productSlug: { eq: productSlug } },
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row && isReviewApproved(row)) rows.push(row);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  return rows.sort(
+    (a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""),
+  );
 }
 
 export function reviewImagePaths(review: ReviewRecord): string[] {
@@ -130,6 +170,7 @@ export type CreateReviewInput = {
   rating: number;
   text: string;
   displayName?: string;
+  lineItems?: OrderRecord["lineItems"];
 };
 
 export async function createReview(
@@ -156,6 +197,10 @@ export async function createReview(
     throw new Error("You already reviewed this order.");
   }
 
+  const productSlug = input.lineItems
+    ? primaryProductSlugFromLineItems(input.lineItems)
+    : undefined;
+
   const result = await client.models.Review.create({
     orderId: input.orderId,
     userId,
@@ -164,6 +209,7 @@ export async function createReview(
     displayName: input.displayName?.trim() || undefined,
     approved: false,
     source: "site",
+    ...(productSlug ? { productSlug } : {}),
   });
 
   if (result.errors?.length) {
@@ -183,6 +229,7 @@ export type CreateImportedReviewInput = {
   source?: Extract<ReviewSource, "etsy">;
   orderId?: string;
   images?: string[];
+  productSlug?: string;
 };
 
 export async function createImportedReview(
@@ -201,6 +248,7 @@ export async function createImportedReview(
 
   const orderId = input.orderId ?? generateImportedReviewId();
   const images = input.images?.filter(Boolean);
+  const productSlug = input.productSlug?.trim();
   const result = await client.models.Review.create({
     orderId,
     userId: IMPORTED_REVIEW_USER_ID,
@@ -210,6 +258,7 @@ export async function createImportedReview(
     approved: input.approved ?? true,
     source: input.source ?? "etsy",
     images: images?.length ? images : undefined,
+    ...(productSlug ? { productSlug } : {}),
   });
 
   if (result.errors?.length) {

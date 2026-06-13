@@ -72,6 +72,7 @@ export function AdminReviewsPage() {
   const [importRating, setImportRating] = useState(5);
   const [importText, setImportText] = useState("");
   const [importDisplayName, setImportDisplayName] = useState("");
+  const [importProductSlug, setImportProductSlug] = useState("");
   const [importApproved, setImportApproved] = useState(true);
   const [importFiles, setImportFiles] = useState<File[]>([]);
   const [importPreviews, setImportPreviews] = useState<string[]>([]);
@@ -179,6 +180,7 @@ export function AdminReviewsPage() {
         displayName: importDisplayName,
         approved: importApproved,
         images,
+        productSlug: importProductSlug.trim() || undefined,
       });
       setRows((prev) =>
         [created, ...prev].sort(
@@ -188,6 +190,7 @@ export function AdminReviewsPage() {
       );
       setImportText("");
       setImportDisplayName("");
+      setImportProductSlug("");
       setImportRating(5);
       setImportApproved(true);
       clearObjectUrls(importPreviews);
@@ -273,6 +276,23 @@ export function AdminReviewsPage() {
                 placeholder="e.g. Christian"
                 className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface"
               />
+            </label>
+
+            <label className="mt-4 block">
+              <span className="font-label-sm uppercase text-on-surface-variant">
+                Product slug (optional)
+              </span>
+              <input
+                type="text"
+                value={importProductSlug}
+                onChange={(e) => setImportProductSlug(e.target.value)}
+                placeholder="e.g. cosmic-leviathan"
+                className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface"
+              />
+              <p className="mt-1 text-label-sm text-on-surface-variant">
+                When set, this review counts toward that product&apos;s star
+                rating on its detail page.
+              </p>
             </label>
 
             <div className="mt-4">

@@ -31,6 +31,8 @@ export interface Product {
   category: ProductCategory;
   priceCents: number;
   badges: string[];
+  /** Admin-set rating (1–5) shown on PDP when no linked approved reviews exist. */
+  displayRating?: number;
   images: string[];
   /** Storage paths parallel to resolved `images` (for variant photo matching). */
   imageRefs?: string[];
