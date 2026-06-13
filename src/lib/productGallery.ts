@@ -92,17 +92,19 @@ export function insertGalleryImages(
   images: string[],
   paths: string[],
   index: number,
+  maxImages: number = MAX_PRODUCT_GALLERY_IMAGES,
 ): string[] {
   const next = [...images];
   const clampedTo = Math.max(0, Math.min(index, next.length));
   next.splice(clampedTo, 0, ...paths);
-  return next.slice(0, MAX_GALLERY_IMAGES);
+  return next.slice(0, maxImages);
 }
 
 export function removeGalleryImage(images: string[], index: number): string[] {
   return images.filter((_, i) => i !== index);
 }
 
-export const MAX_GALLERY_IMAGES = 10;
+export const MAX_PRODUCT_GALLERY_IMAGES = 20;
+export const MAX_SCULPTOR_GALLERY_IMAGES = 10;
 
 export const GALLERY_DRAG_TYPE = "application/x-emperium-gallery-index";

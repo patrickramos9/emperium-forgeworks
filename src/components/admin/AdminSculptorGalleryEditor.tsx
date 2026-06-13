@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import {
   GALLERY_DRAG_TYPE,
-  MAX_GALLERY_IMAGES,
+  MAX_SCULPTOR_GALLERY_IMAGES,
   insertGalleryImages,
   moveGalleryImage,
   removeGalleryImage,
@@ -75,9 +75,9 @@ export function AdminSculptorGalleryEditor({
       }
       if (files.length === 0) return;
 
-      const remaining = MAX_GALLERY_IMAGES - images.length;
+      const remaining = MAX_SCULPTOR_GALLERY_IMAGES - images.length;
       if (remaining <= 0) {
-        onError?.(`Maximum ${MAX_GALLERY_IMAGES} portfolio photos.`);
+        onError?.(`Maximum ${MAX_SCULPTOR_GALLERY_IMAGES} portfolio photos.`);
         return;
       }
 
@@ -85,7 +85,9 @@ export function AdminSculptorGalleryEditor({
       setUploadState(true);
       try {
         const paths = await uploadSculptorGalleryImages(sculptorSlug, batch);
-        onChange(insertGalleryImages(images, paths, index));
+        onChange(
+          insertGalleryImages(images, paths, index, MAX_SCULPTOR_GALLERY_IMAGES),
+        );
       } catch (err) {
         onError?.(err instanceof Error ? err.message : "Upload failed");
       } finally {
@@ -142,7 +144,7 @@ export function AdminSculptorGalleryEditor({
   }
 
   const visibleSlots =
-    images.length < MAX_GALLERY_IMAGES ? images.length + 1 : images.length;
+    images.length < MAX_SCULPTOR_GALLERY_IMAGES ? images.length + 1 : images.length;
 
   return (
     <div className="space-y-3">
@@ -156,7 +158,7 @@ export function AdminSculptorGalleryEditor({
           </p>
         </div>
         <span className="font-label-sm text-on-surface-variant">
-          {images.length}/{MAX_GALLERY_IMAGES}
+          {images.length}/{MAX_SCULPTOR_GALLERY_IMAGES}
         </span>
       </div>
 
@@ -245,7 +247,7 @@ export function AdminSculptorGalleryEditor({
         })}
       </div>
 
-      {images.length < MAX_GALLERY_IMAGES && (
+      {images.length < MAX_SCULPTOR_GALLERY_IMAGES && (
         <div
           onDragOver={handleZoneDragOver}
           onDragLeave={() => setZoneActive(false)}

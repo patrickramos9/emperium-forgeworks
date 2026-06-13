@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import {
   GALLERY_DRAG_TYPE,
-  MAX_GALLERY_IMAGES,
+  MAX_PRODUCT_GALLERY_IMAGES,
   insertGalleryImages,
   moveGalleryImage,
   removeGalleryImage,
@@ -82,9 +82,9 @@ export function AdminProductGalleryEditor({
       }
       if (files.length === 0) return;
 
-      const remaining = MAX_GALLERY_IMAGES - images.length;
+      const remaining = MAX_PRODUCT_GALLERY_IMAGES - images.length;
       if (remaining <= 0) {
-        const message = `Maximum ${MAX_GALLERY_IMAGES} photos per product.`;
+        const message = `Maximum ${MAX_PRODUCT_GALLERY_IMAGES} photos per product.`;
         setUploadError(message);
         onError?.(message);
         return;
@@ -95,7 +95,9 @@ export function AdminProductGalleryEditor({
       setUploadState(true);
       try {
         const paths = await uploadProductImages(productSlug, batch);
-        onChange(insertGalleryImages(images, paths, index));
+        onChange(
+          insertGalleryImages(images, paths, index, MAX_PRODUCT_GALLERY_IMAGES),
+        );
       } catch (err) {
         const message = err instanceof Error ? err.message : "Upload failed";
         setUploadError(message);
@@ -154,7 +156,7 @@ export function AdminProductGalleryEditor({
   }
 
   const visibleSlots =
-    images.length < MAX_GALLERY_IMAGES ? images.length + 1 : images.length;
+    images.length < MAX_PRODUCT_GALLERY_IMAGES ? images.length + 1 : images.length;
 
   return (
     <div className="space-y-3">
@@ -169,7 +171,7 @@ export function AdminProductGalleryEditor({
           </p>
         </div>
         <span className="font-label-sm text-on-surface-variant">
-          {images.length}/{MAX_GALLERY_IMAGES}
+          {images.length}/{MAX_PRODUCT_GALLERY_IMAGES}
         </span>
       </div>
 
@@ -270,7 +272,7 @@ export function AdminProductGalleryEditor({
         })}
       </div>
 
-      {images.length < MAX_GALLERY_IMAGES && (
+      {images.length < MAX_PRODUCT_GALLERY_IMAGES && (
         <div
           onDragOver={canUpload ? handleZoneDragOver : undefined}
           onDragLeave={() => setZoneActive(false)}
