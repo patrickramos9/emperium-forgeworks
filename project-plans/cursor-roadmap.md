@@ -736,11 +736,23 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ---
 
-### M11 — Print progress tracker
+### M11 — Print progress tracker + shipping updates
 
 **Status:** **Deferred** — implement **after** core commerce (M17, M19, M18), **M9a** initial polish, and preferably **M9** / **M16** as needed. Patrick priority: finish shopper-facing core, bugs, and polish before ops fabrication tooling.
 
-**Goal:** Track order progress through fabrication stages.
+**Goal:** Track order progress through fabrication stages **and** notify customers when their order ships (carrier + tracking). Today customers only see **Paid** in order history; fabrication and shipping are admin-only.
+
+#### Customer updates today (gap — pre-M11)
+
+| Channel | What fires after purchase | Notes |
+|---------|---------------------------|--------|
+| **Account → Order history** | Status label **Paid** (or Pending/Failed) | No fulfillment stage, ship-to, or tracking on customer UI |
+| **Account → Notifications** | Optional **thank-you promo** inbox message (M6) | `kind: marketing` — next-order discount, **not** order status |
+| **Checkout success** | Static “payment received” + link to order history | No ongoing updates |
+| **Email to customer** | _(none)_ | SES order email goes to **support inbox** only (go-live polish) |
+| **Guest checkout** | Same as above if they later register with same email | Orders tied to `userId`; guest flow may not appear in history until account linkage is improved |
+
+**M11 closes this gap** with in-system `order` notifications on stage changes, a customer **order detail** page, and **shipping info** when the job reaches **Shipped**.
 
 **Data model:**
 - `PrintJob`:
@@ -749,30 +761,55 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
   - `stage: enum` (`queued`, `printing`, `wash`, `supports`, `cure`, `shipped`)
   - `stageTimestamps: JSON` (map stage → datetime)
   - `notes?: string`
+- Extend **`Order`** (fulfillment / shipping — admin-set when marking shipped):
+  - `carrier: string?` — e.g. USPS, UPS, FedEx
+  - `trackingNumber: string?`
+  - `trackingUrl: string?` — optional deep link; derive from carrier + number when omitted
+  - `shippedAt: datetime?`
+  - `deliveredAt: datetime?` — manual or future carrier webhook; used by **M16** return window
 
 **Auth:**
-- Owner read (via `orderId`).
+- Owner read (via `orderId` on `PrintJob` + `Order`).
 - Admin read/write.
 
 **Backend logic:**
-- When order is created:
+- When order is **paid** (Stripe webhook or mock path):
   - Create `PrintJob` with `stage = queued`.
 - Admin UI:
   - On order detail page, show stage stepper.
   - Buttons to advance stage.
+  - On advance to **`shipped`**: require **carrier** + **tracking number** (and optional URL); set `Order.shippedAt`.
   - Each stage change:
-    - Update `PrintJob`.
-    - Create `Notification` of kind `order` for the customer (if signed in).
+    - Update `PrintJob` (+ `Order` shipping fields when shipped).
+    - Create targeted `Notification` with `kind: order` for the customer (if signed in and `userId` set).
+    - **Shipped notification body** must include carrier, tracking number, and link (tracking URL or order detail).
+- **Optional v1.1 (same milestone or fast follow):** transactional **email** to `Order.email` on **Shipped** (reuse SES stack from support notifications; respect **M12** `order` preference when implemented).
 
 **Frontend:**
 - Customer:
-  - On order detail page, show stepper with 6 stages.
+  - **`/account/orders/:orderId`** — order detail: line items, totals, ship-to (from `shippingAddress`), fabrication stepper, and when shipped: carrier + tracking (link opens carrier site).
+  - Order history list links to detail; show high-level stage label (e.g. “Printing”, “Shipped”) not only **Paid**.
+  - Notifications inbox: `order` kind rows link to order detail.
 - Admin:
-  - Stage controls integrated into existing order detail page.
+  - Stage controls + **shipping fields** integrated into existing order detail page.
+
+**Notification copy (examples):**
+- Stage: “Your order is printing” → links to order detail.
+- Shipped: “Your order has shipped via USPS — tracking 9400…” → tracking link + order detail.
+
+**Out of scope for M11 v1:**
+- Live carrier API polling / auto-delivery detection (`integrations.md` — carrier APIs post-M11).
+- Real-time push or AppSync subscriptions (polling / refresh on visit is fine).
 
 **Cursor rules:**
-- Reuse `Notification` model for stage updates.
-- Do not introduce new notification types unless needed.
+- Reuse `Notification` model for stage updates (`kind: order`).
+- Reuse SES + `order-shared` patterns for optional shipped email; do not fork a second mail stack.
+- Do not extend payment `status` enum for fabrication — use `PrintJob.stage` + `Order.shippedAt`.
+
+**Acceptance:**
+- Admin advances order to **Shipped** with carrier + tracking → signed-in customer sees updated stepper, tracking on order detail, and unread `order` notification.
+- Shipped notification includes tracking info customer can click.
+- **M16** can read `deliveredAt` (or `shippedAt` + policy days until delivery tracking exists).
 
 ---
 

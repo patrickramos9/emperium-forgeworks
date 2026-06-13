@@ -100,7 +100,7 @@ Older plans referenced a shared `VAULT_ACCESS_KEY` Lambda verify flow. **Current
 | Print stage notifications | M11 | Tied to `Notification` model |
 | Elegoo Saturn SDCP | M11b | Raspberry Pi on shop LAN → stage API |
 | Admin–customer chat | M10 | Real-time optional v1 polling |
-| Carrier tracking | Post-M11 | Shipping APIs |
+| Carrier tracking | Post-M11 | Auto-delivery webhooks; M11 ships manual carrier + tracking on **Shipped** |
 | Forge Bridge B2B | Future | Pi product for other print shops |
 
 ---
