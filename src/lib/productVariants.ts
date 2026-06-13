@@ -28,6 +28,8 @@ const KIND_DEFAULT_NAMES: Record<Exclude<VariationKind, "custom">, string> = {
   type: "Type",
 };
 
+export const DEFAULT_SIZE_LABELS = ["32mm", "40mm", "75mm", "150mm"] as const;
+
 export function groupDisplayName(group: ProductOptionGroup): string {
   if (group.kind === "custom") {
     return group.name.trim() || "Option";
@@ -56,7 +58,10 @@ export function createVariantGroup(kind: VariationKind): ProductOptionGroup {
     id: newId("group"),
     kind,
     name: defaultNameForKind(kind),
-    options: [],
+    options:
+      kind === "size"
+        ? DEFAULT_SIZE_LABELS.map((label) => createVariantOption(label))
+        : [],
   };
 }
 

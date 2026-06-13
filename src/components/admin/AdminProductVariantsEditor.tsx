@@ -24,7 +24,7 @@ interface AdminProductVariantsEditorProps {
 }
 
 const KIND_OPTIONS: { kind: VariationKind; label: string; hint: string }[] = [
-  { kind: "size", label: "Size", hint: "Scale or dimensions (75mm, 110mm…)" },
+  { kind: "size", label: "Size", hint: "Defaults to 32mm, 40mm, 75mm, and 150mm" },
   { kind: "type", label: "Type", hint: "Material, finish, or style" },
   { kind: "custom", label: "Custom", hint: "Name your own variation" },
 ];
@@ -293,7 +293,7 @@ export function AdminProductVariantsEditor({
                             )
                           }
                           placeholder={
-                            group.kind === "size" ? "75mm" : "Option name"
+                            group.kind === "size" ? "32mm" : "Option name"
                           }
                           className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
                         />
