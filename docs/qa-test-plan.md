@@ -4,28 +4,27 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
-**Roadmap last synced:** 2026-06-11
+**Roadmap last synced:** 2026-06-13
 
 ---
 
-## Testing now (promo QA in progress)
+## Testing now (go-live polish + promo QA)
 
-Use this list after deploys that include **M6b/c** fixes (2026-06-11+): `syncCartSnapshot` JSON persistence, empty-cart grant revoke, catalog-verify race on `/cart`. Skip **verified** sections unless regressing.
-
-| Priority | Milestone | Section | What to verify |
-|----------|-----------|---------|----------------|
-| **P0** | **M6c** | §17 (M6c), §4 | Abandon idle → grant + cart discount; revoke on **empty cart only**; re-abandon after re-add |
-| **P0** | **M6b** | §17 (M6b), §2 PDP | Favorites UI, favorite promo template, line-scoped discount, webhook re-issue |
+| Priority | Area | Section | What to verify |
+|----------|------|---------|----------------|
+| **P0** | **Order notifications (admin UI)** | §18 | Dashboard banner/badge; mark seen / open order detail (email verified) |
+| **P0** | **M6c** | §17 (M6c), §4 | Abandon idle → grant + cart discount; revoke on **empty cart only** |
+| **P0** | **M6b** | §17 (M6b), §2 PDP | Favorites UI, favorite promo template, line-scoped discount |
+| **P1** | **Go-live polish** | §18 | Legal pages, scroll-to-top, featured carousel, category filters, shipping default |
 | **P1** | **M6 admin** | §17 | Issued grants table, revoke, deleted-template display |
-| **P1** | **M17** | §6 (favorites), §17b, §4 | Saved favorites list (`/account/favorites`); removed/delisted in cart + stale favorite on deleted PDP |
-| **P2** | **M6 polish** | §4, §5, §17 | Cart catalog verify banner; Stripe promo summary |
-| **Smoke** | Shipped | Quick smoke, §5, §8 | Core paths still work after deploy |
+| **P1** | **M17** | §6, §17b, §4 | Favorites list; removed/delisted in cart |
+| **Smoke** | Shipped | Quick smoke, §5, §8 | Core paths after deploy |
 
-**Partially verified (continue regression):** **M6c** abandoned-cart happy path (grant + admin issued grants + cart discount after deploy fixes).
+**Partially verified:** **M6c** abandoned-cart happy path.
 
-**Already production-verified (regression optional):** M6 core (admin issue, thank-you, best-grant checkout), M15 shipping, M3b Stripe, M8b/c/d, M7b vault.
+**Already production-verified (regression optional):** M6 core, M15 shipping, M3b Stripe, M8b/c/d, M7b vault, **order notification email** (2026-06-11).
 
-**Do not test yet (not in repo / deferred):** M19, M18, M9a, M6d email, M11, M10/M12/M13/M16.
+**Do not test yet:** M19, M18, remaining M9a (add-to-cart toast, etc.), M6d marketing email, M11, M10/M12/M13/M16.
 
 ### Deploy prerequisites (M6b/c + M17)
 
@@ -143,13 +142,13 @@ Run after every production deploy.
 
 ## 3. Shipping display (M15)
 
-**Depends on:** Admin → Shipping profiles + product assignment (or store default)
+**Depends on:** Admin → Shipping profiles + product assignment (first profile by sort order is implicit default)
 
 ### Admin setup (prerequisite)
 
-- [ ] At least one **active** shipping profile; one marked **default**
+- [ ] At least one **active** shipping profile (first by sort order is implicit default)
 - [ ] Profile has rate + optional **ready to ship** min/max days
-- [ ] Products assigned a profile (or rely on default)
+- [ ] Products assigned a profile (or rely on first active profile)
 
 ### Product page
 
@@ -174,7 +173,7 @@ Run after every production deploy.
 - [ ] **Weight tier**: product has **weight (oz)**; tier amount matches checkout
 - [ ] **Weight tier**, missing weight: checkout fails with clear error (not $0)
 - [ ] **Large-order profile**: extended ready-to-ship on assigned products
-- [ ] Inactive profile / no default: checkout fails with admin-actionable error
+- [ ] Inactive profile / no active profiles: checkout fails with admin-actionable error
 
 ---
 
@@ -632,7 +631,7 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 |-----------|---------|--------|
 | **M19** | Catalog sales & bundles (list/compare pricing) | Separate from M6 account promos |
 | **M18** | Cart price-change in-system notifications | After M19 + M6c |
-| **M9a** | Initial UX polish (e.g. add-to-cart toast/feedback) | — |
+| **M9a** | Initial UX polish (e.g. add-to-cart toast/feedback) | Scroll-to-top shipped §18; rest planned |
 | **M6d** | Abandoned-cart **email** | In-system M6c only today |
 | **M10** | Admin–customer chat | — |
 | **M11** / **M11b** / **M14** | Print tracker, Pi bridge, ForgeLink | Deferred |
@@ -641,9 +640,41 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M12** | Notification preferences | — |
 | **M13** | Marketing pixels / UTM on orders | — |
 
-**In repo — use §6 / §17 / §17b / §2 / §4 (not this table):** M6b, M6c, M17.
+**In repo — use §6 / §17 / §17b / §2 / §4 / §18 (not this table):** M6b, M6c, M17, go-live polish (2026-06-13).
 
 Add test sections here when each milestone ships.
+
+---
+
+## §18 — Go-live polish (2026-06-13)
+
+Backend redeploy required for: `getStorefrontStats`, shipping-profile fallback in `create-stripe-checkout`. Order notification Lambdas/schema deployed; SES + live order email **verified** (2026-06-11).
+
+### Order notifications
+
+- [x] Place **live Stripe** test order → email arrives at support inbox (`SUPPORT_INBOX_EMAIL`) — **verified 2026-06-11**
+- [ ] Admin **Dashboard**: “new orders” banner + stat + **Orders** nav badge when unacknowledged paid orders exist
+- [ ] Open order detail → badge clears (auto-ack) OR use **Mark as seen** on dashboard
+- [ ] Mock checkout (local only): `notifyOrderPlaced` path if backend deployed
+
+### Storefront & legal
+
+- [ ] Footer: **Privacy Policy** → `/privacy-policy`; **Forge Terms** → `/forge-terms`; **Emperium Forgeworks LLC**; no **Admin** link
+- [ ] `/about` Forge Story stats match live reviews + paid order count
+- [ ] Navigate shop → PDP → back: scroll position preserved; forward link: scroll to top
+- [ ] Shop: no **High Fidelity Prints** testimonial block; featured carousel advances ~3s; overlay text readable
+
+### Admin catalog & shipping
+
+- [ ] **Category filters** editor on products admin; filters match shop
+- [ ] Drag-and-drop **sort order** on admin product grid; new products append at end
+- [ ] **Featured** flag (max 4 on home carousel)
+- [ ] Product edit: subtitle under title; price above variations; description template loads from API
+- [ ] Shipping: no **Store default** on profile edit; product dropdown pre-selects first profile; checkout still computes shipping
+
+### Admin dashboard
+
+- [ ] Change GA4 start/end dates → navigate away → return to dashboard → same dates restored (same browser tab/session)
 
 ---
 
@@ -651,7 +682,7 @@ Add test sections here when each milestone ships.
 
 | Date | Tester | Environment | Scope | Pass/Fail | Notes |
 |------|--------|-------------|-------|-----------|-------|
-| | | prod / local / preview | full / smoke / §N | | |
+| 2026-06-11 | Patrick | prod | §18 order email | Pass | Live Stripe order → SES email to support inbox |
 | | | | | | |
 
 ---

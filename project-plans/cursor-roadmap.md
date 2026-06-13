@@ -20,17 +20,17 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-11
+**Last updated:** 2026-06-13
 
 | Item | State |
 |------|--------|
-| **Phase** | Core commerce + bugs + **initial polish** (print tracking **deferred**) |
-| **Next** | Finish **promo QA** (M6b/c) → **M17** (B1) → **M19** → **M18** → **M9a** |
-| **Blocked** | — |
-| **Recently verified** | **M6 core** (2026-06-02) · **M15** · **M6c** abandon-cart path (Patrick, 2026-06-11 — continue regression) |
-| **In progress** | **M6b** favorite promos + **M6c** edge cases (revoke, tie-break, checkout); **M17** deploy + QA |
-| **Payments today** | Mock locally; Stripe when `VITE_APP_ENV=deployment` + backend secrets |
-| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — §17 promo testing expanded (2026-06-11) |
+| **Phase** | Core commerce + **go-live polish** (print tracking **deferred**) |
+| **Next** | Finish **promo QA** (M6b/c) → **M17** (B1) → **M19** → **M18** → remaining **M9a** |
+| **Blocked** | _(none)_ |
+| **Recently verified** | **M6 core** (2026-06-02) · **M15** · **M6c** abandon-cart happy path (2026-06-11) · **Order notification email** (2026-06-11) · **Go-live polish batch** (2026-06-13, in repo) |
+| **In progress** | **M6b** favorite promos + **M6c** edge cases; **M17** deploy + QA |
+| **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
+| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — §18 go-live polish (2026-06-13) |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
@@ -171,6 +171,26 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M6 core** — Promo templates, grants, auto-apply cart/checkout, thank-you on paid order, admin tools — **production verified** (2026-06-02)
 - **M6c** — Abandoned-cart snapshot, idle grant, revoke on empty cart, issued-grants admin table — **deployed; happy path verified** (2026-06-11); full §17 regression in progress
 - **M6b** — Favorite grants + PDP UI — **in repo; QA in progress**
+- **Go-live polish (2026-06-13)** — see **§3.1** below (order notifications, catalog/admin UX, legal pages, storefront polish — **in repo**; order email **production verified** 2026-06-11)
+
+### 3.1 Go-live polish batch (2026-06-13)
+
+Shipped in repo during pre-launch polish. Not separate milestones; regression in [docs/qa-test-plan.md](../docs/qa-test-plan.md) §18.
+
+| Area | What shipped |
+|------|----------------|
+| **Order notifications** | SES email on paid order (Stripe webhook + `notifyOrderPlaced` for mock checkout) — **email production verified** (2026-06-11); `Order.supportNotifiedAt`, `Order.adminAcknowledgedAt`; admin dashboard banner + “New orders” stat + Orders nav badge; auto-ack on order detail + “Mark as seen”; `getStorefrontStats` query for public About-page sales count |
+| **Admin catalog** | Editable **category filters** (`CatalogSettings`, shared shop + admin); **drag-and-drop** product sort on admin grid (numeric sort field removed from edit); **featured products** carousel on home (max 4, 3s interval, compact overlay text); **product description template** in DB (one-time localStorage migration) |
+| **Admin orders** | Customer email/name on list + detail (not raw Cognito id); pending-order ship-to copy fix |
+| **About page** | Forge Story stats: **Quality Index** = avg approved review rating; **Successful Forgings** = paid order count |
+| **Storefront UX** | Scroll to top on forward navigation (preserve browser back/forward); removed shop **High Fidelity Prints** testimonial box; footer **Emperium Forgeworks LLC**; removed public **Admin** footer link |
+| **Legal** | `/privacy-policy`, `/forge-terms` (footer linked); `/shipping-returns` unchanged |
+| **Admin product edit** | Subtitle under title; price above variations |
+| **Shipping profiles** | Removed **Store default** checkbox and product dropdown empty option; **first profile by sort order** is the implicit default (checkout + PDP fallback) |
+| **Admin dashboard** | GA4 traffic **start/end dates** persist in `sessionStorage` for the browser session |
+| **Build / deploy** | Lambda `package-lock.json` sync (`stripe-webhook`, `notify-order-placed`, `get-storefront-stats`); `@aws-sdk/client-ses` on Amplify backend package for shared `order-shared/notifySupport.ts` type-check |
+
+**Ops:** SES identity verified; live Stripe order → support inbox email **confirmed** (2026-06-11). Production storefront uses live Stripe on Amplify `main` (`VITE_APP_ENV=deployment`).
 
 ### Blocked / waiting
 
@@ -354,14 +374,14 @@ _(none)_
 
 ### M15 — Shipping
 
-**Status:** **Production verified** (2026-06-02) — live checkout with shipping on admin orders; PDP shipping block confirmed after `shippingDisplay` snapshot + deploy. Deeper regression (mixed carts, weight tiers, free-over-threshold) tracked in [docs/qa-test-plan.md](../docs/qa-test-plan.md).
+**Status:** **Production verified** (2026-06-02) — live checkout with shipping on admin orders; PDP shipping block confirmed after `shippingDisplay` snapshot + deploy. **2026-06-13:** removed admin **Store default** UX; fallback = **first active profile by `sortOrder`** (legacy `isDefault` field unused in UI). Deeper regression tracked in [docs/qa-test-plan.md](../docs/qa-test-plan.md).
 
 **Goal:** All shipping rules live in **Admin → Shipping profiles**. Each **product** picks a profile when edited (like Etsy listings). Checkout computes shipping from those assignments only — **nothing hardcoded in Lambda or env vars**.
 
 #### Design principles
 
 1. **Profiles are admin-configured** — flat rate, free over order subtotal, or weight tiers.
-2. **Products assign a profile** — `Product.shippingProfileId` on product edit; blank → store **default** profile (`ShippingProfile.isDefault`).
+2. **Products assign a profile** — `Product.shippingProfileId` on product edit; new products pre-select the **first profile by `sortOrder`**; legacy rows with blank `shippingProfileId` fall back to that same first active profile at checkout/PDP.
 3. **No hardcoded fallback** — if no active profiles or a product cannot resolve a profile, checkout fails with a clear admin-facing error (not silent $0 shipping).
 4. **Multi-item carts (Option B)** — Etsy-like combine rule:
    - Keep the **highest first-item** shipping charge among combined (non-weight-tier) profile groups.
@@ -380,7 +400,7 @@ _(none)_
 | `freeThresholdCents` | int? | `free_over_threshold`: order subtotal ≥ this → $0 |
 | `weightTiers` | json? | `weight_tier`: `[{ maxWeightOz, amountCents }, …]` |
 | `allowedCountries` | string[] | ISO codes for Stripe address collection |
-| `isDefault` | boolean | Fallback when product has no assignment (one per store) |
+| `isDefault` | boolean | **Legacy** — no longer set in admin UI (2026-06-13); fallback uses first profile by `sortOrder` |
 | `active` | boolean | Inactive profiles cannot be used |
 | `minReadyToShipDays`, `maxReadyToShipDays` | int? | Profile-wide “ships in …” window (e.g. large-order profile) |
 | `sortOrder` | int | Admin list ordering |
@@ -409,8 +429,8 @@ _(none)_
 
 #### Admin UI
 
-- **`/admin/shipping`** — CRUD profiles (all kinds + default flag + weight tiers + ready to ship).
-- **`/admin/products/:slug`** — **Shipping profile** dropdown + **Weight (oz)**; save writes `shippingDisplay` snapshot.
+- **`/admin/shipping`** — CRUD profiles (all kinds + weight tiers + ready to ship + sort order).
+- **`/admin/products/:slug`** — **Shipping profile** dropdown (required selection when profiles exist) + **Weight (oz)**; save writes `shippingDisplay` snapshot.
 - **Product detail (`/shop/:slug`)** — shipping card under price from snapshot or live profile.
 - **Order detail** — subtotal, shipping, total, ship-to.
 
@@ -611,7 +631,9 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ### M9a — Initial UX polish
 
-**Status:** Planned — **after M18** (or in parallel with late M19), **before M11** and before broad **M9** SEO/gallery work.
+**Status:** **Partial** — scroll-to-top on forward nav shipped (2026-06-13). Remaining items planned after M18.
+
+**Shipped (2026-06-13, see §3.1):** forward-navigation scroll reset (back/forward preserves position).
 
 **Goal:** Small, high-impact storefront UX improvements that make the shop feel finished. No new backend models unless strictly necessary.
 
