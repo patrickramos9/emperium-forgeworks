@@ -338,6 +338,16 @@ export function AdminProductEditPage() {
         </label>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
+            Subtitle
+          </span>
+          <input
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
+          />
+        </label>
+        <label className="block">
+          <span className="font-label-sm uppercase text-on-surface-variant">
             Slug
           </span>
           <input
@@ -370,37 +380,6 @@ export function AdminProductEditPage() {
           onUploadingChange={setUploading}
           onError={setError}
         />
-        <AdminProductVariantsEditor
-          groups={variantGroups}
-          galleryImages={galleryImages}
-          onChange={setVariantGroups}
-          disabled={saving || uploading}
-        />
-        <label className="block">
-          <span className="font-label-sm uppercase text-on-surface-variant">
-            Subtitle
-          </span>
-          <input
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
-          />
-        </label>
-        <div>
-          <span className="font-label-sm uppercase text-on-surface-variant">
-            Description
-          </span>
-          <div className="mt-1">
-            <RichTextEditor
-              value={description}
-              onChange={setDescription}
-            />
-            <LoadProductDescriptionTemplate
-              currentDescription={description}
-              onLoad={setDescription}
-            />
-          </div>
-        </div>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
             Price (USD)
@@ -416,6 +395,27 @@ export function AdminProductEditPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
         </label>
+        <AdminProductVariantsEditor
+          groups={variantGroups}
+          galleryImages={galleryImages}
+          onChange={setVariantGroups}
+          disabled={saving || uploading}
+        />
+        <div>
+          <span className="font-label-sm uppercase text-on-surface-variant">
+            Description
+          </span>
+          <div className="mt-1">
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+            />
+            <LoadProductDescriptionTemplate
+              currentDescription={description}
+              onLoad={setDescription}
+            />
+          </div>
+        </div>
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
             Category
