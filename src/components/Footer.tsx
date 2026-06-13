@@ -26,10 +26,10 @@ export function Footer({ showPowerLine = false }: { showPowerLine?: boolean }) {
             to="/"
             className="font-display-lg text-headline-md font-extrabold uppercase tracking-tighter text-primary"
           >
-            Emperium Forgeworks
+            Emperium Forgeworks LLC
           </Link>
           <p className="max-w-xs text-center font-body-md text-on-surface-variant md:text-left">
-            © {new Date().getFullYear()} Emperium Forgeworks. Forged in Resin.
+            © {new Date().getFullYear()} Emperium Forgeworks LLC. Forged in Resin.
             Born in Shadow.
           </p>
           <TrustedSiteBadges />
