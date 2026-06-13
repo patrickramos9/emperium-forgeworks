@@ -5,6 +5,7 @@ import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import Stripe from "stripe";
 import type { Schema } from "../../data/resource";
 import { sendSupportOrderEmail } from "../order-shared/notifySupport.js";
+import { applyFulfillmentStatus } from "../order-shared/fulfillment.js";
 import {
   issueThankYouGrant,
   redeemPromoGrantForOrder,
@@ -158,6 +159,14 @@ export const handler = async (event: {
           }
         } catch (err) {
           console.error("Support order email failed", err);
+        }
+      }
+
+      if (!order.fulfillmentStatus) {
+        try {
+          await applyFulfillmentStatus(dataClient, order, "paid");
+        } catch (err) {
+          console.error("Fulfillment paid transition failed", err);
         }
       }
 

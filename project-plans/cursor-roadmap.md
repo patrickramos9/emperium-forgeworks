@@ -28,7 +28,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Next** | **M11** — paid → received → processing → shipped (+ tracking); customer notifications + optional SES email |
 | **Blocked** | _(none)_ — **SES production access** in progress (enables customer transactional email; in-app notifications work without it) |
 | **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) |
-| **In progress** | **M11** (spec); **AWS SES** production setup (ops) |
+| **In progress** | **M11** — customer order status (in repo; **backend redeploy required**) · **AWS SES** production setup (ops) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -741,7 +741,7 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ### M11 — Customer order status + shipping (critical — next)
 
-**Status:** **Next** — Patrick priority: customers must see **paid → received → processing → shipped** with **tracking** on ship. In-app notifications ship first; **customer transactional email** when AWS SES production access is ready (ops in progress).
+**Status:** **In progress** — implemented in repo (2026-06-11); deploy backend + QA §19.
 
 **Goal:** Close the post-purchase communication gap. Separate **payment** status (`pending` \| `paid` \| `failed`) from **fulfillment** progress customers actually care about.
 

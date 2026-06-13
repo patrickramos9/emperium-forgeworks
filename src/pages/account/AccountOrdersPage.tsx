@@ -11,6 +11,10 @@ import {
   parseOrderLineItems,
   type OrderRecord,
 } from "@/services/orderService";
+import {
+  displayFulfillmentStatus,
+  fulfillmentStatusLabel,
+} from "@/lib/orderFulfillment";
 import { listMyReviews, type ReviewRecord } from "@/services/reviewService";
 
 export function AccountOrdersPage() {
@@ -89,6 +93,7 @@ export function AccountOrdersPage() {
           const review = reviewByOrderId.get(order.id);
           const canReview =
             reviewsEnabled && order.status === "paid" && !review;
+          const fulfillment = displayFulfillmentStatus(order);
           return (
             <li
               key={order.id}
@@ -97,17 +102,31 @@ export function AccountOrdersPage() {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="font-label-md text-on-surface">
-                    {formatOrderDate(order.createdAt)}
+                    <Link
+                      to={`/account/orders/${order.id}`}
+                      className="hover:text-primary hover:underline"
+                    >
+                      {formatOrderDate(order.createdAt)}
+                    </Link>
                   </p>
                   <p className="text-label-sm text-on-surface-variant">
-                    {orderStatusLabel(order.status)} ·{" "}
-                    {order.paymentProvider ?? "mock"}
+                    {orderStatusLabel(order.status)}
+                    {fulfillment
+                      ? ` · ${fulfillmentStatusLabel(fulfillment)}`
+                      : ""}{" "}
+                    · {order.paymentProvider ?? "mock"}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <p className="font-label-md text-primary">
                     {formatPrice(order.totalCents)}
                   </p>
+                  <Link
+                    to={`/account/orders/${order.id}`}
+                    className="font-label-sm uppercase text-primary hover:underline"
+                  >
+                    View details
+                  </Link>
                   {canReview && (
                     <Link
                       to={`/account/orders/${order.id}/review`}

@@ -646,9 +646,9 @@ Add test sections here when each **new** milestone ships.
 
 ---
 
-## §19 — Customer order status + shipping (M11) — planned
+## §19 — Customer order status + shipping (M11)
 
-**Not built yet.** Use when M11 ships. Customer must see **paid → received → processing → shipped** with tracking on ship.
+**Status:** Implemented in repo — deploy backend (`fulfillmentStatus`, `updateOrderFulfillment` mutation) + frontend; then run checklist.
 
 ### Data & admin
 

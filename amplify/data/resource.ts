@@ -8,6 +8,7 @@ import { toggleProductFavorite as toggleProductFavoriteFn } from "../functions/t
 import { syncCartSnapshot as syncCartSnapshotFn } from "../functions/sync-cart-snapshot/resource";
 import { notifyOrderPlaced as notifyOrderPlacedFn } from "../functions/notify-order-placed/resource";
 import { getStorefrontStats as getStorefrontStatsFn } from "../functions/get-storefront-stats/resource";
+import { updateOrderFulfillment as updateOrderFulfillmentFn } from "../functions/update-order-fulfillment/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -102,6 +103,13 @@ const schema = a.schema({
     paidSalesCount: a.integer().required(),
   }),
 
+  UpdateOrderFulfillmentResult: a.customType({
+    success: a.boolean().required(),
+    fulfillmentStatus: a.string().required(),
+    notificationSent: a.boolean().required(),
+    emailSent: a.boolean().required(),
+  }),
+
   listCustomers: a
     .query()
     .arguments({
@@ -175,6 +183,19 @@ const schema = a.schema({
     .returns(a.ref("StorefrontStatsResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(getStorefrontStatsFn)),
+
+  updateOrderFulfillment: a
+    .mutation()
+    .arguments({
+      orderId: a.id().required(),
+      fulfillmentStatus: a.enum(["paid", "received", "processing", "shipped"]),
+      carrier: a.string(),
+      trackingNumber: a.string(),
+      trackingUrl: a.string(),
+    })
+    .returns(a.ref("UpdateOrderFulfillmentResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(updateOrderFulfillmentFn)),
 
   VaultAccess: a
     .model({
@@ -297,6 +318,14 @@ const schema = a.schema({
       supportNotifiedAt: a.datetime(),
       /** When an admin marked the order as seen on the dashboard. */
       adminAcknowledgedAt: a.datetime(),
+      /** M11 — customer-facing fulfillment timeline (separate from payment status). */
+      fulfillmentStatus: a.enum(["paid", "received", "processing", "shipped"]),
+      fulfillmentUpdatedAt: a.datetime(),
+      carrier: a.string(),
+      trackingNumber: a.string(),
+      trackingUrl: a.string(),
+      shippedAt: a.datetime(),
+      deliveredAt: a.datetime(),
     })
     .authorization((allow) => [
       allow.guest().to(["create"]),
@@ -483,6 +512,7 @@ const schema = a.schema({
   allow.resource(syncCartSnapshotFn),
   allow.resource(notifyOrderPlacedFn),
   allow.resource(getStorefrontStatsFn),
+  allow.resource(updateOrderFulfillmentFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

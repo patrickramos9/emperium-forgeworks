@@ -12,6 +12,7 @@ import { toggleProductFavorite } from "./functions/toggle-product-favorite/resou
 import { syncCartSnapshot } from "./functions/sync-cart-snapshot/resource";
 import { notifyOrderPlaced } from "./functions/notify-order-placed/resource";
 import { getStorefrontStats } from "./functions/get-storefront-stats/resource";
+import { updateOrderFulfillment } from "./functions/update-order-fulfillment/resource";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
@@ -27,6 +28,7 @@ const backend = defineBackend({
   syncCartSnapshot,
   notifyOrderPlaced,
   getStorefrontStats,
+  updateOrderFulfillment,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -87,6 +89,13 @@ backend.notifyOrderPlaced.addEnvironment(
     "melissa@emperiumforgeworks.com",
 );
 
+backend.updateOrderFulfillment.addEnvironment("SITE_URL", siteUrl);
+backend.updateOrderFulfillment.addEnvironment(
+  "ORDER_NOTIFICATION_FROM_EMAIL",
+  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
+    "melissa@emperiumforgeworks.com",
+);
+
 const sesSendPolicy = new PolicyStatement({
   actions: ["ses:SendEmail", "ses:SendRawEmail"],
   resources: ["*"],
@@ -94,6 +103,7 @@ const sesSendPolicy = new PolicyStatement({
 
 backend.stripeWebhook.resources.lambda.addToRolePolicy(sesSendPolicy);
 backend.notifyOrderPlaced.resources.lambda.addToRolePolicy(sesSendPolicy);
+backend.updateOrderFulfillment.resources.lambda.addToRolePolicy(sesSendPolicy);
 
 const stripeWebhookUrl = backend.stripeWebhook.resources.lambda.addFunctionUrl({
   authType: FunctionUrlAuthType.NONE,

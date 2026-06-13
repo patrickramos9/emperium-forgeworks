@@ -29,6 +29,7 @@ import { AccountForgotPasswordPage } from "@/pages/account/AccountForgotPassword
 import { AccountRegisterPage } from "@/pages/account/AccountRegisterPage";
 import { AccountPage } from "@/pages/account/AccountPage";
 import { AccountOrdersPage } from "@/pages/account/AccountOrdersPage";
+import { AccountOrderDetailPage } from "@/pages/account/AccountOrderDetailPage";
 import { AccountNotificationsPage } from "@/pages/account/AccountNotificationsPage";
 import { AccountFavoritesPage } from "@/pages/account/AccountFavoritesPage";
 import { VaultPage } from "@/pages/VaultPage";
@@ -94,6 +95,10 @@ export default function App() {
             <Route path="/cart" element={<CartPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<AccountOrdersPage />} />
+            <Route
+              path="/account/orders/:orderId"
+              element={<AccountOrderDetailPage />}
+            />
             <Route
               path="/account/orders/:orderId/review"
               element={<AccountReviewPage />}
