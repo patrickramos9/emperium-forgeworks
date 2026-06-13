@@ -9,7 +9,7 @@ type FooterLink =
 
 const FOOTER_LINKS: FooterLink[] = [
   { label: "Shipping & Returns", to: "/shipping-returns" },
-  { label: "Privacy Policy", href: "#" },
+  { label: "Privacy Policy", to: "/privacy-policy" },
   { label: "Forge Terms", href: "#" },
   {
     label: "Contact Melissa",
