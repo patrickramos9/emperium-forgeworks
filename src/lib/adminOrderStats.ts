@@ -27,12 +27,12 @@ export function computeAdminOrderStats(orders: OrderRecord[]): AdminOrderStats {
     (sum, order) => sum + order.totalCents,
     0,
   );
-  const mockOrderCount = orders.filter(
+  const mockOrderCount = paidOrders.filter(
     (order) => order.paymentProvider === "mock",
   ).length;
 
   return {
-    orderCount: orders.length,
+    orderCount: paidOrders.length,
     paidOrderCount: paidOrders.length,
     newOrderCount: countUnacknowledgedPaidOrders(orders),
     revenueCents,
@@ -41,7 +41,7 @@ export function computeAdminOrderStats(orders: OrderRecord[]): AdminOrderStats {
         ? Math.round(revenueCents / paidOrders.length)
         : 0,
     mockOrderCount,
-    recentOrders: orders.slice(0, RECENT_ORDER_LIMIT),
+    recentOrders: paidOrders.slice(0, RECENT_ORDER_LIMIT),
   };
 }
 

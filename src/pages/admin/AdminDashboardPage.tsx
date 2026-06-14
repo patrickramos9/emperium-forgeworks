@@ -225,7 +225,7 @@ export function AdminDashboardPage() {
             <StatCard
               label="Total orders"
               value={String(stats.orderCount)}
-              hint={`${stats.paidOrderCount} paid`}
+              hint="Paid orders only"
             />
             <StatCard
               label="Revenue"
