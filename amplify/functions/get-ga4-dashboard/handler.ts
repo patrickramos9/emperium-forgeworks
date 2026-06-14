@@ -73,10 +73,14 @@ function decodeDate(yyyymmdd: string | null | undefined): string {
 function parseProductSlug(path: string): string | null {
   const normalized = path.split("?")[0]?.split("#")[0] ?? path;
   const match =
+    normalized.match(/^\/shop\/([^/]+)$/i) ??
+    normalized.match(/^\/vault\/([^/]+)$/i) ??
     normalized.match(/^\/product\/([^/]+)$/i) ??
     normalized.match(/^\/vault\/product\/([^/]+)$/i);
   if (!match?.[1]) return null;
-  return decodeURIComponent(match[1]).trim().toLowerCase();
+  const slug = decodeURIComponent(match[1]).trim().toLowerCase();
+  if (!slug || slug === "shop" || slug === "vault") return null;
+  return slug;
 }
 
 function toProductInterestRows(

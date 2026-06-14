@@ -8,6 +8,7 @@ import {
 } from "@/lib/adminOrderStats";
 import { PLAUSIBLE_DOMAIN } from "@/lib/config";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
+import { listAllProducts } from "@/lib/listAllProducts";
 import {
   acknowledgeOrders,
   formatOrderDate,
@@ -63,6 +64,16 @@ function compactMetrics(
   );
 }
 
+function mapProductDimensionRows(
+  rows: { name: string; value: string }[],
+  titlesBySlug: Map<string, string>,
+): { name: string; value: string }[] {
+  return rows.map((row) => {
+    const title = titlesBySlug.get(row.name.toLowerCase());
+    return title ? { ...row, name: title } : row;
+  });
+}
+
 export function AdminDashboardPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -77,6 +88,9 @@ export function AdminDashboardPage() {
     () => readGa4DateRange()?.endDate ?? defaultGa4DateRange().endDate,
   );
   const [ga4, setGa4] = useState<Ga4DashboardResult | null>(null);
+  const [productTitlesBySlug, setProductTitlesBySlug] = useState(
+    () => new Map<string, string>(),
+  );
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
@@ -140,8 +154,19 @@ export function AdminDashboardPage() {
       }
 
       try {
-        const fresh = await fetchGa4Dashboard(client, startDate, endDate);
+        const [fresh, products] = await Promise.all([
+          fetchGa4Dashboard(client, startDate, endDate),
+          listAllProducts(client),
+        ]);
         setGa4(fresh);
+        setProductTitlesBySlug(
+          new Map(
+            products.map((product) => [
+              product.slug.toLowerCase(),
+              product.title,
+            ]),
+          ),
+        );
         writeGa4Cache(fresh);
         setAnalyticsError(null);
       } catch (err) {
@@ -367,12 +392,18 @@ export function AdminDashboardPage() {
               <TrendList points={compactTrend(ga4.trend)} />
               <DimensionList
                 title="Most viewed products"
-                rows={compactRows(ga4.topProducts)}
+                rows={mapProductDimensionRows(
+                  compactRows(ga4.topProducts),
+                  productTitlesBySlug,
+                )}
                 valueLabel="Views"
               />
               <DimensionList
                 title="Least viewed products"
-                rows={compactRows(ga4.lowProducts)}
+                rows={mapProductDimensionRows(
+                  compactRows(ga4.lowProducts),
+                  productTitlesBySlug,
+                )}
                 valueLabel="Views"
               />
               <DimensionList

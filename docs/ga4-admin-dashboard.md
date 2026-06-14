@@ -62,6 +62,7 @@ Wait a minute, then reload `/admin` → Traffic (GA4).
 | Permission denied / 403 from Google | Service account not granted on property — run `npm run grant:ga4-access` (UI invite often fails) |
 | “Not a valid Google account” in GA4 UI | Expected for service accounts — use `npm run grant:ga4-access` |
 | Empty metrics, no error | Date range has no traffic yet |
+| Most/least viewed products empty while Top pages shows `/shop/...` | Backend path filter outdated — redeploy after fix (expects `/shop/:slug`, `/vault/:slug`) |
 | Query not found (`getGa4Dashboard`) | Backend not deployed; push and wait for backend phase |
 
 ## Local sandbox
