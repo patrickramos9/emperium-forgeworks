@@ -1,6 +1,7 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import { productIdsInCartLines } from "@/lib/productCartCounts";
 import { listAllProducts } from "@/lib/listAllProducts";
+import type { Schema } from "../../amplify/data/resource";
 
 const BACKFILL_SESSION_KEY = "adminProductCartCountsBackfill";
 
@@ -25,12 +26,13 @@ function parseSnapshotLineItems(raw: unknown): CartLineLike[] {
   );
 }
 
-async function listAllCartSnapshots(client: AmplifyDataClient) {
+async function listAllCartSnapshots(
+  client: AmplifyDataClient,
+): Promise<Schema["CartSnapshot"]["type"][]> {
   const CartSnapshot = client.models.CartSnapshot;
   if (!CartSnapshot) return [];
 
-  const rows: NonNullable<Awaited<ReturnType<typeof CartSnapshot.list>>["data"]> =
-    [];
+  const rows: Schema["CartSnapshot"]["type"][] = [];
   let nextToken: string | undefined;
 
   do {

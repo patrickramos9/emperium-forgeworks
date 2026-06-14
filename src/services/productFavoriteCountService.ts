@@ -1,15 +1,17 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import { hasFavoriteModel } from "@/lib/dataModels";
 import { listAllProducts } from "@/lib/listAllProducts";
+import type { Schema } from "../../amplify/data/resource";
 
 const BACKFILL_SESSION_KEY = "adminProductFavoriteCountsBackfill";
 
-async function listAllFavorites(client: AmplifyDataClient) {
+async function listAllFavorites(
+  client: AmplifyDataClient,
+): Promise<Schema["Favorite"]["type"][]> {
   const Favorite = client.models.Favorite;
   if (!Favorite) return [];
 
-  const rows: NonNullable<Awaited<ReturnType<typeof Favorite.list>>["data"]> =
-    [];
+  const rows: Schema["Favorite"]["type"][] = [];
   let nextToken: string | undefined;
 
   do {

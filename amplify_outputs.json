@@ -369,6 +369,14 @@
               "list",
               "write",
               "delete"
+            ],
+            "authenticated": [
+              "get",
+              "list"
+            ],
+            "groupscustomer": [
+              "get",
+              "list"
             ]
           }
         }
