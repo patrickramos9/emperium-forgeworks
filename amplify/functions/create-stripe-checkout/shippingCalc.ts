@@ -143,31 +143,34 @@ export function parseInternationalRates(
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((row) => {
-        const kind = normalizeKind(row?.kind);
-        if (!kind) return null;
-        return {
-          kind,
-          amountCents: Number(row?.amountCents) || 0,
-          additionalItemCents: Number(row?.additionalItemCents) || 0,
-          freeThresholdCents:
-            row?.freeThresholdCents != null
-              ? Number(row.freeThresholdCents)
-              : undefined,
-          weightTiers: parseWeightTiers(row?.weightTiers),
-          countriesMode:
-            row?.countriesMode === "list"
-              ? ("list" as const)
-              : ("all" as const),
-          countries: Array.isArray(row?.countries)
-            ? row.countries
-                .map((code: unknown) => String(code).trim().toUpperCase())
-                .filter((code: string) => /^[A-Z]{2}$/.test(code))
-            : parseCountryCodes(String(row?.countries ?? "")),
-        };
-      })
-      .filter((row): row is InternationalShippingRate => row != null);
+
+    const results: InternationalShippingRate[] = [];
+    for (const row of parsed) {
+      const kind = normalizeKind(row?.kind);
+      if (!kind) continue;
+
+      const rate: InternationalShippingRate = {
+        kind,
+        amountCents: Number(row?.amountCents) || 0,
+        additionalItemCents: Number(row?.additionalItemCents) || 0,
+        weightTiers: parseWeightTiers(row?.weightTiers),
+        countriesMode:
+          row?.countriesMode === "list" ? ("list" as const) : ("all" as const),
+        countries: Array.isArray(row?.countries)
+          ? row.countries
+              .map((code: unknown) => String(code).trim().toUpperCase())
+              .filter((code: string) => /^[A-Z]{2}$/.test(code))
+          : parseCountryCodes(String(row?.countries ?? "")),
+      };
+
+      if (row?.freeThresholdCents != null) {
+        rate.freeThresholdCents = Number(row.freeThresholdCents);
+      }
+
+      results.push(rate);
+    }
+
+    return results;
   } catch {
     return [];
   }
