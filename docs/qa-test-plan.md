@@ -220,7 +220,9 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 - [ ] Phone collection if enabled
 - [ ] Pay with test/live card; success redirect to `/checkout/success?session_id=…`
 - [ ] **Webhook:** order moves to **Paid** without manual admin edit (allow ~30s; refresh admin)
-- [ ] Cancel at Stripe → `/checkout/cancel`; order remains pending/failed as designed
+- [ ] Cancel at Stripe → `/checkout/cancel?session=…`; pending order becomes **Cancelled** (allow ~10s; refresh admin)
+- [ ] Expire open session in Stripe Dashboard (or wait for expiry) → webhook sets pending order **Cancelled**
+- [ ] Full refund in Stripe Dashboard on paid order → webhook sets order **Refunded**
 - [ ] Stripe Dashboard: session, payment, shipping amount match admin order
 
 ---
@@ -655,7 +657,7 @@ Add test sections here when each **new** milestone ships.
 - [ ] Paid order gets `fulfillmentStatus = paid` (webhook + mock path)
 - [ ] Admin can advance: paid → received → processing → shipped (forward only)
 - [ ] **Shipped** requires carrier + tracking number; `shippedAt` set
-- [ ] Payment `status` unchanged (still pending/paid/failed)
+- [ ] Payment `status` separate from fulfillment (`pending` / `paid` / `failed` / `cancelled` / `refunded`)
 
 ### Customer UI
 

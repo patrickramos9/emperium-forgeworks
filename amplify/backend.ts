@@ -13,6 +13,7 @@ import { syncCartSnapshot } from "./functions/sync-cart-snapshot/resource";
 import { notifyOrderPlaced } from "./functions/notify-order-placed/resource";
 import { getStorefrontStats } from "./functions/get-storefront-stats/resource";
 import { updateOrderFulfillment } from "./functions/update-order-fulfillment/resource";
+import { cancelStripeCheckout } from "./functions/cancel-stripe-checkout/resource";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
@@ -29,6 +30,7 @@ const backend = defineBackend({
   notifyOrderPlaced,
   getStorefrontStats,
   updateOrderFulfillment,
+  cancelStripeCheckout,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -58,6 +60,11 @@ backend.createStripeCheckout.addEnvironment(
   process.env.STRIPE_SECRET_KEY ?? "",
 );
 backend.createStripeCheckout.addEnvironment("SITE_URL", siteUrl);
+
+backend.cancelStripeCheckout.addEnvironment(
+  "STRIPE_SECRET_KEY",
+  process.env.STRIPE_SECRET_KEY ?? "",
+);
 
 backend.stripeWebhook.addEnvironment(
   "STRIPE_SECRET_KEY",

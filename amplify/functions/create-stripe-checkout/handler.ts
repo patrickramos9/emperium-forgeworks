@@ -183,6 +183,13 @@ async function createStripeCheckoutSession(
     success_url: options.successUrl,
     cancel_url: options.cancelUrl,
     metadata: options.metadata,
+    ...(options.metadata?.orderId
+      ? {
+          payment_intent_data: {
+            metadata: { orderId: options.metadata.orderId },
+          },
+        }
+      : {}),
     billing_address_collection: "required",
     shipping_address_collection: {
       allowed_countries:
@@ -234,7 +241,9 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     const successUrl =
       event.arguments.successUrl ??
       `${siteUrl}/checkout/success?session={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = event.arguments.cancelUrl ?? `${siteUrl}/checkout/cancel`;
+    const cancelUrl =
+      event.arguments.cancelUrl ??
+      `${siteUrl}/checkout/cancel?session={CHECKOUT_SESSION_ID}`;
 
     const userId =
       event.identity && "sub" in event.identity

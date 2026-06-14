@@ -9,6 +9,7 @@ import { syncCartSnapshot as syncCartSnapshotFn } from "../functions/sync-cart-s
 import { notifyOrderPlaced as notifyOrderPlacedFn } from "../functions/notify-order-placed/resource";
 import { getStorefrontStats as getStorefrontStatsFn } from "../functions/get-storefront-stats/resource";
 import { updateOrderFulfillment as updateOrderFulfillmentFn } from "../functions/update-order-fulfillment/resource";
+import { cancelStripeCheckout as cancelStripeCheckoutFn } from "../functions/cancel-stripe-checkout/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -110,6 +111,11 @@ const schema = a.schema({
     emailSent: a.boolean().required(),
   }),
 
+  CancelStripeCheckoutResult: a.customType({
+    cancelled: a.boolean().required(),
+    status: a.string(),
+  }),
+
   listCustomers: a
     .query()
     .arguments({
@@ -150,6 +156,13 @@ const schema = a.schema({
     .returns(a.ref("CheckoutSessionResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(createStripeCheckoutFn)),
+
+  cancelStripeCheckoutSession: a
+    .mutation()
+    .arguments({ checkoutSessionId: a.string().required() })
+    .returns(a.ref("CancelStripeCheckoutResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(cancelStripeCheckoutFn)),
 
   toggleProductFavorite: a
     .mutation()
@@ -318,6 +331,8 @@ const schema = a.schema({
       promoExpiresAt: a.datetime(),
       /** When support inbox email was sent for this order. */
       supportNotifiedAt: a.datetime(),
+      /** Stripe PaymentIntent id (set on paid checkout) for refund correlation. */
+      stripePaymentIntentId: a.string(),
       /** When an admin marked the order as seen on the dashboard. */
       adminAcknowledgedAt: a.datetime(),
       /** M11 — customer-facing fulfillment timeline (separate from payment status). */
@@ -517,6 +532,7 @@ const schema = a.schema({
   allow.resource(notifyOrderPlacedFn),
   allow.resource(getStorefrontStatsFn),
   allow.resource(updateOrderFulfillmentFn),
+  allow.resource(cancelStripeCheckoutFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

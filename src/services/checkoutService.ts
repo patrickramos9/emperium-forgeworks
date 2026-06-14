@@ -98,7 +98,7 @@ async function startStripeCheckout(
     lineItems,
     ...(promoGrantId ? { promoGrantId } : {}),
     successUrl: `${base}/checkout/success?session={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${base}/checkout/cancel`,
+    cancelUrl: `${base}/checkout/cancel?session={CHECKOUT_SESSION_ID}`,
   });
 
   if (errors?.length) {

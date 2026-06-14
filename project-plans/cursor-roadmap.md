@@ -166,7 +166,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8b** — Reviews (“Voices From The Void”, admin moderation) — **production verified**
 - **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, portfolio carousel, rich text) — **production verified**
 - **M8d** — Sculptor partner portal (`/partner/sculptor`, admin-granted `editorUserId`) — **production verified**
-- **M3b** — Live Stripe Checkout + webhook (`Order` paid, ship-to address, email/phone) — **production verified**
+- **M3b** — Live Stripe Checkout + webhook (`Order` paid / cancelled / refunded, ship-to address, email/phone) — **production verified**
 - **M15** — Shipping profiles, product assignment, Stripe checkout shipping, order totals, PDP shipping (`shippingDisplay` + live fallback), ready-to-ship on profiles — **production verified**
 - **M6 core** — Promo templates, grants, auto-apply cart/checkout, thank-you on paid order, admin tools — **production verified** (2026-06-02)
 - **M6c** — Abandoned-cart snapshot, idle grant, revoke on empty cart, issued-grants admin table — **production verified** (2026-06-11)
@@ -241,7 +241,7 @@ _(none — monitor production; fix bugs ad hoc)_
 
 ### M3b — Live payments (Stripe + Google Pay)
 
-**Status:** **Production verified** (2026-05-31) — live Checkout, live-mode webhook, orders auto-`paid`, fulfillment fields on `Order`.
+**Status:** **Production verified** (2026-05-31) — live Checkout, live-mode webhook, orders auto-`paid`, fulfillment fields on `Order`. **2026-06-11:** cancel + refund sync — `checkout.session.expired` and cancel redirect → **Cancelled**; `charge.refunded` (full) → **Refunded**; `cancelStripeCheckoutSession` mutation on `/checkout/cancel`.
 
 **Goal:** Replace mock checkout with real Stripe payments while preserving the `PaymentProvider` abstraction.
 
@@ -249,14 +249,16 @@ _(none — monitor production; fix bugs ad hoc)_
 - Implement `StripePaymentProvider` in `packages/shared/`.
 - Wire `checkoutService` to use Stripe when `VITE_APP_ENV=deployment`.
 - Add Stripe Checkout session creation + redirect.
-- Add webhook Lambda to update `Order.status`.
+- Add webhook Lambda to update `Order.status` (`paid`, `cancelled`, `refunded`).
 
 **Backend:**
 - Add Stripe secrets to Amplify backend env (documented, not hardcoded).
 - Add Lambda for Stripe webhooks:
   - Verify signature.
   - On successful payment, set `Order.status = "paid"` and `paymentProvider = "stripe"`.
-  - Use `externalSessionId` to correlate.
+  - On `checkout.session.expired` or customer cancel redirect, set pending orders to **`cancelled`**.
+  - On full `charge.refunded`, set paid orders to **`refunded`**.
+  - Use `externalSessionId` / `stripePaymentIntentId` to correlate.
 
 **Frontend:**
 - `checkoutService.ts`:
@@ -483,15 +485,15 @@ _(none — monitor production; fix bugs ad hoc)_
 
 #### Prerequisites (gap today)
 
-- `Order` stores `externalSessionId` (Checkout session) but **not** `stripePaymentIntentId` — refunds need the PaymentIntent (persist on webhook from `session.payment_intent`).
-- Order `status` is only `pending` \| `paid` \| `failed` — extend for refund/return lifecycle.
+- `Order.stripePaymentIntentId` is set on paid checkout (2026-06-11) — refunds correlate via PaymentIntent metadata + stored id.
+- Order `status` includes `cancelled` and `refunded`; **webhook sync** for expire/cancel/refund shipped (2026-06-11). Admin-initiated partial refunds and `createStripeRefund` mutation still **M16a**.
 - No customer “request return” flow on **Account → Orders** (page exists, read-only).
 
 #### Phase A — Admin Stripe refunds (M16a)
 
 **Backend:**
-- Webhook: also handle `charge.refunded` / `refund.updated` (keep `Order` in sync).
-- Admin-only mutation `createStripeRefund` Lambda:
+- Webhook: **`charge.refunded`** sync for **full** refunds — **done** (2026-06-11). Partial refunds still leave order **Paid**.
+- Admin-only mutation `createStripeRefund` Lambda — **remaining M16a**:
   - Full or partial refund (amount in cents, optional reason).
   - Calls `stripe.refunds.create({ payment_intent, amount?, reason })`.
 - Extend `Order`:

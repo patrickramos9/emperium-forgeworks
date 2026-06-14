@@ -22,7 +22,10 @@ After the first backend deploy with Stripe functions:
 1. Open the deploy output or Amplify **Backend environments** → look for custom output **`stripeWebhookUrl`** (Function URL).
 2. In [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/webhooks), **Add endpoint**.
 3. URL: the `stripeWebhookUrl` value.
-4. Events: **`checkout.session.completed`** (and optionally `checkout.session.expired`).
+4. Events (required):
+   - **`checkout.session.completed`**
+   - **`checkout.session.expired`** — marks abandoned pending orders **Cancelled**
+   - **`charge.refunded`** — full refunds in Stripe Dashboard sync order to **Refunded**
 5. Copy the **Signing secret** into Amplify as `STRIPE_WEBHOOK_SECRET`.
 6. Redeploy backend if you added the secret after the first deploy.
 
@@ -30,8 +33,10 @@ After the first backend deploy with Stripe functions:
 
 1. Customer checks out → frontend calls `createStripeCheckoutSession` mutation.
 2. Lambda creates a **pending** `Order`, opens Stripe Checkout, stores `externalSessionId` = Stripe session id.
-3. Customer pays on Stripe.
-4. Stripe calls the webhook → order `status` set to **`paid`**, plus shipping and fulfillment fields.
+3. Customer pays on Stripe → **`checkout.session.completed`** → order **`paid`** (+ `stripePaymentIntentId`).
+4. Customer backs out of Stripe → redirect to `/checkout/cancel?session=…` → order **`cancelled`** immediately.
+5. Session expires in Stripe (or you expire it in Dashboard) → **`checkout.session.expired`** → pending order **`cancelled`**.
+6. Full refund in Stripe Dashboard → **`charge.refunded`** → paid order **`refunded`** (partial refunds stay **Paid** until M16a admin UI).
 
 ## Shipping rates (M15)
 

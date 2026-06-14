@@ -7,6 +7,13 @@ import type { Schema } from "../../data/resource";
 import { sendSupportOrderEmail } from "../order-shared/notifySupport.js";
 import { applyFulfillmentStatus } from "../order-shared/fulfillment.js";
 import {
+  markOrderRefundedFromCharge,
+  markPendingOrderCancelled,
+  paymentIntentIdFromCharge,
+  paymentIntentIdFromSession,
+  resolveOrderIdFromPaymentIntent,
+} from "../order-shared/stripeOrderStatus.js";
+import {
   issueThankYouGrant,
   redeemPromoGrantForOrder,
   reissueFavoriteGrantsAfterOrder,
@@ -74,6 +81,8 @@ async function fulfillmentFromSession(
     }
   }
 
+  const paymentIntentId = paymentIntentIdFromSession(session);
+
   return {
     status: "paid" as const,
     paymentProvider: "stripe" as const,
@@ -85,10 +94,103 @@ async function fulfillmentFromSession(
     shippingCents,
     shippingLabel,
     totalCents: session.amount_total ?? undefined,
+    ...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
     ...(shippingAddress
       ? { shippingAddress: JSON.stringify(shippingAddress) }
       : {}),
   };
+}
+
+async function handleCheckoutCompleted(
+  session: Stripe.Checkout.Session,
+  stripe: Stripe,
+) {
+  const orderId = session.metadata?.orderId;
+  if (!orderId) {
+    console.error("checkout.session.completed missing metadata.orderId");
+    return response(400, "Missing orderId metadata");
+  }
+
+  const updateResult = await dataClient.models.Order.update({
+    id: orderId,
+    ...(await fulfillmentFromSession(session, stripe)),
+  });
+
+  if (updateResult.errors?.length) {
+    console.error("Order update failed", updateResult.errors);
+    return response(500, "Order update failed");
+  }
+
+  const order = updateResult.data;
+  if (order) {
+    if (!order.supportNotifiedAt) {
+      try {
+        const sent = await sendSupportOrderEmail(order);
+        if (sent) {
+          await dataClient.models.Order.update({
+            id: order.id,
+            supportNotifiedAt: new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        console.error("Support order email failed", err);
+      }
+    }
+
+    if (!order.fulfillmentStatus) {
+      try {
+        await applyFulfillmentStatus(dataClient, order, "paid");
+      } catch (err) {
+        console.error("Fulfillment paid transition failed", err);
+      }
+    }
+
+    try {
+      await redeemPromoGrantForOrder(dataClient, order);
+      if (order.userId) {
+        await issueThankYouGrant(dataClient, order.userId);
+        await reissueFavoriteGrantsAfterOrder(
+          dataClient,
+          order.userId,
+          order.lineItems,
+        );
+      }
+    } catch (err) {
+      console.error("Promo fulfillment failed", err);
+    }
+  }
+
+  return null;
+}
+
+async function handleCheckoutExpired(session: Stripe.Checkout.Session) {
+  const orderId = session.metadata?.orderId;
+  if (!orderId) return;
+
+  try {
+    await markPendingOrderCancelled(dataClient, orderId);
+  } catch (err) {
+    console.error("checkout.session.expired order update failed", err);
+  }
+}
+
+async function handleChargeRefunded(charge: Stripe.Charge, stripe: Stripe) {
+  const paymentIntentId = paymentIntentIdFromCharge(charge);
+  if (!paymentIntentId) return;
+
+  try {
+    const orderId = await resolveOrderIdFromPaymentIntent(
+      stripe,
+      paymentIntentId,
+    );
+    if (!orderId) {
+      console.warn("charge.refunded without orderId metadata", paymentIntentId);
+      return;
+    }
+    await markOrderRefundedFromCharge(dataClient, orderId, charge);
+  } catch (err) {
+    console.error("charge.refunded handler failed", err);
+  }
 }
 
 export const handler = async (event: {
@@ -129,72 +231,18 @@ export const handler = async (event: {
 
   if (stripeEvent.type === "checkout.session.completed") {
     const session = stripeEvent.data.object as Stripe.Checkout.Session;
-    const orderId = session.metadata?.orderId;
-
-    if (!orderId) {
-      console.error("checkout.session.completed missing metadata.orderId");
-      return response(400, "Missing orderId metadata");
-    }
-
-    const updateResult = await dataClient.models.Order.update({
-      id: orderId,
-      ...(await fulfillmentFromSession(session, stripe)),
-    });
-
-    if (updateResult.errors?.length) {
-      console.error("Order update failed", updateResult.errors);
-      return response(500, "Order update failed");
-    }
-
-    const order = updateResult.data;
-    if (order) {
-      if (!order.supportNotifiedAt) {
-        try {
-          const sent = await sendSupportOrderEmail(order);
-          if (sent) {
-            await dataClient.models.Order.update({
-              id: order.id,
-              supportNotifiedAt: new Date().toISOString(),
-            });
-          }
-        } catch (err) {
-          console.error("Support order email failed", err);
-        }
-      }
-
-      if (!order.fulfillmentStatus) {
-        try {
-          await applyFulfillmentStatus(dataClient, order, "paid");
-        } catch (err) {
-          console.error("Fulfillment paid transition failed", err);
-        }
-      }
-
-      try {
-        await redeemPromoGrantForOrder(dataClient, order);
-        if (order.userId) {
-          await issueThankYouGrant(dataClient, order.userId);
-          await reissueFavoriteGrantsAfterOrder(
-            dataClient,
-            order.userId,
-            order.lineItems,
-          );
-        }
-      } catch (err) {
-        console.error("Promo fulfillment failed", err);
-      }
-    }
+    const early = await handleCheckoutCompleted(session, stripe);
+    if (early) return early;
   }
 
   if (stripeEvent.type === "checkout.session.expired") {
     const session = stripeEvent.data.object as Stripe.Checkout.Session;
-    const orderId = session.metadata?.orderId;
-    if (orderId) {
-      await dataClient.models.Order.update({
-        id: orderId,
-        status: "failed",
-      });
-    }
+    await handleCheckoutExpired(session);
+  }
+
+  if (stripeEvent.type === "charge.refunded") {
+    const charge = stripeEvent.data.object as Stripe.Charge;
+    await handleChargeRefunded(charge, stripe);
   }
 
   return response(200, JSON.stringify({ received: true }));
