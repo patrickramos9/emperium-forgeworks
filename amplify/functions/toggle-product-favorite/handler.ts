@@ -4,6 +4,7 @@ import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtim
 import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import type { Schema } from "../../data/resource";
 import { issueFavoriteGrantIfNeeded } from "../promo-shared/grantIssuance.js";
+import { adjustProductFavoriteCount } from "../favorite-shared/productFavoriteCounts.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -40,6 +41,7 @@ export const handler: Schema["toggleProductFavorite"]["functionHandler"] =
         if (createResult.errors?.length) {
           throw new Error(createResult.errors.map((e) => e.message).join("; "));
         }
+        await adjustProductFavoriteCount(dataClient, productId, 1);
       }
 
       let grantIssued = false;
@@ -63,6 +65,8 @@ export const handler: Schema["toggleProductFavorite"]["functionHandler"] =
     if (deleteResult.errors?.length) {
       throw new Error(deleteResult.errors.map((e) => e.message).join("; "));
     }
+
+    await adjustProductFavoriteCount(dataClient, productId, -1);
 
     return { favorited: false, grantIssued: false };
   };

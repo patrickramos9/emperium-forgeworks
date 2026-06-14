@@ -254,6 +254,8 @@ const schema = a.schema({
       shippingDisplay: a.json(),
       /** Signed-in carts currently containing this product (updated via syncCartSnapshot). Guest carts — **M6e**. */
       activeCartCount: a.integer().default(0),
+      /** Signed-in users who favorited this product (updated via toggleProductFavorite). */
+      favoriteCount: a.integer().default(0),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),

@@ -17,6 +17,8 @@ import { resolveImageUrl } from "@/lib/productImageUrls";
 import { productShippingAdminLabels } from "@/lib/shippingProfiles";
 import { saveProductSortOrders } from "@/services/productSortService";
 import { backfillProductCartCountsIfNeeded } from "@/services/productCartCountService";
+import { backfillProductFavoriteCountsIfNeeded } from "@/services/productFavoriteCountService";
+import { listAllShippingProfiles } from "@/services/shippingProfileService";
 
 interface AdminProductRow {
   id: string;
@@ -28,6 +30,7 @@ interface AdminProductRow {
   featured: boolean;
   shippingProfileLabel: string;
   activeCartCount: number;
+  favoriteCount: number;
   image?: string;
 }
 
@@ -90,6 +93,7 @@ export function AdminProductsPage() {
 
     try {
       await backfillProductCartCountsIfNeeded(client);
+      await backfillProductFavoriteCountsIfNeeded(client);
 
       const [rows, shippingProfiles] = await Promise.all([
         listAllProducts(client),
@@ -115,6 +119,7 @@ export function AdminProductsPage() {
             featured: row.featured ?? false,
             shippingProfileLabel: profileLabel,
             activeCartCount: row.activeCartCount ?? 0,
+            favoriteCount: row.favoriteCount ?? 0,
             image:
               (await resolveImageUrl(
                 row.images?.[0] ?? row.detailImage ?? undefined,
@@ -404,6 +409,14 @@ export function AdminProductsPage() {
                     />
                     In {product.activeCartCount}{" "}
                     {product.activeCartCount === 1 ? "cart" : "carts"}
+                  </p>
+                  <p className="text-body-sm text-on-surface-variant">
+                    <Icon
+                      name="favorite"
+                      className="mr-1 align-middle text-base"
+                    />
+                    {product.favoriteCount}{" "}
+                    {product.favoriteCount === 1 ? "favorite" : "favorites"}
                   </p>
 
                   <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">
