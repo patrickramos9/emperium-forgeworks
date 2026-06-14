@@ -27,8 +27,8 @@ Cursor should treat this file as the **source of truth** for:
 | **Phase** | **Core commerce live** — **M11 customer order status** is next (critical) |
 | **Next** | **M11** — paid → received → processing → shipped (+ tracking); customer notifications + optional SES email |
 | **Blocked** | _(none)_ — **SES production access** in progress (enables customer transactional email; in-app notifications work without it) |
-| **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) |
-| **Recently shipped (repo)** | **M3b cancel/refund sync** — `cancelStripeCheckoutSession`, `/checkout/cancel` redirect sync, `checkout.session.expired` + full `charge.refunded` webhooks (2026-06-14; deploy + QA §5) |
+| **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
+| **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) |
 | **In progress** | **M11** — customer order status (in repo; **backend redeploy required**) · **AWS SES** production setup (ops) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
@@ -167,7 +167,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8b** — Reviews (“Voices From The Void”, admin moderation) — **production verified**
 - **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, portfolio carousel, rich text) — **production verified**
 - **M8d** — Sculptor partner portal (`/partner/sculptor`, admin-granted `editorUserId`) — **production verified**
-- **M3b** — Live Stripe Checkout + webhook (`Order` paid / cancelled / refunded, ship-to address, email/phone) — **production verified**; **2026-06-14:** checkout cancel sync (`cancelStripeCheckoutSession` Lambda, `/checkout/cancel` page, shared `stripeOrderStatus` helpers, `checkout.session.expired` + full `charge.refunded` webhook handlers) — deploy + QA §5
+- **M3b** — Live Stripe Checkout + webhook (`Order` paid / cancelled / refunded, ship-to address, email/phone) — **production verified**; cancel sync (`cancelStripeCheckoutSession`, `/checkout/cancel`, webhooks) — **production verified** (2026-06-14)
 - **M15** — Shipping profiles, product assignment, Stripe checkout shipping, order totals, PDP shipping (`shippingDisplay` + live fallback), ready-to-ship on profiles — **production verified**
 - **M6 core** — Promo templates, grants, auto-apply cart/checkout, thank-you on paid order, admin tools — **production verified** (2026-06-02)
 - **M6c** — Abandoned-cart snapshot, idle grant, revoke on empty cart, issued-grants admin table — **production verified** (2026-06-11)
@@ -242,7 +242,7 @@ _(none — monitor production; fix bugs ad hoc)_
 
 ### M3b — Live payments (Stripe + Google Pay)
 
-**Status:** **Production verified** (2026-05-31) — live Checkout, live-mode webhook, orders auto-`paid`, fulfillment fields on `Order`. **2026-06-14:** checkout **cancel + refund sync** shipped in repo (deploy + QA §5).
+**Status:** **Production verified** (2026-05-31) — live Checkout, live-mode webhook, orders auto-`paid`, fulfillment fields on `Order`. **2026-06-14:** checkout **cancel + refund sync** — **production verified**.
 
 **Goal:** Replace mock checkout with real Stripe payments while preserving the `PaymentProvider` abstraction.
 
@@ -439,6 +439,7 @@ _(none — monitor production; fix bugs ad hoc)_
 | **Flat** | `amountCents` + `additionalItemCents` | First item + each additional item |
 | **Free over $X** | `amountCents` + `additionalItemCents` + `freeThresholdCents` | $0 if **order** subtotal ≥ threshold, else first+additional |
 | **Weight tiers** | Tier table + product `weightOz` | Tier from sum of line weight in profile group |
+| **Free US / flat international** | International `amountCents` + `additionalItemCents`; US free; `allowedCountries` must include `US` + international codes | Two Stripe shipping options: **US — Free shipping** and **International — {profile name}** (customer selects matching option) |
 
 #### Backend
 
