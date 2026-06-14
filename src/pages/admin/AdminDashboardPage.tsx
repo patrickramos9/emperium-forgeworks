@@ -26,6 +26,7 @@ import {
   writeGa4DateRange,
   type Ga4DashboardResult,
 } from "@/services/adminAnalyticsService";
+import { AdminCustomerActivitySection } from "@/components/admin/AdminCustomerActivitySection";
 
 function compactRows(
   rows: ({ name: string; value: string } | null | undefined)[] | null | undefined,
@@ -307,6 +308,8 @@ export function AdminDashboardPage() {
           </section>
         </>
       )}
+
+      <AdminCustomerActivitySection />
 
       <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
         <div className="flex flex-wrap items-end justify-between gap-4">
