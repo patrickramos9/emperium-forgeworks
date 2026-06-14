@@ -2,7 +2,6 @@ import { formatPrice } from "@/data/seedProducts";
 import {
   defaultInternationalRate,
   formatShippingProfileRate,
-  parseWeightTiers,
   SHIPPING_PROFILE_KIND_LABELS,
   type InternationalShippingRate,
   type ShippingProfileKind,
