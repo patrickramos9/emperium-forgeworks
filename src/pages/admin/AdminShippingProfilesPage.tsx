@@ -7,6 +7,7 @@ import { hasShippingProfileModel } from "@/lib/dataModels";
 import {
   formatReadyToShip,
   formatShippingProfileRate,
+  parseInternationalRates,
   parseWeightTiers,
   SHIPPING_PROFILE_KIND_LABELS,
 } from "@/lib/shippingProfiles";
@@ -96,12 +97,15 @@ export function AdminShippingProfilesPage() {
                   {row.name}
                 </Link>
                 <p className="font-label-sm text-on-surface-variant">
+                  US:{" "}
                   {SHIPPING_PROFILE_KIND_LABELS[
                     row.kind === "free_over_threshold"
                       ? "free_over_threshold"
                       : row.kind === "weight_tier"
                         ? "weight_tier"
-                        : "flat"
+                        : row.kind === "free_shipping"
+                          ? "free_shipping"
+                          : "flat"
                   ]}{" "}
                   ·{" "}
                   {formatShippingProfileRate(
@@ -112,6 +116,14 @@ export function AdminShippingProfilesPage() {
                     formatPrice,
                     parseWeightTiers(row.weightTiers),
                   )}
+                  {(() => {
+                    const intlCount = parseInternationalRates(
+                      row.internationalRates,
+                    ).length;
+                    return intlCount > 0
+                      ? ` · ${intlCount} international rate${intlCount === 1 ? "" : "s"}`
+                      : " · No international rates";
+                  })()}
                   {(() => {
                     const ready = formatReadyToShip(
                       row.minReadyToShipDays,

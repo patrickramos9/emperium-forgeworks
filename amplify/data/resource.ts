@@ -281,14 +281,22 @@ const schema = a.schema({
     .model({
       name: a.string().required(),
       description: a.string(),
-      kind: a.enum(["flat", "free_over_threshold", "weight_tier"]),
-      /** First item shipping amount (USD cents). */
+      kind: a.enum([
+        "flat",
+        "free_over_threshold",
+        "weight_tier",
+        "free_shipping",
+      ]),
+      /** US first-item shipping amount (USD cents). */
       amountCents: a.integer().required(),
       /** Additional item amount after the first item (USD cents). */
       additionalItemCents: a.integer().default(0),
       freeThresholdCents: a.integer(),
       /** For kind=weight_tier: [{ maxWeightOz, amountCents }, …] sorted by maxWeightOz. */
       weightTiers: a.json(),
+      /** International sub-rates: [{ kind, amountCents, countriesMode, countries?, … }]. Required at checkout. */
+      internationalRates: a.json(),
+      /** US only — set automatically; international countries come from internationalRates. */
       allowedCountries: a.string().array(),
       active: a.boolean().default(true),
       /** Fallback for products with no shippingProfileId (exactly one should be true). */

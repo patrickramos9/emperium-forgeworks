@@ -139,13 +139,16 @@ async function createStripeCheckoutSession(
     profile?.minDeliveryDays != null &&
     profile.maxDeliveryDays != null &&
     profile.minDeliveryDays > 0 &&
-    profile.maxDeliveryDays >= profile.minDeliveryDays &&
-    shippingOptions[0]?.shipping_rate_data
+    profile.maxDeliveryDays >= profile.minDeliveryDays
   ) {
-    shippingOptions[0].shipping_rate_data.delivery_estimate = {
-      minimum: { unit: "business_day", value: profile.minDeliveryDays },
-      maximum: { unit: "business_day", value: profile.maxDeliveryDays },
-    };
+    for (const option of shippingOptions) {
+      if (option.shipping_rate_data) {
+        option.shipping_rate_data.delivery_estimate = {
+          minimum: { unit: "business_day", value: profile.minDeliveryDays },
+          maximum: { unit: "business_day", value: profile.maxDeliveryDays },
+        };
+      }
+    }
   }
 
   const discountCents = options.discountCents ?? 0;

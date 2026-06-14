@@ -1,7 +1,7 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import type { Schema } from "../../amplify/data/resource";
 import { requireShippingProfileModel } from "@/lib/dataModels";
-import type { WeightTier } from "@/lib/shippingProfiles";
+import type { WeightTier, InternationalShippingRate } from "@/lib/shippingProfiles";
 import { toJsonField } from "@/lib/productPayload";
 
 export type ShippingProfileRecord = Schema["ShippingProfile"]["type"];
@@ -14,7 +14,7 @@ export type ShippingProfileInput = {
   additionalItemCents?: number;
   freeThresholdCents?: number;
   weightTiers?: WeightTier[];
-  allowedCountries: string[];
+  internationalRates: InternationalShippingRate[];
   active: boolean;
   isDefault: boolean;
   sortOrder: number;
@@ -34,7 +34,8 @@ function toMutationPayload(input: ShippingProfileInput) {
       input.kind === "weight_tier"
         ? toJsonField(input.weightTiers ?? [])
         : null,
-    allowedCountries: input.allowedCountries,
+    internationalRates: toJsonField(input.internationalRates),
+    allowedCountries: ["US"],
     active: input.active,
     isDefault: input.isDefault,
     sortOrder: input.sortOrder,
