@@ -20,7 +20,7 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-11
+**Last updated:** 2026-06-14
 
 | Item | State |
 |------|--------|
@@ -28,6 +28,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Next** | **M11** — paid → received → processing → shipped (+ tracking); customer notifications + optional SES email |
 | **Blocked** | _(none)_ — **SES production access** in progress (enables customer transactional email; in-app notifications work without it) |
 | **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) |
+| **Recently shipped (repo)** | **M3b cancel/refund sync** — `cancelStripeCheckoutSession`, `/checkout/cancel` redirect sync, `checkout.session.expired` + full `charge.refunded` webhooks (2026-06-14; deploy + QA §5) |
 | **In progress** | **M11** — customer order status (in repo; **backend redeploy required**) · **AWS SES** production setup (ops) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
@@ -166,7 +167,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M8b** — Reviews (“Voices From The Void”, admin moderation) — **production verified**
 - **M8c** — Sculptors (admin CRUD, `/sculptors/:slug`, portfolio carousel, rich text) — **production verified**
 - **M8d** — Sculptor partner portal (`/partner/sculptor`, admin-granted `editorUserId`) — **production verified**
-- **M3b** — Live Stripe Checkout + webhook (`Order` paid / cancelled / refunded, ship-to address, email/phone) — **production verified**
+- **M3b** — Live Stripe Checkout + webhook (`Order` paid / cancelled / refunded, ship-to address, email/phone) — **production verified**; **2026-06-14:** checkout cancel sync (`cancelStripeCheckoutSession` Lambda, `/checkout/cancel` page, shared `stripeOrderStatus` helpers, `checkout.session.expired` + full `charge.refunded` webhook handlers) — deploy + QA §5
 - **M15** — Shipping profiles, product assignment, Stripe checkout shipping, order totals, PDP shipping (`shippingDisplay` + live fallback), ready-to-ship on profiles — **production verified**
 - **M6 core** — Promo templates, grants, auto-apply cart/checkout, thank-you on paid order, admin tools — **production verified** (2026-06-02)
 - **M6c** — Abandoned-cart snapshot, idle grant, revoke on empty cart, issued-grants admin table — **production verified** (2026-06-11)
@@ -241,7 +242,7 @@ _(none — monitor production; fix bugs ad hoc)_
 
 ### M3b — Live payments (Stripe + Google Pay)
 
-**Status:** **Production verified** (2026-05-31) — live Checkout, live-mode webhook, orders auto-`paid`, fulfillment fields on `Order`. **2026-06-11:** cancel + refund sync — `checkout.session.expired` and cancel redirect → **Cancelled**; `charge.refunded` (full) → **Refunded**; `cancelStripeCheckoutSession` mutation on `/checkout/cancel`.
+**Status:** **Production verified** (2026-05-31) — live Checkout, live-mode webhook, orders auto-`paid`, fulfillment fields on `Order`. **2026-06-14:** checkout **cancel + refund sync** shipped in repo (deploy + QA §5).
 
 **Goal:** Replace mock checkout with real Stripe payments while preserving the `PaymentProvider` abstraction.
 
@@ -256,14 +257,20 @@ _(none — monitor production; fix bugs ad hoc)_
 - Add Lambda for Stripe webhooks:
   - Verify signature.
   - On successful payment, set `Order.status = "paid"` and `paymentProvider = "stripe"`.
-  - On `checkout.session.expired` or customer cancel redirect, set pending orders to **`cancelled`**.
-  - On full `charge.refunded`, set paid orders to **`refunded`**.
+  - On `checkout.session.expired`, set **pending** orders to **`cancelled`** (shared `order-shared/stripeOrderStatus.ts`; never overwrites `paid` / `refunded`).
+  - On full `charge.refunded`, set **paid** orders to **`refunded`** (partial refunds leave status `paid` until **M16a**).
   - Use `externalSessionId` / `stripePaymentIntentId` to correlate.
+- **`cancel-stripe-checkout`** Lambda + `cancelStripeCheckoutSession` mutation:
+  - Called from `/checkout/cancel?session={CHECKOUT_SESSION_ID}` when the customer abandons Stripe Checkout.
+  - Retrieves session by id; if not paid, marks the linked **pending** order **`cancelled`** (idempotent with webhook path).
 
 **Frontend:**
 - `checkoutService.ts`:
   - Use `StripePaymentProvider` when env is `deployment`.
   - Keep `MockPaymentProvider` for `local`.
+- **`CheckoutCancelPage`** (`/checkout/cancel`):
+  - On load with `?session=`, calls `cancelStripeCheckoutSession` so admin sees **Cancelled** without waiting for session expiry webhook.
+  - Cart unchanged; user can return to `/cart`.
 
 **Auth & data:**
 - Do not store card data.
@@ -275,6 +282,12 @@ _(none — monitor production; fix bugs ad hoc)_
 - Do not change `PaymentProvider` interface shape.
 - Do not change existing mock behavior.
 - Only extend where needed.
+
+**Acceptance (cancel + refund sync):**
+- Customer clicks back/cancel on Stripe Checkout → lands on `/checkout/cancel?session=…` → pending order shows **Cancelled** in admin (~immediate after mutation).
+- Stripe session expires without payment → webhook sets same pending order **Cancelled**.
+- Already-**paid** order is never downgraded to cancelled by cancel redirect or expiry handler.
+- Full refund in Stripe Dashboard → order **Refunded**; partial refund leaves order **Paid** (until M16a).
 
 ---
 
@@ -486,7 +499,7 @@ _(none — monitor production; fix bugs ad hoc)_
 #### Prerequisites (gap today)
 
 - `Order.stripePaymentIntentId` is set on paid checkout (2026-06-11) — refunds correlate via PaymentIntent metadata + stored id.
-- Order `status` includes `cancelled` and `refunded`; **webhook sync** for expire/cancel/refund shipped (2026-06-11). Admin-initiated partial refunds and `createStripeRefund` mutation still **M16a**.
+- Order `status` includes `cancelled` and `refunded`; **webhook + cancel redirect sync** shipped (2026-06-14). Admin-initiated partial refunds and `createStripeRefund` mutation still **M16a**.
 - No customer “request return” flow on **Account → Orders** (page exists, read-only).
 
 #### Phase A — Admin Stripe refunds (M16a)
