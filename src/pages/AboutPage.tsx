@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Icon } from "@/components/Icon";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
+import { CONTACT_EMAIL } from "@/lib/config";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
 import {
@@ -193,6 +195,33 @@ export function AboutPage() {
                 className="aspect-square w-full object-cover shadow-2xl"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="contact"
+        className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop"
+      >
+        <div className="border border-outline-variant/20 bg-surface-container-low p-stack-lg iron-bevel md:p-margin-desktop">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="font-label-sm uppercase tracking-[0.35em] text-primary">
+              Contact
+            </span>
+            <h2 className="mt-3 font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
+              Reach the Forge
+            </h2>
+            <p className="mt-4 font-body-lg text-on-surface-variant">
+              Questions about orders, commissions, or the studio? Melissa handles
+              forge inquiries directly.
+            </p>
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="mt-stack-md inline-flex items-center gap-2 font-label-md uppercase tracking-widest text-primary transition-colors hover:text-plasma-glow"
+            >
+              <Icon name="alternate_email" className="text-xl" />
+              {CONTACT_EMAIL}
+            </a>
           </div>
         </div>
       </section>
