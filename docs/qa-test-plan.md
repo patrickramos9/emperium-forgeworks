@@ -21,7 +21,7 @@ Pre-launch sign-off closed 2026-06-11. Run smoke after deploys; full §6–§18 
 | **Catalog/admin product change** | §2 PDP, §17b, §18 admin catalog |
 | **New milestone** | Matching section below + remove from **Not yet built** |
 
-**Production-verified (regression optional):** M3b, M6 (core + **M6b** + **M6c**), M7b, M8b/c/d, M15, **M17**, go-live polish §18, order notification email.
+**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c**), M7b, M8b/c/d, M15, **M17**, go-live polish §18, order notification email.
 
 **Do not test yet:** M19, M18, remaining M9a (add-to-cart toast, etc.), M6d marketing email, M11, M10/M12/M13/M16.
 
@@ -220,8 +220,8 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 - [ ] Phone collection if enabled
 - [ ] Pay with test/live card; success redirect to `/checkout/success?session_id=…`
 - [ ] **Webhook:** order moves to **Paid** without manual admin edit (allow ~30s; refresh admin)
-- [ ] Cancel at Stripe → `/checkout/cancel?session=…`; pending order becomes **Cancelled** (allow ~10s; refresh admin)
-- [ ] Expire open session in Stripe Dashboard (or wait for expiry) → webhook sets pending order **Cancelled**
+- [x] Cancel at Stripe → `/checkout/cancel?session=…`; pending order becomes **Cancelled** (allow ~10s; refresh admin)
+- [x] Expire open session in Stripe Dashboard (or wait for expiry) → webhook sets pending order **Cancelled**
 - [ ] Full refund in Stripe Dashboard on paid order → webhook sets order **Refunded**
 - [ ] Stripe Dashboard: session, payment, shipping amount match admin order
 
