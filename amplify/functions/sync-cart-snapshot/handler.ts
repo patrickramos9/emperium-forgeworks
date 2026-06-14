@@ -9,6 +9,10 @@ import {
   listAllTemplates,
   revokeOpenAbandonedCartGrants,
 } from "../promo-shared/grantIssuance.js";
+import {
+  applyProductCartCountDelta,
+  productIdsInCartLines,
+} from "../cart-shared/productCartCounts.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -112,9 +116,21 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
   const previous = existing.data;
 
   const previousLines = parseLineItems(previous?.lineItems);
+  const previousProductIds = productIdsInCartLines(previousLines);
+  const nextProductIds = productIdsInCartLines(lineItems);
   const linesChanged =
     !previous ||
     snapshotSignature(previousLines) !== snapshotSignature(lineItems);
+
+  try {
+    await applyProductCartCountDelta(
+      dataClient,
+      previousProductIds,
+      nextProductIds,
+    );
+  } catch (err) {
+    console.error("Product cart count update failed", err);
+  }
 
   if (previous && incomingHasItems && snapshotHasItems(previousLines)) {
     const templates = await listAllTemplates(dataClient);

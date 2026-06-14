@@ -252,6 +252,8 @@ const schema = a.schema({
       weightOz: a.integer(),
       /** Cached PDP shipping copy from assigned/default profile (set on admin save). */
       shippingDisplay: a.json(),
+      /** Signed-in carts currently containing this product (updated via syncCartSnapshot). Guest carts — **M6e**. */
+      activeCartCount: a.integer().default(0),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),

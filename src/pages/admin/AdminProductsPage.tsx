@@ -16,7 +16,7 @@ import { reorderList } from "@/lib/reorderList";
 import { resolveImageUrl } from "@/lib/productImageUrls";
 import { productShippingAdminLabels } from "@/lib/shippingProfiles";
 import { saveProductSortOrders } from "@/services/productSortService";
-import { listAllShippingProfiles } from "@/services/shippingProfileService";
+import { backfillProductCartCountsIfNeeded } from "@/services/productCartCountService";
 
 interface AdminProductRow {
   id: string;
@@ -27,6 +27,7 @@ interface AdminProductRow {
   sortOrder: number;
   featured: boolean;
   shippingProfileLabel: string;
+  activeCartCount: number;
   image?: string;
 }
 
@@ -88,6 +89,8 @@ export function AdminProductsPage() {
     }
 
     try {
+      await backfillProductCartCountsIfNeeded(client);
+
       const [rows, shippingProfiles] = await Promise.all([
         listAllProducts(client),
         hasShippingProfileModel(client)
@@ -111,6 +114,7 @@ export function AdminProductsPage() {
             sortOrder: row.sortOrder ?? 0,
             featured: row.featured ?? false,
             shippingProfileLabel: profileLabel,
+            activeCartCount: row.activeCartCount ?? 0,
             image:
               (await resolveImageUrl(
                 row.images?.[0] ?? row.detailImage ?? undefined,
@@ -392,6 +396,14 @@ export function AdminProductsPage() {
                   <p className="text-primary">{formatPrice(product.priceCents)}</p>
                   <p className="text-body-sm text-on-surface-variant">
                     {product.shippingProfileLabel}
+                  </p>
+                  <p className="text-body-sm text-on-surface-variant">
+                    <Icon
+                      name="shopping_cart"
+                      className="mr-1 align-middle text-base"
+                    />
+                    In {product.activeCartCount}{" "}
+                    {product.activeCartCount === 1 ? "cart" : "carts"}
                   </p>
 
                   <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">

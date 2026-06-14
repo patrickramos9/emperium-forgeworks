@@ -28,14 +28,14 @@ Cursor should treat this file as the **source of truth** for:
 | **Next** | **M11** — paid → received → processing → shipped (+ tracking); customer notifications + optional SES email |
 | **Blocked** | _(none)_ — **SES production access** in progress (enables customer transactional email; in-app notifications work without it) |
 | **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
-| **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) |
+| **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) |
 | **In progress** | **M11** — customer order status (in repo; **backend redeploy required**) · **AWS SES** production setup (ops) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
-M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M11** (customer order status + shipping) → **M19** → **M18** → **M9a** → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
+M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M11** (customer order status + shipping) → **M19** → **M18** → **M9a** → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™).
 
@@ -227,6 +227,7 @@ _(none — monitor production; fix bugs ad hoc)_
 - **M12** — Notification preferences
 - **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
 - **M9** — Polish & growth (gallery, SEO, performance)
+- **M6e** — **Guest cart & identity sync** — server-side guest carts (cookie id), parity with signed-in `CartSnapshot` for counts, abandon detection, sign-in merge (see §4)
 
 **Deferred — fabrication detail / hardware**
 
@@ -377,6 +378,7 @@ _(none — monitor production; fix bugs ad hoc)_
 | **M6b** | `Favorite` model + UI + favorite issuance + post-purchase re-issue |
 | **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
 | **M6d** | Abandoned-cart email (with M13) |
+| **M6e** | Guest identity (cookie) + server guest cart sync; merge on sign-in; `activeCartCount` + abandon paths include guests |
 
 **Cursor rules:**
 - Single grant per order; never stack with shipping-profile free shipping as a “promo.”
@@ -387,6 +389,92 @@ _(none — monitor production; fix bugs ad hoc)_
 - Admin creates template, assigns grant to user; user sees discount on cart with expiry; checkout total matches Stripe; order stores promo fields.
 - Paid order issues thank-you grant; notification appears in account inbox.
 - Deactivating template stops new thank-you grants; existing unused thank-you grant still redeems.
+
+---
+
+### M6e — Guest cart & identity sync (backlog)
+
+**Status:** **Planned** — after **M6d** / **M13** marketing email path (or in parallel if abandon parity is prioritized). **Today:** guest carts live in **browser `localStorage` only**; `syncCartSnapshot` requires Cognito auth; `Product.activeCartCount`, abandoned-cart detection, and account promos only see **signed-in** shoppers.
+
+**Goal:** No behavioral gap between guest and signed-in shoppers for **server-visible cart state** — same snapshot sync, admin cart counts, idle/abandon tracking, and clean **merge on sign-in/register**. Checkout promos remain **account grants** at payment time (M6 business rule); guests still **sign in to redeem** offers, but their cart history and abandon eligibility are not lost while browsing signed out.
+
+#### Why a cookie (or equivalent)
+
+Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier** across page loads and return visits (until expiry). Options:
+
+| Approach | Notes |
+|----------|--------|
+| **HttpOnly cookie** (recommended) | e.g. `efw_guest_id` = UUID; set on first visit if missing; sent automatically to guest-accessible sync API; harder to tamper than `localStorage` alone |
+| **localStorage mirror** | Fallback if cookie blocked; same UUID; document as secondary |
+
+**Yes — this requires persisting that id in the database** keyed by the cookie value, analogous to `CartSnapshot.userId` today.
+
+#### Data model
+
+Extend or parallel **`CartSnapshot`**:
+
+| Option | Recommendation |
+|--------|----------------|
+| **A — widen `CartSnapshot`** | Add optional `guestId` (PK or GSI); exactly one of `userId` \| `guestId` set |
+| **B — `GuestCartSnapshot` model** | PK `guestId`; same `lineItems`, `updatedAt`, `abandonedAt` fields |
+
+Prefer **one sync code path** in Lambda with shared line-item normalization (`cart-shared/`).
+
+**`guestId`:** opaque UUID v4; no PII. TTL / cleanup job for rows idle > N days (e.g. 90) so counts and storage do not grow forever.
+
+#### API
+
+- **`syncCartSnapshot`** (or **`syncGuestCartSnapshot`**) — `allow.guest()` + `allow.authenticated()`:
+  - Authenticated: current behavior (`userId` from `sub`).
+  - Guest: read `guestId` from **HttpOnly cookie** (Lambda reads cookie header) or accept `guestId` argument only when it matches verified cookie (do not trust client-only ids).
+- Rate-limit / payload caps on guest sync (abuse hygiene).
+- **`Product.activeCartCount`:** increment/decrement from **both** user and guest snapshots (one cart per `userId` or per `guestId`).
+
+#### Frontend
+
+- On app bootstrap: ensure guest cookie exists (edge/Lambda Set-Cookie on first API call, or lightweight guest-session endpoint).
+- **`useCartSnapshotSync`:** run for **all** shoppers — signed-in uses `sub`; guest uses cookie-backed sync (same debounce as today).
+- **Sign-in / register:** merge guest snapshot into user snapshot (union line items, prefer user cart on conflict); delete guest row; recompute cart counts; then issue abandon grant if idle rules fire post-merge.
+
+#### Promos & notifications (parity scope)
+
+| Feature | Guest after M6e |
+|---------|-----------------|
+| **Cart snapshot / idle timer** | Yes — server `updatedAt` |
+| **Abandoned-cart grant** | Issue on **sign-in** when merged idle cart qualifies (or on return with cookie + later login) — still tied to `userId` |
+| **Auto-apply promo at checkout** | Still requires **signed-in** account (M6) |
+| **Thank-you / favorite grants** | Unchanged — need `userId` |
+| **M18 price-change alerts** | Can key off guest snapshot until login, then migrate to user |
+
+#### Admin
+
+- **`Product.activeCartCount`** includes guest + signed-in carts (label optional: “In N carts” unchanged).
+- Optional later: admin filter “guest vs account” carts — out of scope v1.
+
+#### Security & privacy
+
+- Cookie: `Secure`, `SameSite=Lax`, reasonable `Max-Age` (e.g. 365d).
+- Do not store email/IP in guest snapshot.
+- GDPR: document anonymous cart id in privacy policy; cleanup on TTL.
+
+#### Out of scope (v1)
+
+- Guest **checkout** without email (unchanged — Stripe collects email).
+- Guest **promo redemption** without account.
+- Cross-device guest sync without cookie (new device = new guest id until sign-in).
+
+#### Acceptance
+
+- Guest adds item → server row exists under `guestId` → admin product **cart count** +1.
+- Guest removes item / clears cart → count −1.
+- Guest returns days later (same cookie) → snapshot still drives abandon idle time.
+- Guest signs in → guest snapshot merged into user cart; guest row deleted; counts unchanged net of duplicate cart.
+- Signed-in behavior unchanged.
+
+**Cursor rules:**
+- Reuse `sync-cart-snapshot` Lambda patterns and `cart-shared/productCartCounts.ts`; do not fork a second count implementation.
+- Cookie must be validated server-side; never accept arbitrary `guestId` from SPA without cookie match.
+- Merge-on-login must be idempotent.
 
 ---
 
