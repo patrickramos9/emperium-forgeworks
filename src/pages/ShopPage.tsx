@@ -17,6 +17,7 @@ import {
   parseCatalogPage,
   SHOP_PRODUCTS_PAGE_SIZE,
 } from "@/lib/catalogPagination";
+import { CONTACT_EMAIL } from "@/lib/config";
 
 export function ShopPage() {
   const { products, loading, source, loadError } = useProducts();
@@ -180,6 +181,19 @@ export function ShopPage() {
             totalPages={totalPages}
             onPageChange={goToPage}
           />
+          <div className="mt-stack-lg border border-primary/40 bg-primary/10 p-stack-md text-center iron-bevel md:p-stack-lg">
+            <p className="mx-auto max-w-2xl font-body-lg text-on-surface">
+              All models ship within 1–3 business days from when ordered.
+              Questions?{" "}
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="text-primary underline transition-colors hover:text-plasma-glow"
+              >
+                Message Melissa at {CONTACT_EMAIL}
+              </a>
+              .
+            </p>
+          </div>
         </>
       )}
 
