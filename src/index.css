@@ -85,3 +85,19 @@
 .rich-text-content a {
   @apply text-primary underline hover:text-plasma-glow;
 }
+
+@keyframes cart-badge-bump {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.cart-badge-bump {
+  animation: cart-badge-bump 0.26s ease-out;
+}

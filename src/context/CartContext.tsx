@@ -32,6 +32,7 @@ interface CartContextValue {
   items: CartLine[];
   itemCount: number;
   subtotalCents: number;
+  cartBadgeBumpToken: number;
   maxLineQty: number;
   addItem: (
     product: Product,
@@ -96,6 +97,7 @@ function persistItems(items: CartLine[]) {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartLine[]>(loadStoredItems);
+  const [cartBadgeBumpToken, setCartBadgeBumpToken] = useState(0);
 
   useCartSnapshotSync(items);
 
@@ -145,6 +147,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           },
         ];
       });
+      setCartBadgeBumpToken((token) => token + 1);
       return true;
     },
     [],
@@ -214,6 +217,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       itemCount,
       subtotalCents,
+      cartBadgeBumpToken,
       maxLineQty: MAX_LINE_QTY,
       addItem,
       removeItem,
@@ -221,7 +225,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       clearCart,
       enrichFromCatalog,
     };
-  }, [items, addItem, removeItem, updateQuantity, clearCart, enrichFromCatalog]);
+  }, [
+    items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    enrichFromCatalog,
+    cartBadgeBumpToken,
+  ]);
 
   return (
     <CartContext.Provider value={value}>{children}</CartContext.Provider>

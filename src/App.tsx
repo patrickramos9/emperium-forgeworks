@@ -51,6 +51,8 @@ import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayou
 import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage";
 import { TrustedSiteScript } from "@/components/TrustedSiteScript";
 import { ScrollToTopOnNavigate } from "@/components/ScrollToTopOnNavigate";
+import { ToastProvider } from "@/context/ToastContext";
+import { ToastRegion } from "@/components/ToastRegion";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -71,13 +73,15 @@ function AnalyticsTracker() {
 export default function App() {
   return (
     <CartProvider>
-      <AnnouncementProvider>
-        <BrowserRouter>
-          <ScrollToTopOnNavigate />
-          <AnalyticsTracker />
-          <TrustedSiteScript />
-          <SiteSystemBanner />
-          <Routes>
+      <ToastProvider>
+        <AnnouncementProvider>
+          <BrowserRouter>
+            <ScrollToTopOnNavigate />
+            <AnalyticsTracker />
+            <TrustedSiteScript />
+            <SiteSystemBanner />
+            <ToastRegion />
+            <Routes>
           <Route element={<Layout showPowerLine />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/shop" element={<ShopPage />} />
@@ -153,9 +157,10 @@ export default function App() {
               }
             />
           </Route>
-          </Routes>
-        </BrowserRouter>
-      </AnnouncementProvider>
+            </Routes>
+          </BrowserRouter>
+        </AnnouncementProvider>
+      </ToastProvider>
     </CartProvider>
   );
 }

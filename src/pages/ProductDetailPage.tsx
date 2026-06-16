@@ -179,18 +179,27 @@ export function ProductDetailPage({
     });
   }
 
+  function resetVariantPickers() {
+    if (!product) return;
+    setVariantSelection(initialVariantMultiSelection(product.variantGroups));
+    setLastToggledOptionId(undefined);
+    setOptionQuantities({});
+    setVariantQuantities({});
+  }
+
   function handleAddToCart() {
     if (!product) return;
     if (!hasVariations) {
       addItem(product, { quantity: baseQuantity });
       return;
     }
+    let addedAny = false;
     if (activeGroups.length === 1) {
       const group = activeGroups[0]!;
       for (const optionId of variantSelection[group.id] ?? []) {
         const option = group.options.find((row) => row.id === optionId);
         if (!option) continue;
-        addItem(product, {
+        const added = addItem(product, {
           variant: {
             id: option.id,
             label: option.label,
@@ -198,15 +207,19 @@ export function ProductDetailPage({
           },
           quantity: optionQuantities[option.id] ?? 1,
         });
+        addedAny = addedAny || added;
       }
+      if (addedAny) resetVariantPickers();
       return;
     }
     for (const variant of selectedVariants) {
-      addItem(product, {
+      const added = addItem(product, {
         variant,
         quantity: variantQuantities[variant.id] ?? 1,
       });
+      addedAny = addedAny || added;
     }
+    if (addedAny) resetVariantPickers();
   }
 
   const addToCartCount = useMemo(() => {

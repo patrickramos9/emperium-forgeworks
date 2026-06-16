@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { useVaultNavAccess } from "@/hooks/useVaultNavAccess";
@@ -15,12 +15,20 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   ].join(" ");
 
 export function Header() {
-  const { itemCount } = useCart();
+  const { itemCount, cartBadgeBumpToken } = useCart();
   const showVaultNav = useVaultNavAccess();
   const { headerTopClass } = useSiteLayout();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [cartBadgeBump, setCartBadgeBump] = useState(false);
+
+  useEffect(() => {
+    if (itemCount < 1) return;
+    setCartBadgeBump(true);
+    const timer = setTimeout(() => setCartBadgeBump(false), 260);
+    return () => clearTimeout(timer);
+  }, [cartBadgeBumpToken, itemCount]);
 
   function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -82,7 +90,9 @@ export function Header() {
           >
             <Icon name="shopping_cart" />
             {itemCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center bg-primary px-1 text-label-sm text-on-primary">
+              <span
+                className={`absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center bg-primary px-1 text-label-sm text-on-primary ${cartBadgeBump ? "cart-badge-bump" : ""}`}
+              >
                 {itemCount}
               </span>
             )}
