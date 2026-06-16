@@ -8,6 +8,7 @@ import { isRichTextEmpty } from "@/lib/richTextUtils";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { VariantPicker } from "@/components/VariantPicker";
 import { useCart } from "@/context/CartContext";
+import { useToast } from "@/context/ToastContext";
 import { formatPrice } from "@/data/seedProducts";
 import { productDisplayImages } from "@/lib/productDisplayImages";
 import {
@@ -62,6 +63,7 @@ export function ProductDetailPage({
     error: shippingError,
   } = useProductShippingDisplay(product);
   const { addItem } = useCart();
+  const { showToast } = useToast();
   const [variantSelection, setVariantSelection] = useState<
     Record<string, string[]>
   >({});
@@ -187,39 +189,96 @@ export function ProductDetailPage({
     setVariantQuantities({});
   }
 
+  function showAddToast(
+    title: string,
+    totalCents: number,
+    count: number,
+    detail?: string,
+  ) {
+    const pieces = [formatPrice(totalCents)];
+    if (count > 1) {
+      pieces.push(`${count} item${count === 1 ? "" : "s"}`);
+    }
+    if (detail) {
+      pieces.push(detail);
+    }
+    showToast({
+      tone: "success",
+      title,
+      description: pieces.join(" · "),
+      action: { label: "View cart", href: "/cart" },
+    });
+  }
+
   function handleAddToCart() {
     if (!product) return;
     if (!hasVariations) {
-      addItem(product, { quantity: baseQuantity });
+      const added = addItem(product, { quantity: baseQuantity });
+      if (added) {
+        showAddToast(
+          `${product.title} added to cart`,
+          product.priceCents * baseQuantity,
+          baseQuantity,
+        );
+      }
       return;
     }
     let addedAny = false;
+    let addedCount = 0;
+    let addedTotalCents = 0;
+    const addedLabels: string[] = [];
     if (activeGroups.length === 1) {
       const group = activeGroups[0]!;
       for (const optionId of variantSelection[group.id] ?? []) {
         const option = group.options.find((row) => row.id === optionId);
         if (!option) continue;
+        const quantity = optionQuantities[option.id] ?? 1;
         const added = addItem(product, {
           variant: {
             id: option.id,
             label: option.label,
             priceDeltaCents: option.priceDeltaCents,
           },
-          quantity: optionQuantities[option.id] ?? 1,
+          quantity,
         });
         addedAny = addedAny || added;
+        if (added) {
+          addedCount += quantity;
+          addedTotalCents += (product.priceCents + option.priceDeltaCents) * quantity;
+          addedLabels.push(option.label);
+        }
       }
-      if (addedAny) resetVariantPickers();
+      if (addedAny) {
+        const detail =
+          addedLabels.length === 1
+            ? addedLabels[0]
+            : `${addedLabels[0]} +${addedLabels.length - 1} more`;
+        showAddToast("Added to cart", addedTotalCents, addedCount, detail);
+        resetVariantPickers();
+      }
       return;
     }
     for (const variant of selectedVariants) {
+      const quantity = variantQuantities[variant.id] ?? 1;
       const added = addItem(product, {
         variant,
-        quantity: variantQuantities[variant.id] ?? 1,
+        quantity,
       });
       addedAny = addedAny || added;
+      if (added) {
+        addedCount += quantity;
+        addedTotalCents += (product.priceCents + variant.priceDeltaCents) * quantity;
+        addedLabels.push(variant.label);
+      }
     }
-    if (addedAny) resetVariantPickers();
+    if (addedAny) {
+      const detail =
+        addedLabels.length === 1
+          ? addedLabels[0]
+          : `${addedLabels[0]} +${addedLabels.length - 1} more`;
+      showAddToast("Added to cart", addedTotalCents, addedCount, detail);
+      resetVariantPickers();
+    }
   }
 
   const addToCartCount = useMemo(() => {
@@ -288,6 +347,11 @@ export function ProductDetailPage({
 
   const canAddToCart =
     product.inStock && (!hasVariations || selectedVariants.length > 0);
+  const addToCartHelper = !product.inStock
+    ? "This item is currently out of stock."
+    : hasVariations && selectedVariants.length === 0
+      ? "Select at least one option to add this item."
+      : null;
   const displayTitle = product.title.split("–")[0]?.trim() ?? product.title;
   const galleryImages = productDisplayImages(product);
   const starSummary = resolveProductStarRating(
@@ -462,6 +526,9 @@ export function ProductDetailPage({
                   ? `Add ${addToCartCount} to Cart`
                   : "Add to Cart"}
               </button>
+              {addToCartHelper && (
+                <p className="text-body-sm text-on-surface-variant">{addToCartHelper}</p>
+              )}
               <ProductFavoriteButton
                 productId={product.id}
                 productSlug={product.slug}
