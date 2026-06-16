@@ -20,7 +20,7 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-14
+**Last updated:** 2026-06-16
 
 | Item | State |
 |------|--------|
@@ -29,7 +29,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Blocked** | _(none)_ — **SES production access** in progress (enables customer transactional email; in-app notifications work without it) |
 | **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
 | **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) |
-| **In progress** | **M11** — customer order status (in repo; **backend redeploy required**) · **AWS SES** production setup (ops) |
+| **In progress** | **M9a** — initial UX polish (toast + add-to-cart shipped 2026-06-16; favorites/cart/checkout/account polish remaining) · **AWS SES** production setup (ops) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -781,18 +781,30 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 - **Gallery page**:
   - `/gallery` route.
   - Uses existing product images and/or curated gallery entries (v1 can reuse `Product`).
-- **SEO/meta tags**:
+- **SEO / meta tags / structured data**:
   - Add per-route `<title>` and meta description.
   - OG tags for key pages (home, PDP).
+  - **`sitemap.xml`** — public routes + `/shop/:slug` PDP URLs (exclude vault unless public).
+  - **Canonical URLs** on PDP and key landing pages.
+  - **Schema.org JSON-LD** (Google structured data for product discovery):
+    - **`Product`** on each public PDP — `name`, `description`, absolute `image`, `sku` (slug or id), `brand`, `offers` (`price`, `priceCurrency`, `availability` from `inStock`, `url`).
+    - **`Organization`** (+ optional **`WebSite`**) on home — business name, site URL, logo.
+    - Optional **`ItemList`** on `/shop` (product URLs only; v1 nice-to-have).
+  - Validate with Google Rich Results Test + Search Console after deploy.
+  - **Public shop catalog only** — do not emit Product JSON-LD for vault-gated PDPs.
+  - When **M19** catalog sales ship, JSON-LD `offers.price` must match the **live sale price** on PDP/checkout.
 - **Performance**:
   - Ensure images use appropriate sizes and lazy loading.
   - Confirm CDN usage via Amplify (no code change needed, but ensure URLs are correct).
 - **Newsletter**:
   - Wire home page newsletter form to a provider (Mailchimp, etc.) or create a simple DynamoDB-backed `NewsletterSubscriber` model (minimal PII: email only).
 
+**Not in M9 (see M13):** Google Merchant Center **product feed** (XML/TSV/API) for Shopping listings — separate from on-page JSON-LD. JSON-LD is sufficient for crawl/rich-result signals; Merchant feed is optional later if you want Shopping ads / free listings.
+
 **Cursor rules:**
 - Keep SPA structure; no SSR.
 - Use React Helmet or a simple head manager pattern if already present; otherwise, introduce a minimal solution.
+- JSON-LD via a small component (e.g. `ProductStructuredData`) — absolute image/page URLs from `SITE_URL`; reuse existing product fields, no new backend models for v1.
 
 ---
 
