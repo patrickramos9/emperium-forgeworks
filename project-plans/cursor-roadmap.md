@@ -26,10 +26,10 @@ Cursor should treat this file as the **source of truth** for:
 |------|--------|
 | **Phase** | **Core commerce live** — **M11 customer order status** is next (critical) |
 | **Next** | **M11** — paid → received → processing → shipped (+ tracking); customer notifications + optional SES email |
-| **Blocked** | _(none)_ — **SES production access** in progress (enables customer transactional email; in-app notifications work without it) |
+| **Blocked** | _(none)_ — **SES production access** stalled (AWS support); **customer transactional email** optional — in-app order notifications work; third-party email (Resend/Postmark/etc.) or **M20** `EmailProvider` port are fallbacks |
 | **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
 | **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) |
-| **In progress** | **M9a** — initial UX polish (toast + add-to-cart shipped 2026-06-16; favorites/cart/checkout/account polish remaining) · **AWS SES** production setup (ops) |
+| **In progress** | **M9a** — cart polish shipped 2026-06-16; checkout redirect + account form feedback + QA remaining |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -37,7 +37,7 @@ Cursor should treat this file as the **source of truth** for:
 **Recommended build order:**  
 M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M11** (customer order status + shipping) → **M19** → **M18** → **M9a** → **M8a.3** (inbox vs campaigns) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
 
-**Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™).
+**Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -235,6 +235,10 @@ _(none — monitor production; fix bugs ad hoc)_
 - **M11a** — Optional fabrication sub-stages (queued, printing, wash, …) — admin-only detail inside **processing**; not required for customer-facing four stages
 - **M11b** — Raspberry Pi SDCP bridge (optional)
 - **M14** — ForgeLink™ hardware MVP
+
+**Post-v1 major release (after current roadmap)**
+
+- **M20** — **Cloud portability layer** — provider ports/adapters so email, storage, auth, and data access are not hard-wired to AWS (see §4). Ship incrementally; Amplify remains the default backend until adapters are proven.
 
 §4 below has implementation specs for milestones that are not yet shipped.
 
@@ -1333,6 +1337,84 @@ On each fulfillment transition (when `userId` is set):
 
 ---
 
+### M20 — Cloud portability layer (post-v1 major release)
+
+**Status:** **Planned** — start **after** milestones through **M14** / **M9** / **M13** (current roadmap) are shipped or explicitly deferred. Not a big-bang rewrite.
+
+**Goal:** Reduce vendor lock-in to AWS primitives (Amplify Data, Cognito, S3, SES, Lambda wiring) by introducing **ports + adapters** — the same pattern as `PaymentProvider` in `packages/shared/`. The storefront and admin keep stable domain APIs; cloud-specific SDKs live behind narrow interfaces.
+
+**Why now (documented, not implemented):** SES production approval friction and billing/tooling sprawl if each concern picks a one-off vendor without a shared abstraction. **M20** makes swaps (email, storage, auth, hosting) a configuration change + one adapter, not a repo-wide rewrite.
+
+**Non-goals:**
+- Multi-cloud active/active deployment in v1 of M20.
+- Replacing React, Stripe, or GA4.
+- Rewriting all Amplify models in one release.
+
+#### Phased delivery (recommended order)
+
+| Phase | Port | Today | Adapters (examples) | Lift |
+|-------|------|-------|---------------------|------|
+| **M20a** | `EmailProvider` | `order-shared/notifySupport.ts`, `notifyCustomer.ts` → SES | SES, Resend, Postmark, SendGrid, Azure ACS | **Small** — do first; unblocks customer email without SES prod |
+| **M20b** | `BlobStorageProvider` | `storefrontStorage`, image upload helpers → S3 | S3, Azure Blob | Medium |
+| **M20c** | `AuthProvider` / session | `customerAuth`, `adminAuth`, Cognito groups | Cognito (default), Entra External ID, Auth0 | Large — user migration risk |
+| **M20d** | `DataRepository` / domain stores | `src/services/*` → AppSync `generateClient` | Amplify Data (default), REST over Functions, future ORM | **Largest** — strangler per domain (orders, products, promos) |
+
+**Rule:** App code calls `sendOrderEmail()`, `uploadProductImage()`, `getOrderById()` — not `SESClient`, `S3Client`, or `client.models.Order.get`.
+
+#### Package layout (target)
+
+Extend `packages/shared/` (or add `packages/platform/`):
+
+```
+packages/shared/src/
+  contracts/
+    payments.ts          # exists — PaymentProvider
+    email.ts             # M20a — EmailProvider
+    storage.ts           # M20b
+  providers/
+    ses/ resend/ …       # email adapters
+    s3/ blob/ …          # storage adapters
+```
+
+Lambdas receive a factory: `createEmailProvider(env)` — same env keys pattern as `createPaymentProvider`.
+
+#### Frontend
+
+- Keep `src/services/` as the **domain boundary**; services must not import `@aws-sdk/*` or `aws-amplify/data` directly where a port exists.
+- `amplifyDataClient.ts` becomes the **Amplify adapter** behind repositories until M20d migrates each service.
+
+#### Migration strategy
+
+1. **Strangler fig** — one port at a time; default adapter = current AWS implementation (no behavior change on merge).
+2. **Contract tests** — each adapter implements the same interface; smoke test send/upload/read.
+3. **No dual-write** unless migrating auth or data (M20c/d); email and storage are safe to swap per env.
+
+#### Email & billing sprawl (pragmatic note)
+
+- Stripe + AWS + one transactional email vendor is normal for a shop; email is typically **low volume / low cost** (often free tier).
+- **M20a** keeps email on **one interface** so you are not locked to SES *or* scattered one-off SDK calls.
+
+#### Cursor rules (when M20 starts)
+
+- New cloud integrations **must** go behind a port in `packages/shared` (or `packages/platform`).
+- Do not delete Amplify backend until M20d coverage is explicit per domain.
+- Section §7 “do not replace Amplify” applies **until M20** is active for that concern.
+
+#### Acceptance (M20a — email only)
+
+- `notifySupport` / `notifyCustomer` call `EmailProvider.send()` only.
+- SES adapter passes existing production behavior.
+- Second adapter (e.g. Resend) works via env switch without code changes in order fulfillment.
+- No `@aws-sdk/client-ses` imports outside the SES adapter module.
+
+#### Acceptance (M20 complete — long-term)
+
+- Domain services in `src/services/` have zero direct Amplify model imports for migrated domains.
+- Documented adapter matrix: which ports exist and which cloud backs production.
+- Roadmap features (M6d email, M11 customer email, M13) use `EmailProvider` only.
+
+---
+
 ## 6. Backend implementation guidelines for Cursor
 
 - All new models go in `amplify/data/resource.ts`.
@@ -1351,7 +1433,7 @@ On each fulfillment transition (when `userId` is set):
 
 ## 7. What Cursor must not do
 
-- Do not replace Amplify with a custom backend.
+- Do not replace Amplify with a custom backend **except where a milestone explicitly scopes it (e.g. M20 ports/adapters).**
 - Do not introduce a second auth system.
 - Do not change the design system or Tailwind token names.
 - Do not remove or rename existing models without explicit instruction.

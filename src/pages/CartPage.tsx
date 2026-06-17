@@ -19,6 +19,7 @@ import { startCheckout } from "@/services/checkoutService";
 import { syncCartSnapshot, cartLinesReadyForSnapshot } from "@/services/cartSnapshotService";
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { Link } from "react-router-dom";
+import { PageFeedback } from "@/components/PageFeedback";
 import { PoweredByStripeBadge } from "@/components/PoweredByStripeBadge";
 
 export function CartPage() {
@@ -203,16 +204,24 @@ export function CartPage() {
         <h1 className="font-display-lg text-headline-lg uppercase text-primary">
           Your Cart
         </h1>
-        <p className="mt-4 text-on-surface-variant">The lair is empty.</p>
-        <Link
-          to="/shop"
-          className="molten-glow mt-6 inline-block bg-primary px-6 py-3 font-label-md uppercase text-on-primary"
-        >
-          Browse the shop
-        </Link>
+        <div className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-stack-md text-center iron-bevel md:p-stack-lg">
+          <p className="text-on-surface-variant">The lair is empty.</p>
+          <p className="mt-2 text-body-sm text-on-surface-variant">
+            Browse the shop and add pieces you want to forge.
+          </p>
+          <Link
+            to="/shop"
+            className="molten-glow mt-6 inline-block bg-primary px-6 py-3 font-label-md uppercase text-on-primary"
+          >
+            Browse the shop
+          </Link>
+        </div>
       </main>
     );
   }
+
+  const catalogBusy =
+    catalogLoading || (!catalogVerified && products.length > 0 && !loadError);
 
   return (
     <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-container-max">
@@ -221,32 +230,26 @@ export function CartPage() {
         Your Cart
       </h1>
 
-      {(catalogLoading || (!catalogVerified && products.length > 0)) && (
-        <p className="mb-4 text-label-sm text-on-surface-variant">
-          Verifying cart against catalog…
-        </p>
+      {catalogBusy && (
+        <PageFeedback tone="info">Verifying cart against catalog…</PageFeedback>
       )}
 
-      {loadError && !catalogLoading && products.length === 0 && (
-        <p className="mb-4 text-label-sm text-error">
-          Could not load catalog — refresh the page to verify cart items.
-        </p>
+      {loadError && !catalogLoading && (
+        <PageFeedback tone="error">
+          Catalog could not load ({loadError}). Refresh the page to verify cart
+          items, or try again in a moment.
+        </PageFeedback>
       )}
 
       {syncNotice && (
-        <p className="mb-4 border border-secondary/30 bg-surface-container-low p-3 text-body-sm text-secondary">
-          {syncNotice}
-        </p>
+        <PageFeedback tone="success">{syncNotice}</PageFeedback>
       )}
 
       {hasRemovedLines && !catalogLoading && (
-        <p
-          className="mb-4 border border-error/30 bg-surface-container-low p-3 text-body-sm text-on-surface"
-          role="status"
-        >
+        <PageFeedback tone="error">
           Some items in your cart were removed from the store. Remove them below
           to continue.
-        </p>
+        </PageFeedback>
       )}
 
       <ul className="space-y-4">
@@ -393,7 +396,11 @@ export function CartPage() {
             ? "Mock checkout locally — no charge."
             : "Secure checkout via Stripe (cards, Apple Pay, Google Pay). Shipping at checkout."}
         </p>
-        {error && <p className="mt-2 text-right text-error">{error}</p>}
+        {error && (
+          <PageFeedback tone="error" className="mt-4 text-left">
+            {error}
+          </PageFeedback>
+        )}
         <div className="mt-4 flex justify-end">
           <div className="flex w-fit flex-col items-stretch gap-4">
             <div className="flex flex-wrap justify-end gap-4">
