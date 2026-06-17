@@ -35,7 +35,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
-M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M11** (customer order status + shipping) → **M19** → **M18** → **M9a** → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
+M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M11** (customer order status + shipping) → **M19** → **M18** → **M9a** → **M8a.3** (inbox vs campaigns) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™).
 
@@ -136,8 +136,8 @@ Cursor must treat [`project-plans/reference/data-models.md`](./reference/data-mo
 - `Order`
 - `ShippingProfile` (guest/authenticated read; admin CRUD)
 - `Announcement`
-- `Notification`
-- `NotificationRead`
+- `Notification` _(today — conflates campaigns + inbox; split in **M8a.3**)_
+- `NotificationRead` _(today — migrate to inbox read model in **M8a.3**)_
 - `Review`
 - `VaultAccess`
 - `Sculptor`
@@ -219,12 +219,13 @@ _(none — monitor production; fix bugs ad hoc)_
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
 - **M18** — **Cart price-change** in-system notifications (sale or list price up/down for items in cart)
 - **M9a** — **Initial UX polish** (micro-interactions, cart feedback, consistency — see §4)
+- **M8a.3** — **Inbox messages vs notification campaigns** — split immutable per-customer deliveries from editable admin broadcasts (see §4)
 
 **Later**
 
 - **M16** — Returns, refunds & exchanges
 - **M10** — Admin–customer chat
-- **M12** — Notification preferences
+- **M12** — Notification preferences _(depends on **M8a.3**)_
 - **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M6e** — **Guest cart & identity sync** — server-side guest carts (cookie id), parity with signed-in `CartSnapshot` for counts, abandon detection, sign-in merge (see §4)
@@ -330,6 +331,7 @@ _(none — monitor production; fix bugs ad hoc)_
 
 - **v1:** **In-system** only (`Notification` kind `marketing` or `promo`) — favorite, thank-you, abandoned cart, admin-assigned.
 - **Later (M6d / M13):** **Email** for **abandoned cart** recovery (in-system alone does not bring users back off-site).
+- **Later (M8a.3):** Split **immutable inbox deliveries** from **editable admin campaigns** — see §4 **M8a.3** (today promo/order/vault messages share the same mutable `Notification` table as admin broadcasts).
 
 #### Data models (Amplify)
 
@@ -736,6 +738,109 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 ---
 
+### M8a.3 — Inbox messages vs notification campaigns
+
+**Status:** **Planned** — after **M9a**; **before M12** (preferences need a clear split between broadcast campaigns and per-customer inbox).
+
+**Depends on:** **M8a.2** (shipped — single `Notification` table + inbox UI), **M6** (promo grant notifications), **M11** (order fulfillment notifications).
+
+**Goal:** Fix the conflation in **M8a.2** where one `Notification` model serves two different purposes:
+
+1. **Admin broadcast campaigns** — editable, schedulable, shown to all signed-in customers (or filtered later by **M12**).
+2. **Issued inbox deliveries** — immutable snapshots of what a **specific customer** was told when an event fired (promo grant, order status, vault access, admin-issued grant).
+
+Today, system-issued rows appear in **Admin → Notifications** as editable entries. Editing retroactively changes what customers see in **Account → Notifications**, which is wrong for event-driven messages. There is also no way to tell admin-created broadcasts from auto-generated inbox lines (`kind: marketing` is used for both).
+
+#### Design principles
+
+| Concern | Campaign (broadcast) | Inbox message (issued) |
+|---------|----------------------|-------------------------|
+| **Mutability** | Admin may edit title/body, schedule, deactivate | **Immutable** after create — historical record |
+| **Audience** | All signed-in users (no `userId`) | One `userId` per row |
+| **Created by** | Admin UI | System on event (promo, order, vault, …) |
+| **Admin UI** | CRUD on **Campaigns** page | **Read-only** list (optional); manage underlying grant/order instead |
+| **Customer UI** | Appears in inbox while active + in schedule | Always in inbox until user dismisses/reads (no retroactive edit) |
+
+**Promo grants** remain authoritative for discount state (`PromoGrant`); the inbox row is a **delivery receipt**, optionally linked via `promoGrantId`.
+
+#### Data models (Amplify)
+
+**`NotificationCampaign`** _(admin broadcasts — replace broadcast use of `Notification`)_:
+
+- `title`, `body` (required)
+- `kind` — `system` \| `marketing` (order campaigns unlikely; order copy is per-user)
+- `active`, `startsAt?`, `endsAt?`, `sortOrder`
+- No `userId` — broadcast only
+
+**`InboxMessage`** _(immutable per-customer delivery)_:
+
+- `userId` (required, owner read)
+- `title`, `body` (required) — **snapshot at issuance**; no admin update after create
+- `kind` — `system` \| `order` \| `marketing`
+- `source` — `promo_grant` \| `order_fulfillment` \| `vault` \| `admin_grant` \| `cart_price` \| `campaign` (if fan-out from campaign is added later)
+- `promoGrantId?`, `orderId?`, `campaignId?` — optional links for admin drill-down
+- `createdAt` (implicit)
+
+**`InboxMessageRead`** _(migrate from `NotificationRead`)_:
+
+- `inboxMessageId`, `userId`, `readAt` — composite PK
+
+**Deprecation:** Remove or stop writing to legacy `Notification` / `NotificationRead` after migration. One-time script or dual-read transition during deploy.
+
+#### Issuance paths (write `InboxMessage`, not `Notification`)
+
+| Event | `source` | `kind` | Link |
+|-------|----------|--------|------|
+| Favorite / thank-you / abandon-cart grant | `promo_grant` | `marketing` | `promoGrantId` |
+| Admin issue grant (notify on) | `admin_grant` | `marketing` | `promoGrantId` |
+| Order fulfillment transition (**M11**) | `order_fulfillment` | `order` | `orderId` |
+| Vault access granted | `vault` | `system` | — |
+| Cart price change (**M18**, future) | `cart_price` | `marketing` or `order` | `productId?` |
+
+Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/fulfillment.ts`, `notificationService.ts` (`createPromoGrantNotification`, `createVaultAccessGrantedNotification`), `promoGrantService.issuePromoGrant`.
+
+#### Customer inbox
+
+- **`listCustomerNotifications`** → query active **campaigns** (schedule + `active`) **plus** user's **`InboxMessage`** rows; merge and sort by date.
+- Campaigns: live reference to `NotificationCampaign` row (edits affect not-yet-seen viewers — acceptable for broadcasts).
+- Issued messages: read from `InboxMessage` snapshot only.
+
+#### Admin UI
+
+- **`/admin/notifications`** → rename or subtitle **“Campaigns”** — CRUD **only** `NotificationCampaign`; remove edit links for issued inbox rows.
+- **Issued inbox (read-only):** optional `/admin/inbox` or section on promo template / customer lookup — list `InboxMessage` with `source`, recipient, timestamp; **no** edit/delete of body (revoke grant / advance order instead).
+- **Issued grants** table (**M6**) remains the control plane for promo offers.
+
+#### Migration
+
+- Rows with `userId` set → `InboxMessage` (infer `source` from `kind` + title heuristics or default `promo_grant` for `marketing`).
+- Rows without `userId` → `NotificationCampaign`.
+- `NotificationRead` → `InboxMessageRead` (map notification id → inbox message id).
+- Update `scripts/reset-promo-data.ts` for new table names.
+
+#### Relationship to other milestones
+
+- **M12** — preferences apply to **campaign** categories and optional **marketing** inbox; **order** / transactional inbox may stay mandatory.
+- **M18** — cart price alerts write `InboxMessage`, not `Notification`.
+- **M6d / M13** — abandoned-cart **email** is separate channel; in-app line remains `InboxMessage`.
+
+#### Cursor rules
+
+- **Never** update `title`/`body` on an existing `InboxMessage` after create.
+- Do not list issued inbox rows on the campaigns edit screen.
+- Keep promo grant + order notification **copy composition** at write time (snapshot), same strings as today.
+- Campaign fan-out to per-user snapshots is **out of scope** v1 — campaigns stay live-reference for all viewers.
+
+#### Acceptance
+
+- Admin creates a **campaign** → all signed-in customers see it in inbox; admin can edit campaign copy; customers see updated text (live campaign behavior).
+- Promo grant issued → **one** `InboxMessage` for that user; admin **cannot** edit it from campaigns UI; text unchanged if admin edits promo template.
+- Order **shipped** → immutable `InboxMessage` with tracking copy; links to order detail.
+- Account inbox badge + read/unread works with `InboxMessageRead`.
+- No issued system messages appear as editable rows in **Admin → Campaigns**.
+
+---
+
 ### M9a — Initial UX polish
 
 **Status:** **Partial** — scroll-to-top on forward nav shipped (2026-06-13). Remaining items planned after M18.
@@ -935,7 +1040,7 @@ On each fulfillment transition (when `userId` is set):
 
 #### Cursor rules
 
-- Reuse `Notification` (`kind: order`) — do not add a parallel inbox system.
+- Reuse `Notification` (`kind: order`) for v1 — **M8a.3** will migrate order inbox rows to immutable `InboxMessage` snapshots.
 - Reuse SES helpers from `order-shared/` for customer email; separate template from support new-order email.
 - Do not extend payment `status` enum for fulfillment.
 
@@ -992,6 +1097,8 @@ On each fulfillment transition (when `userId` is set):
 ### M12 — Notification preferences
 
 **Goal:** Let customers control which notifications they receive.
+
+**Depends on:** **M8a.3** (campaign vs inbox split — preferences target **campaign** categories and optional **marketing** inbox; transactional `order` inbox may remain mandatory).
 
 **Data model:**
 - `NotificationPreference`:
@@ -1055,9 +1162,9 @@ On each fulfillment transition (when `userId` is set):
 
 **Status:** Planned — **after M19** (needs sale/list price semantics) and **M6c** (`CartSnapshot` sync).
 
-**Goal:** Notify signed-in customers (in-system `Notification`, kind `marketing` or `order`) when an item **in their server cart snapshot** has a **price decrease** (sale or markdown) or **price increase** (list price change).
+**Goal:** Notify signed-in customers (in-system **`InboxMessage`**, kind `marketing` or `order` — see **M8a.3**) when an item **in their server cart snapshot** has a **price decrease** (sale or markdown) or **price increase** (list price change).
 
-**Depends on:** **M6c** (`CartSnapshot`), **M19** (or minimal `compareAtCents` / `salePriceCents` on `Product` if M19 is phased).
+**Depends on:** **M6c** (`CartSnapshot`), **M8a.3** (`InboxMessage`), **M19** (or minimal `compareAtCents` / `salePriceCents` on `Product` if M19 is phased).
 
 **Design notes:**
 
