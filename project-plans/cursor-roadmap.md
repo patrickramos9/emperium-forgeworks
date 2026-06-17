@@ -1121,17 +1121,20 @@ On each fulfillment transition (when `userId` is set):
 
 ### M13 — Marketing & growth engine (new)
 
+**Status:** Planned — **after M9** (JSON-LD / SEO on-site) and core commerce milestones (**M19** sales pricing affects Merchant offers).
+
 **Goal:** Turn the site into a growth-ready ecommerce platform.
 
 **Scope:**
 
-1. **Google Merchant Center + Shopping feed**
-   - Generate a product feed (XML or JSON) from `Product` data.
-   - Include:
-     - Title, description, price, availability, image URL, product URL.
-   - Either:
-     - Static feed endpoint (Lambda + AppSync), or
-     - Export script run manually.
+1. **Google Merchant Center — product sync (preferred: API)**
+   - **Long-term approach:** push catalog updates via **Google Merchant Center Product API** (successor to Content API for Shopping) — insert/update/delete products when admin publishes or changes a `Product` (price, availability, image, title, link).
+   - **Why API over file feed:** stays in sync when you edit in admin; no stale XML; fits Amplify Lambda on product save or scheduled reconcile job.
+   - **Bootstrap option:** one-time or nightly **XML/JSON feed** from `Product` data if API credentials / Merchant account setup lag — same field mapping as API payloads.
+   - **Required fields (typical):** `id`, `title`, `description`, `link`, `image_link`, `price`, `availability`, `condition`; `identifier_exists: no` for custom prints without GTIN when allowed.
+   - **Exclude:** vault-gated SKUs unless intentionally listed in a separate Merchant feed.
+   - **Ops:** Merchant Center account, domain + business verification, shipping/returns policies linked in MC (align with site legal pages).
+   - **Depends on M9 JSON-LD?** No — on-page JSON-LD helps organic search; Merchant API is for **Shopping / free listings** surfaces. Both use the same underlying product fields.
 
 2. **Tracking pixels**
    - Ensure GA4 events for:
