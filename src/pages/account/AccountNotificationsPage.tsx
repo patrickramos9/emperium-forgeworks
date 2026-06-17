@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useNotificationBadge } from "@/context/NotificationBadgeContext";
 import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import {
   formatNotificationDateTime,
@@ -13,6 +14,7 @@ import {
 
 export function AccountNotificationsPage() {
   const navigate = useNavigate();
+  const { refreshNotificationBadge } = useNotificationBadge();
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<NotificationSortOrder>("newest");
@@ -52,6 +54,7 @@ export function AccountNotificationsPage() {
     try {
       await markNotificationRead(client, notificationId);
       setReadIds((prev) => (prev.includes(notificationId) ? prev : [...prev, notificationId]));
+      refreshNotificationBadge();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to mark as read");
     }

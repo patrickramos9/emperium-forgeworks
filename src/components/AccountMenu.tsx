@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { useNotificationBadge } from "@/context/NotificationBadgeContext";
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import {
   customerSignOut,
@@ -13,10 +14,12 @@ import { getSculptorForEditor } from "@/services/sculptorService";
 export function AccountMenu() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { badgeRefreshToken } = useNotificationBadge();
   const [open, setOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [unread, setUnread] = useState(0);
   const [hasPartnerAccess, setHasPartnerAccess] = useState(false);
+  const [badgeBump, setBadgeBump] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,6 +57,46 @@ export function AccountMenu() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (badgeRefreshToken === 0) return;
+
+    let cancelled = false;
+
+    async function refreshUnread() {
+      const hasSession = await hasCustomerSession();
+      if (!hasSession || cancelled) {
+        if (!hasSession) setUnread(0);
+        return;
+      }
+      const client = await getCustomerDataClient();
+      if (!client || cancelled) return;
+      try {
+        const [notifications, reads] = await Promise.all([
+          listCustomerNotifications(client),
+          listMyNotificationReads(client),
+        ]);
+        if (!cancelled) setUnread(unreadCount(notifications, reads));
+      } catch {
+        // Ignore badge load errors in nav.
+      }
+    }
+
+    void refreshUnread();
+    const retry = window.setTimeout(() => void refreshUnread(), 500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(retry);
+    };
+  }, [badgeRefreshToken]);
+
+  useEffect(() => {
+    if (unread < 1) return;
+    setBadgeBump(true);
+    const timer = setTimeout(() => setBadgeBump(false), 260);
+    return () => clearTimeout(timer);
+  }, [badgeRefreshToken, unread]);
+
+  useEffect(() => {
     function onPointerDown(event: MouseEvent) {
       if (!menuRef.current?.contains(event.target as Node)) {
         setOpen(false);
@@ -77,14 +120,16 @@ export function AccountMenu() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="p-2 text-on-surface-variant transition-colors hover:text-primary active:scale-95"
-        aria-label="Account"
+        className="relative p-2 text-on-surface-variant transition-colors hover:text-primary active:scale-95"
+        aria-label={signedIn && unread > 0 ? `Account, ${unread} unread notifications` : "Account"}
         aria-expanded={open}
         aria-haspopup="menu"
       >
         <Icon name="person" />
         {signedIn && unread > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center bg-primary px-1 text-label-sm text-on-primary">
+          <span
+            className={`absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center bg-primary px-1 text-label-sm text-on-primary ${badgeBump ? "cart-badge-bump" : ""}`}
+          >
             {unread > 9 ? "9+" : unread}
           </span>
         )}

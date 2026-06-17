@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MockCheckoutBanner } from "@/components/MockCheckoutBanner";
 import { useCart } from "@/context/CartContext";
+import { useNotificationBadge } from "@/context/NotificationBadgeContext";
 import { formatPrice } from "@/data/seedProducts";
 import { CartLineThumbnail } from "@/components/CartLineThumbnail";
 import { findCatalogProduct } from "@/lib/cartLineImage";
@@ -29,6 +30,7 @@ export function CartPage() {
     clearCart,
     enrichFromCatalog,
   } = useCart();
+  const { refreshNotificationBadge } = useNotificationBadge();
   const { products, loading: catalogLoading, loadError } = useProducts("all");
   const [promoRefreshKey, setPromoRefreshKey] = useState(0);
   const [preferAbandonedPromo, setPreferAbandonedPromo] = useState(false);
@@ -122,6 +124,7 @@ export function CartPage() {
         setSyncNotice(null);
       }
       if (result.grantIssued) {
+        refreshNotificationBadge();
         setPreferAbandonedPromo(true);
         setSyncNotice("Welcome-back offer applied to your cart.");
       }
@@ -148,7 +151,7 @@ export function CartPage() {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [cartSyncKey, signedIn, items, catalogLoading, catalogVerified]);
+  }, [cartSyncKey, signedIn, items, catalogLoading, catalogVerified, refreshNotificationBadge]);
 
   const canCheckout =
     purchasableItems.length > 0 &&

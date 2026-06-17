@@ -52,6 +52,7 @@ import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage
 import { TrustedSiteScript } from "@/components/TrustedSiteScript";
 import { ScrollToTopOnNavigate } from "@/components/ScrollToTopOnNavigate";
 import { ToastProvider } from "@/context/ToastContext";
+import { NotificationBadgeProvider } from "@/context/NotificationBadgeContext";
 import { ToastRegion } from "@/components/ToastRegion";
 
 function AnalyticsTracker() {
@@ -73,7 +74,8 @@ function AnalyticsTracker() {
 export default function App() {
   return (
     <CartProvider>
-      <ToastProvider>
+      <NotificationBadgeProvider>
+        <ToastProvider>
         <AnnouncementProvider>
           <BrowserRouter>
             <ScrollToTopOnNavigate />
@@ -161,6 +163,7 @@ export default function App() {
           </BrowserRouter>
         </AnnouncementProvider>
       </ToastProvider>
+      </NotificationBadgeProvider>
     </CartProvider>
   );
 }

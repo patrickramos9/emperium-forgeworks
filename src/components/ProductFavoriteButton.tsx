@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { useToast } from "@/context/ToastContext";
+import { useNotificationBadge } from "@/context/NotificationBadgeContext";
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import { hasFavoriteModel } from "@/lib/dataModels";
@@ -25,6 +26,7 @@ export function ProductFavoriteButton({
   className = "",
 }: Props) {
   const { showToast } = useToast();
+  const { refreshNotificationBadge } = useNotificationBadge();
   const [signedIn, setSignedIn] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -84,6 +86,7 @@ export function ProductFavoriteButton({
 
       if (result.favorited) {
         if (result.grantIssued) {
+          refreshNotificationBadge();
           showToast({
             tone: "success",
             title: "Saved to favorites",
@@ -114,7 +117,7 @@ export function ProductFavoriteButton({
     } finally {
       setBusy(false);
     }
-  }, [favorited, productId, productSlug, showToast]);
+  }, [favorited, productId, productSlug, refreshNotificationBadge, showToast]);
 
   if (!productInCatalog) {
     return (
