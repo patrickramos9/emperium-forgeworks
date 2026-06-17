@@ -29,7 +29,12 @@ function resolveUnitPriceCents(
   return product.priceCents + (variant?.priceDeltaCents ?? 0);
 }
 
-/** True when the catalog finished loading and every cart line resolves to a product. */
+/** True when the catalog finished loading (independent of cart line match). */
+export function isCartCatalogLoaded(catalogLoading: boolean): boolean {
+  return !catalogLoading;
+}
+
+/** True when every cart line resolves to a catalog product (none delisted). */
 export function isCartCatalogVerified(
   items: CartLine[],
   products: Product[],
@@ -43,17 +48,16 @@ export function isCartCatalogVerified(
 export function getCartLineIssues(
   items: CartLine[],
   products: Product[],
-  catalogVerified = true,
+  catalogLoaded = true,
 ): CartLineIssue[] {
   const issues: CartLineIssue[] = [];
 
-  if (!products.length) return issues;
+  if (!catalogLoaded) return issues;
 
   for (const item of items) {
     const product = findCatalogProduct(item, products);
 
     if (!product) {
-      if (!catalogVerified) continue;
       issues.push({
         key: item.key,
         title: item.title,
@@ -108,10 +112,10 @@ export function issuesByLineKey(
 export function filterPurchasableCartLines(
   items: CartLine[],
   products: Product[],
-  catalogVerified = true,
+  catalogLoaded = true,
 ): CartLine[] {
   const blocked = new Set(
-    getCartLineIssues(items, products, catalogVerified)
+    getCartLineIssues(items, products, catalogLoaded)
       .filter((issue) => issue.blocksCheckout)
       .map((issue) => issue.key),
   );

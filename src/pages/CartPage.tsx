@@ -11,7 +11,7 @@ import {
   cartSubtotalCents,
   filterPurchasableCartLines,
   getCartLineIssues,
-  isCartCatalogVerified,
+  isCartCatalogLoaded,
   issuesByLineKey,
 } from "@/lib/cartCatalog";
 import { useCartPromo } from "@/hooks/useCartPromo";
@@ -35,16 +35,12 @@ export function CartPage() {
   const { products, loading: catalogLoading, loadError } = useProducts("all");
   const [promoRefreshKey, setPromoRefreshKey] = useState(0);
   const [preferAbandonedPromo, setPreferAbandonedPromo] = useState(false);
-  const catalogVerified = isCartCatalogVerified(
-    items,
-    products,
-    catalogLoading,
-  );
+  const catalogLoaded = isCartCatalogLoaded(catalogLoading);
   const { promo, loading: promoLoading, signedIn } = useCartPromo(
     items,
     products,
     promoRefreshKey,
-    catalogVerified,
+    catalogLoaded,
     preferAbandonedPromo ? "abandoned_cart" : undefined,
   );
   const [checkingOut, setCheckingOut] = useState(false);
@@ -52,15 +48,15 @@ export function CartPage() {
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   const cartIssues = useMemo(
-    () => getCartLineIssues(items, products, catalogVerified),
-    [items, products, catalogVerified],
+    () => getCartLineIssues(items, products, catalogLoaded),
+    [items, products, catalogLoaded],
   );
 
   const issueByKey = useMemo(() => issuesByLineKey(cartIssues), [cartIssues]);
 
   const purchasableItems = useMemo(
-    () => filterPurchasableCartLines(items, products, catalogVerified),
-    [items, products, catalogVerified],
+    () => filterPurchasableCartLines(items, products, catalogLoaded),
+    [items, products, catalogLoaded],
   );
 
   const purchasableSubtotalCents = useMemo(
@@ -68,7 +64,9 @@ export function CartPage() {
     [purchasableItems],
   );
 
-  const hasRemovedLines = cartIssues.some((issue) => issue.kind === "removed");
+  const hasUnavailableLines = cartIssues.some(
+    (issue) => issue.kind === "removed" || issue.kind === "out_of_stock",
+  );
   const discountCents = promo?.discountCents ?? 0;
   const totalAfterPromo = Math.max(0, purchasableSubtotalCents - discountCents);
 
@@ -85,9 +83,9 @@ export function CartPage() {
     .join("|");
 
   useEffect(() => {
-    if (!catalogVerified) return;
+    if (!catalogLoaded) return;
     setPromoRefreshKey((key) => key + 1);
-  }, [catalogVerified]);
+  }, [catalogLoaded, items, products]);
 
   useEffect(() => {
     if (!signedIn || catalogLoading) return;
@@ -110,7 +108,7 @@ export function CartPage() {
         return;
       }
 
-      if (!catalogVerified || !cartLinesReadyForSnapshot(items)) return;
+      if (!catalogLoaded || !cartLinesReadyForSnapshot(items)) return;
 
       const result = await syncCartSnapshot(client, items);
       if (cancelled) return;
@@ -152,11 +150,11 @@ export function CartPage() {
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [cartSyncKey, signedIn, items, catalogLoading, catalogVerified, refreshNotificationBadge]);
+  }, [cartSyncKey, signedIn, items, catalogLoading, catalogLoaded, refreshNotificationBadge]);
 
   const canCheckout =
     purchasableItems.length > 0 &&
-    catalogVerified &&
+    catalogLoaded &&
     !catalogLoading &&
     blockingIssues.length === 0 &&
     !checkingOut;
@@ -175,7 +173,7 @@ export function CartPage() {
       return;
     }
 
-    const issues = getCartLineIssues(items, products, catalogVerified);
+    const issues = getCartLineIssues(items, products, catalogLoaded);
     if (issues.some((issue) => issue.blocksCheckout)) {
       setError("Remove or fix the items marked below before checkout.");
       return;
@@ -220,8 +218,7 @@ export function CartPage() {
     );
   }
 
-  const catalogBusy =
-    catalogLoading || (!catalogVerified && products.length > 0 && !loadError);
+  const catalogBusy = catalogLoading;
 
   return (
     <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-container-max">
@@ -245,10 +242,10 @@ export function CartPage() {
         <PageFeedback tone="success">{syncNotice}</PageFeedback>
       )}
 
-      {hasRemovedLines && !catalogLoading && (
+      {hasUnavailableLines && catalogLoaded && (
         <PageFeedback tone="error">
-          Some items in your cart were removed from the store. Remove them below
-          to continue.
+          Some items in your cart are no longer available for checkout. Resolve
+          them below to continue.
         </PageFeedback>
       )}
 
