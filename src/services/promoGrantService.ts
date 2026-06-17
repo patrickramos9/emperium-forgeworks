@@ -161,7 +161,8 @@ export async function resolveBestAppliedPromo(
         );
         return;
       }
-      if (result.data?.active) templateById.set(id, result.data);
+      // Inactive templates still honor already-issued grants at checkout.
+      if (result.data) templateById.set(id, result.data);
     }),
   );
 

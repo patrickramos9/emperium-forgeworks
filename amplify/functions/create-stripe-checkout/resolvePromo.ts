@@ -81,7 +81,8 @@ export async function resolvePromoForCheckout(
     templateIds.map(async (id) => {
       const { data, errors } = await client.models.PromoTemplate.get({ id });
       if (errors?.length) return;
-      if (data?.active) templateById.set(id, data);
+      // Inactive templates still honor already-issued grants at checkout.
+      if (data) templateById.set(id, data);
     }),
   );
 
