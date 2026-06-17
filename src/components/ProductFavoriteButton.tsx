@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { useToast } from "@/context/ToastContext";
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import { hasFavoriteModel } from "@/lib/dataModels";
@@ -23,11 +24,11 @@ export function ProductFavoriteButton({
   productInCatalog = true,
   className = "",
 }: Props) {
+  const { showToast } = useToast();
   const [signedIn, setSignedIn] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +68,6 @@ export function ProductFavoriteButton({
   }, [productId]);
 
   const handleToggle = useCallback(async () => {
-    setMessage(null);
     const client = await getCustomerDataClient();
     if (!client) return;
 
@@ -81,21 +81,40 @@ export function ProductFavoriteButton({
         productSlug,
       );
       setFavorited(result.favorited);
-      if (result.favorited && result.grantIssued) {
-        setMessage(
-          "Offer added — check Account → Notifications and your cart when this item is in the cart.",
-        );
-      } else if (result.favorited) {
-        setMessage(
-          "Saved to favorites. View them under Account → Saved favorites.",
-        );
+
+      if (result.favorited) {
+        if (result.grantIssued) {
+          showToast({
+            tone: "success",
+            title: "Saved to favorites",
+            description:
+              "A promo offer was added — check Notifications when this item is in your cart.",
+            action: { label: "View notifications", href: "/account/notifications" },
+          });
+        } else {
+          showToast({
+            tone: "success",
+            title: "Saved to favorites",
+            action: { label: "View favorites", href: "/account/favorites" },
+          });
+        }
+      } else {
+        showToast({
+          tone: "success",
+          title: "Removed from favorites",
+        });
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not update favorite");
+      showToast({
+        tone: "error",
+        title: "Could not update favorite",
+        description:
+          err instanceof Error ? err.message : "Please try again in a moment.",
+      });
     } finally {
       setBusy(false);
     }
-  }, [favorited, productId, productSlug]);
+  }, [favorited, productId, productSlug, showToast]);
 
   if (!productInCatalog) {
     return (
@@ -144,9 +163,6 @@ export function ProductFavoriteButton({
         />
         {favorited ? "Saved" : "Save to favorites"}
       </button>
-      {message && (
-        <p className="mt-2 text-label-sm text-secondary">{message}</p>
-      )}
     </div>
   );
 }
