@@ -117,12 +117,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const key = lineKey(product.id, variant?.id);
       const priceCents = product.priceCents + (variant?.priceDeltaCents ?? 0);
 
+      let added = false;
       setItems((prev) => {
         const existing = prev.find((i) => i.key === key);
+        let next: CartLine[];
         if (existing) {
           const imageUrl =
             productPrimaryImageRef(product) ?? existing.imageUrl;
-          return prev.map((i) =>
+          next = prev.map((i) =>
             i.key === key
               ? {
                   ...i,
@@ -131,45 +133,62 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 }
               : i,
           );
+        } else {
+          next = [
+            ...prev,
+            {
+              key,
+              productId: product.id,
+              slug: product.slug,
+              title: product.title,
+              priceCents,
+              quantity,
+              imageUrl: productPrimaryImageRef(product),
+              variantId: variant?.id,
+              variantLabel: variant?.label,
+            },
+          ];
         }
-        return [
-          ...prev,
-          {
-            key,
-            productId: product.id,
-            slug: product.slug,
-            title: product.title,
-            priceCents,
-            quantity,
-            imageUrl: productPrimaryImageRef(product),
-            variantId: variant?.id,
-            variantLabel: variant?.label,
-          },
-        ];
+        persistItems(next);
+        added = true;
+        return next;
       });
       setCartBadgeBumpToken((token) => token + 1);
-      return true;
+      return added;
     },
     [],
   );
 
   const removeItem = useCallback((key: string) => {
-    setItems((prev) => prev.filter((i) => i.key !== key));
+    setItems((prev) => {
+      const next = prev.filter((i) => i.key !== key);
+      persistItems(next);
+      return next;
+    });
   }, []);
 
   const updateQuantity = useCallback((key: string, quantity: number) => {
     if (quantity < 1) {
-      setItems((prev) => prev.filter((i) => i.key !== key));
+      setItems((prev) => {
+        const next = prev.filter((i) => i.key !== key);
+        persistItems(next);
+        return next;
+      });
       return;
     }
-    setItems((prev) =>
-      prev.map((i) =>
+    setItems((prev) => {
+      const next = prev.map((i) =>
         i.key === key ? { ...i, quantity: clampQuantity(quantity) } : i,
-      ),
-    );
+      );
+      persistItems(next);
+      return next;
+    });
   }, []);
 
-  const clearCart = useCallback(() => setItems([]), []);
+  const clearCart = useCallback(() => {
+    persistItems([]);
+    setItems([]);
+  }, []);
 
   const enrichFromCatalog = useCallback((products: Product[]) => {
     if (!products.length) return;
@@ -203,7 +222,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         return updated;
       });
-      return changed ? next : prev;
+      if (changed) {
+        persistItems(next);
+        return next;
+      }
+      return prev;
     });
   }, []);
 

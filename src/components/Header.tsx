@@ -15,7 +15,8 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   ].join(" ");
 
 export function Header() {
-  const { itemCount, cartBadgeBumpToken } = useCart();
+  const { items, cartBadgeBumpToken } = useCart();
+  const itemCount = items.reduce((count, line) => count + line.quantity, 0);
   const showVaultNav = useVaultNavAccess();
   const { headerTopClass } = useSiteLayout();
   const navigate = useNavigate();
@@ -86,7 +87,9 @@ export function Header() {
           <Link
             to="/cart"
             className="relative p-2 text-on-surface-variant transition-colors hover:text-primary active:scale-95"
-            aria-label="Cart"
+            aria-label={
+              itemCount > 0 ? `Cart, ${itemCount} items` : "Cart"
+            }
           >
             <Icon name="shopping_cart" />
             {itemCount > 0 && (
