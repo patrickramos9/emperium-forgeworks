@@ -29,13 +29,13 @@ Cursor should treat this file as the **source of truth** for:
 | **Blocked** | _(none)_ — **SES production access** stalled (AWS support); **customer transactional email** optional — in-app order notifications work; third-party email (Resend/Postmark/etc.) or **M20** `EmailProvider` port are fallbacks |
 | **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
 | **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) · **M9a** UX polish (toasts, cart badge, checkout redirect feedback, account form banners) · **New-account promo grants** (`useForNewAccount` template + `postConfirmation` issuance) |
-| **In progress** | _(none)_ — **M9a** shipped 2026-06-16 |
+| **In progress** | _(none)_ |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
-| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
+| **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
-M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M11** (customer order status + shipping) → **M19** → **M18** → **M9a** → **M8a.3** (inbox vs campaigns) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
+M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M9a** (done) → **M11** (customer order status + shipping) → **M19** → **M18** → **M8a.3** (inbox vs campaigns) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -174,10 +174,12 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M6b** — Favorite grants + PDP UI + favorites list — **production verified** (2026-06-11)
 - **M17** — Removed-from-catalog UX (cart + favorites) — fixes **B1** — **production verified** (2026-06-11)
 - **Go-live polish (2026-06-13)** — see **§3.1** below — **production verified** (2026-06-11; monitor for bugs)
+- **M9a** — Initial UX polish (toasts, cart badge bump, PDP/cart/favorites/checkout/account feedback) — **shipped** (2026-06-16; deploy frontend)
+- **M6 new-account promo** — `useForNewAccount` template flag + `new_account` grant on Cognito email confirm (`postConfirmation`) — **shipped** (2026-06-16; deploy backend)
 
 ### 3.1 Go-live polish batch (2026-06-13)
 
-Shipped in repo during pre-launch polish. **Signed off** 2026-06-11 (deployed; monitor for bugs). Regression checklists in [docs/qa-test-plan.md](../docs/qa-test-plan.md) §18.
+Shipped in repo during pre-launch polish. **Signed off** 2026-06-11 (deployed; monitor for bugs). Regression checklists in [docs/qa-test-plan.md](../docs/qa-test-plan.md) §18a.
 
 | Area | What shipped |
 |------|----------------|
@@ -193,6 +195,22 @@ Shipped in repo during pre-launch polish. **Signed off** 2026-06-11 (deployed; m
 | **Build / deploy** | Lambda `package-lock.json` sync (`stripe-webhook`, `notify-order-placed`, `get-storefront-stats`); `@aws-sdk/client-ses` on Amplify backend package for shared `order-shared/notifySupport.ts` type-check |
 
 **Ops:** SES identity verified; live Stripe order → support inbox email **confirmed** (2026-06-11). Production storefront uses live Stripe on Amplify `main` (`VITE_APP_ENV=deployment`).
+
+### 3.2 M9a + new-account promo (2026-06-16)
+
+Shipped in repo. Regression checklists in [docs/qa-test-plan.md](../docs/qa-test-plan.md) §20 and §17 (new-account).
+
+| Area | What shipped |
+|------|----------------|
+| **Global UX (M9a)** | Toast system + `aria-live`; cart icon badge bump on add; `PageFeedback` banners |
+| **PDP** | Add-to-cart toast (product name + price, optional View cart); disabled-state helper text |
+| **Favorites** | Save/unsave toasts aligned with add-to-cart |
+| **Cart** | Loading / empty / error / unavailable-line banners; checkout “Forging…” + redirect status; clear disabled during redirect |
+| **Checkout cancel** | Sync status/error banners on `/checkout/cancel` |
+| **Account forms** | Login / register / notifications use `PageFeedback`; register welcome toast + notification badge refresh |
+| **New-account promo** | `PromoTemplate.useForNewAccount`; grant `source: new_account` on `PostConfirmation_ConfirmSignUp`; admin template checkbox; once per user lifetime |
+
+**Deploy:** Frontend for M9a UX; **backend redeploy** for schema enum + `add-customer-to-group` Lambda data access + grant issuance.
 
 ### Blocked / waiting
 
@@ -218,7 +236,6 @@ _(none — monitor production; fix bugs ad hoc)_
 
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
 - **M18** — **Cart price-change** in-system notifications (sale or list price up/down for items in cart)
-- **M9a** — **Initial UX polish** (micro-interactions, cart feedback, consistency — see §4)
 - **M8a.3** — **Inbox messages vs notification campaigns** — split immutable per-customer deliveries from editable admin broadcasts (see §4)
 
 **Later**
@@ -383,6 +400,7 @@ _(none — monitor production; fix bugs ad hoc)_
 |-----------|---------|
 | **M6** | Templates, grants, admin assign/revoke, auto-apply cart + checkout, order fields, thank-you on paid webhook, in-system notifications |
 | **M6b** | `Favorite` model + UI + favorite issuance + post-purchase re-issue |
+| **M6 (new-account)** | `useForNewAccount` template + `new_account` grant on email confirm — **shipped** 2026-06-16 |
 | **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
 | **M6d** | Abandoned-cart email (with M13) |
 | **M6e** | Guest identity (cookie) + server guest cart sync; merge on sign-in; `activeCartCount` + abandon paths include guests |

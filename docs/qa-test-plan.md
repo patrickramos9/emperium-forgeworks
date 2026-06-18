@@ -4,7 +4,34 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
-**Roadmap last synced:** 2026-06-11
+**Roadmap last synced:** 2026-06-16
+
+---
+
+## Feature coverage (shipped → section)
+
+| Milestone | What | QA section |
+|-----------|------|------------|
+| Layout / nav | Header, footer, announcements | §1 |
+| M2, M7a | Shop + PDP | §2 |
+| M15 | Shipping display + profiles | §3, §10 |
+| M3a, M6, M6c, M17 | Cart + promos | §4, §17, §17b |
+| M3b | Checkout + Stripe | §5 |
+| M4, M6b, M8a.2, M17 | Accounts, favorites, notifications | §6 |
+| M8b | Reviews | §7 |
+| M2, M3b, M15, M6 | Admin orders | §8 |
+| M2 | Admin products (+ `activeCartCount`) | §9 |
+| M8a.1 | Announcements | §11 |
+| M8a.2 | Admin notifications | §12 |
+| M7b | Vault | §13 |
+| M8c, M8d | Sculptors + partner | §14 |
+| M5 | GA4 dashboard | §15 |
+| Legal / static | About, policies | §16, §18a |
+| M6 core/b/c + new-account | Promo templates & grants | §17 |
+| M17 | Removed-from-catalog | §17b |
+| Go-live polish | Order email, catalog, scroll | §18a |
+| **M9a** | UX polish (toasts, feedback) | §20 |
+| **M11** | Order status + shipping _(repo; deploy to test)_ | §19 |
 
 ---
 
@@ -12,24 +39,29 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Next milestone:** **M11** — customer order status (paid → received → processing → shipped + tracking). See §19 when spec is implemented.
 
-Pre-launch sign-off closed 2026-06-11. Run smoke after deploys; full §6–§18 checklists for regression when touching related code.
+Pre-launch sign-off closed 2026-06-11. Run smoke after deploys; full §6–§20 checklists for regression when touching related code.
 
 | When | What to run |
 |------|-------------|
 | **After any deploy** | Quick smoke (§5 checkout, §8 admin order, home/shop load) |
 | **Promo/cart/favorites change** | §4, §6, §17, §17b |
-| **Catalog/admin product change** | §2 PDP, §17b, §18 admin catalog |
+| **UX / toast / account forms change** | §2, §4, §6, §20 |
+| **Catalog/admin product change** | §2 PDP, §17b, §9, §18a admin catalog |
 | **New milestone** | Matching section below + remove from **Not yet built** |
 
-**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c**), M7b, M8b/c/d, M15, **M17**, go-live polish §18, order notification email.
+**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c**), M7b, M8b/c/d, M15, **M17**, go-live polish §18a, order notification email.
 
-**Do not test yet:** M19, M18, remaining M9a (add-to-cart toast, etc.), M6d marketing email, M11, M10/M12/M13/M16.
+**Shipped in repo — verify after deploy:** **M9a** (§20), **M6 new-account promo** (§17), **M11** (§19; needs backend deploy).
 
-### Deploy prerequisites (M6b/c + M17) — signed off 2026-06-11
+**Do not test yet:** M19, M18, M6d marketing email, M10, M12, M13, M16, **M9** (SEO/gallery — not M9a).
+
+### Deploy prerequisites (M6b/c + M17 + new-account) — signed off 2026-06-11; extend for new-account 2026-06-16
 
 - [x] Amplify **backend** deployed: `Favorite`, `CartSnapshot`, `toggleProductFavorite`, `syncCartSnapshot`, `PromoTemplate` flags, `Favorite.productSlug`
+- [ ] Amplify **backend** redeployed for **new-account promo**: `PromoGrant.source` includes `new_account`, `PromoTemplate.useForNewAccount`, `addCustomerToGroup` postConfirmation grant issuance
 - [x] Amplify **frontend** deployed against current `amplify_outputs.json`
-- [x] Promo templates configured per source (admin, thank-you, favorite, abandoned cart)
+- [x] Promo templates configured per source (admin, thank-you, favorite, abandoned cart, new-account)
+- [ ] Promo template with **Use for new-account welcome grants** (only one active) — for §17 new-account tests
 - [x] Order notification Lambdas/schema + SES verified
 
 ### Promo test data reset (between runs)
@@ -81,7 +113,7 @@ Run after every production deploy.
 
 - [ ] Home (`/`) loads; no console errors
 - [ ] Shop (`/shop`) lists products with images and prices
-- [ ] Open a product PDP; add to cart
+- [ ] Open a product PDP; add to cart — **toast** confirms add (M9a); cart icon count bumps
 - [ ] Cart shows line + subtotal; checkout completes (or mock locally)
 - [ ] Success page loads; cart clears
 - [ ] Admin login (`/admin/login`); dashboard loads
@@ -122,7 +154,8 @@ Run after every production deploy.
 
 - [ ] Gallery: main image, thumbnails, variant image swap (if variants)
 - [ ] Price updates with variant selection (multi-select variants if configured)
-- [ ] **Add to cart** disabled when out of stock or variants required but none selected
+- [ ] **Add to cart** disabled when out of stock or variants required but none selected — helper text explains why (M9a)
+- [ ] **Add to cart (M9a):** success **toast** with product name + price; optional **View cart** action; page does not navigate away
 - [ ] Specs block (material, sculptor, status) when present
 - [ ] Description and lore sections render
 - [ ] “You might also like” links work
@@ -133,6 +166,7 @@ Run after every production deploy.
 - [ ] **Signed out:** “Save to favorites” prompts sign-in (no API error)
 - [ ] **Signed in:** **Save to favorites** / heart toggles; state persists after refresh
 - [ ] First favorite on a product (with favorite template active): in-system **notification** + open **favorite** grant (if not already open for that product)
+- [ ] **Save / unsave toasts (M9a):** brief toast on favorite toggle (aligned with add-to-cart pattern)
 - [ ] Second favorite on same product: no duplicate grant spam (behavior per template rules)
 - [ ] After save: success copy mentions **Account → Saved favorites** (M17)
 
@@ -179,7 +213,8 @@ Run after every production deploy.
 
 **Route:** `/cart`
 
-- [ ] Empty cart message + link to shop
+- [ ] Empty cart message + link to shop (styled empty state — M9a)
+- [ ] **Catalog load error:** banner when shop catalog fails; cart still usable where possible (M9a)
 - [ ] Line items: title, variant label, qty, line total
 - [ ] Quantity +/- respects max; remove line works
 - [ ] Subtotal correct
@@ -189,10 +224,12 @@ Run after every production deploy.
 - [ ] **Line thumbnails** resolve from catalog/S3 (not raw `localStorage` paths); refresh `/cart` still shows images
 - [ ] **Mock checkout banner** visible when `VITE_APP_ENV=local`
 - [ ] **Out of stock** line flagged; checkout blocked until fixed or removed
+- [ ] **Unavailable lines banner (M17/M9a):** when product deleted or `inStock` unchecked, banner shows **removed from store** or **out of stock** (not stuck on “Verifying…”)
 - [ ] **Removed from catalog** line flagged (§17b); subtotal/promo exclude non-purchasable lines
 - [ ] **Catalog loading:** brief **“Verifying cart against catalog…”** — no false **removed from store** while catalog enriches (§17 M6c regression)
 - [ ] **Price changed** since add-to-cart: flagged; checkout blocked until user refreshes from PDP (re-add)
 - [ ] Clear cart works
+- [ ] **Checkout redirect (M9a):** click Checkout → button shows **Forging…**; **Redirecting to secure checkout…** banner; Clear disabled until redirect or error
 - [ ] **M6c:** signed in with items → sync (~600ms on `/cart`, or any page when cart becomes empty) updates server snapshot; see §17 (M6c)
 - [ ] **M6c revoke:** clear cart or remove last line **anywhere** (shop PDP qty→0, `/cart` remove) → open `abandoned_cart` grant **revoked**; partial line removal **keeps** grant on remaining subtotal
 
@@ -221,6 +258,7 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 - [ ] Pay with test/live card; success redirect to `/checkout/success?session_id=…`
 - [ ] **Webhook:** order moves to **Paid** without manual admin edit (allow ~30s; refresh admin)
 - [x] Cancel at Stripe → `/checkout/cancel?session=…`; pending order becomes **Cancelled** (allow ~10s; refresh admin)
+- [ ] **Cancel page (M9a):** **Updating order status…** banner while syncing; error banner if sync fails (non-blocking)
 - [x] Expire open session in Stripe Dashboard (or wait for expiry) → webhook sets pending order **Cancelled**
 - [ ] Full refund in Stripe Dashboard on paid order → webhook sets order **Refunded**
 - [ ] Stripe Dashboard: session, payment, shipping amount match admin order
@@ -234,8 +272,11 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 ### Auth
 
 - [ ] Register new customer; confirm email if Cognito requires verification
+- [ ] **Register confirm (M9a + new-account):** after verify + sign-in → welcome **toast** with link to notifications; account menu notification badge updates (~1–2s)
+- [ ] **New-account grant (§17):** with `useForNewAccount` template active, confirm new email → **Welcome to the forge** notification + open `new_account` grant (once per user)
 - [ ] Login / logout
-- [ ] Forgot password flow
+- [ ] **Form feedback (M9a):** login/register/notifications errors show styled **PageFeedback** banner (not bare red text only)
+- [ ] Forgot password flow — success message after reset uses consistent banner styling
 - [ ] Protected routes redirect to login with `returnTo`
 
 ### Account home
@@ -266,6 +307,7 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 
 - [ ] Inbox lists active notifications for user
 - [ ] Unread badge in account menu decrements when marked read
+- [ ] **Badge refresh:** after favorite grant, cart abandon grant, mark-read, or register confirm — badge updates without full page reload where implemented
 - [ ] **Read notifications** do not affect cart, promos, or abandon detection (inbox only)
 - [ ] Vault-grant notification received when admin adds vault access
 - [ ] **Thank-you promo (M6):** after paid order, in-system notification about next-order offer (if thank-you template configured)
@@ -316,6 +358,7 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 **Routes:** `/admin/products`, `/admin/products/:slug`, `/admin/products/new`
 
 - [ ] List all products; edit link works
+- [ ] **Active cart count:** product cards show **In N carts** (or similar) for signed-in shoppers with items in server snapshot — updates after cart sync (signed-in only until M6e)
 - [ ] Create product: slug, title, price, category, images upload to S3
 - [ ] Gallery order / detail image
 - [ ] Variants / option groups save and reflect on PDP
@@ -334,6 +377,7 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 - [ ] Create **flat** profile: first item + additional item cents
 - [ ] Create **free over threshold** profile
 - [ ] Create **weight tier** profile with tier table
+- [ ] **`us_free_international_flat` (M15):** profile kind available in admin; free US shipping + flat international rate applies at checkout for assigned products
 - [ ] **Ready to ship** min/max days save and show on list + PDP
 - [ ] **Default** profile: only one default at a time
 - [ ] **Allowed countries** (e.g. `US, CA`) save
@@ -427,10 +471,12 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 
 ## 16. Static & policy pages
 
-**Routes:** `/about`, `/shipping-returns`
+**Routes:** `/about`, `/shipping-returns`, `/privacy-policy`, `/forge-terms`
 
-- [ ] About page content and layout
+- [ ] About page content and layout; Forge Story stats load
 - [ ] Shipping & returns policy readable; contact email link works
+- [ ] **Privacy policy** (`/privacy-policy`) loads from footer; last-updated date reasonable
+- [ ] **Forge terms** (`/forge-terms`) loads from footer
 - [ ] Policy text aligns with actual behavior (return window, buyer pays return shipping, etc.)
 
 ---
@@ -457,12 +503,13 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 - [ ] **Thank-you** checkbox: enabling on template B clears it on template A (only one thank-you template)
 - [ ] **Use for favorite-item grants** checkbox: only one active template; enabling clears flag on others
 - [ ] **Use for abandoned-cart** checkbox: only one active template; **abandon after hours** required when enabled (e.g. 1 for QA)
+- [ ] **Use for new-account welcome grants** checkbox: only one active template; enabling clears flag on others
 - [ ] **Deactivate** template: still listed; marked inactive
 - [ ] Delete template (confirm)
 
 ### Admin — issued grants (list + revoke)
 
-- [ ] **`/admin/promos` → Issued grants** table loads: **Issued**, **Source**, **Offer**, **Recipient**, **Status**
+- [ ] **`/admin/promos` → Issued grants** table loads: **Issued**, **Source** (incl. **New account**), **Offer**, **Recipient**, **Status**
 - [ ] Grant links to live template name + discount; **Revoke** on open grants from list and template edit page
 - [ ] Orphaned grants (template deleted) show **Deleted template** + short id — not “Unknown template”
 - [ ] Cannot delete template while **open** grants reference it (revoke first)
@@ -524,6 +571,27 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 - [ ] Unfavorite → unused grant **still** valid until used/expired (v1: no auto-revoke)
 - [ ] Paid order including favorited product → new favorite grant if product still favorited (webhook); notification optional
 - [ ] Admin order with favorite promo: `promoSource` = `favorite` when applicable
+
+### M6 — New-account welcome grants
+
+**Requires:** Backend redeploy with `useForNewAccount`, `new_account` source, `postConfirmation` grant issuance.
+
+**Setup**
+
+- [ ] One active template with **Use for new-account welcome grants** (only one system-wide)
+- [ ] Fresh test email never registered before (or delete Cognito user + reset grants via `reset-promo-data.ts`)
+
+**Issuance**
+
+- [ ] Register → confirm email → sign in: **Welcome to the forge** in Account → Notifications
+- [ ] Admin **Issued grants**: source **New account**, status **open**, correct template/discount
+- [ ] Grant applies at cart/checkout like other whole-cart grants (best-savings tie-break vs favorite/abandon if multiple)
+- [ ] **Once per lifetime:** same user cannot receive a second `new_account` grant (re-register same email blocked by Cognito; admin-created users without email confirm do not receive grant)
+
+**Template rules**
+
+- [ ] Deactivate new-account template → **no new** grants on future sign-ups; existing open grants still redeem
+- [ ] Switch active new-account template (exclusive flag) → only the newly flagged template used for future sign-ups
 
 ### M6c — Abandoned cart (in-system)
 
@@ -630,21 +698,75 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 | Milestone | Feature | Notes |
 |-----------|---------|--------|
-| **M11** | Customer order status + shipping tracking | **Next** — paid/received/processing/shipped; §19 when built |
+| **M11** | Customer order status + shipping tracking | **In repo** — deploy + run §19 |
 | **M19** | Catalog sales & bundles (list/compare pricing) | After M11 |
 | **M18** | Cart price-change in-system notifications | After M19 + M6c |
-| **M9a** | Initial UX polish (e.g. add-to-cart toast/feedback) | Scroll-to-top shipped §18; rest planned |
+| **M9** | Polish & growth (gallery, SEO, structured data) | **Not M9a** — UX polish shipped §20 |
 | **M6d** | Abandoned-cart **email** | In-system M6c only today |
+| **M8a.3** | Inbox vs notification campaigns split | — |
 | **M10** | Admin–customer chat | — |
-| **M11** / **M11b** / **M14** | Fabrication sub-stages (M11a), Pi bridge, ForgeLink | Deferred after M11 |
+| **M11a** / **M11b** / **M14** | Fabrication sub-stages, Pi bridge, ForgeLink | Deferred |
 | **M15b** | Cart shipping estimate preview; Stripe ETA UI | — |
 | **M16** | Returns, refunds, exchanges | Email-only policy today |
-| **M12** | Notification preferences | — |
+| **M12** | Notification preferences | Depends on M8a.3 |
 | **M13** | Marketing pixels / UTM on orders | — |
+| **M6e** | Guest cart server sync + identity merge | — |
 
-**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c), §17b (M17), §18 (go-live polish).
+**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c), §17b (M17), §18a (go-live polish).
+
+**Shipped in repo — verify after deploy:** §20 (M9a), §17 new-account, §19 (M11).
 
 Add test sections here when each **new** milestone ships.
+
+---
+
+## §20 — Initial UX polish (M9a)
+
+**Status:** **Shipped** 2026-06-16 — deploy frontend; regression when touching cart, PDP, checkout, or account forms.
+
+### Global
+
+- [ ] Toast stack appears top/bottom per design; auto-dismisses; `aria-live` announces to screen readers
+- [ ] Multiple toasts queue without overlap bugs
+- [ ] Toast **action** link (e.g. View cart, Notifications) navigates correctly
+
+### Add to cart + cart badge
+
+- [ ] PDP add-to-cart → toast with product name + price within ~1s; user stays on PDP
+- [ ] Header cart icon count **bumps** or animates on add (in addition to numeric update)
+- [ ] Rapid double add → sensible qty + single or stacked toast behavior (no crash)
+
+### Favorites
+
+- [ ] Save / unsave toast matches add-to-cart tone and duration
+
+### Cart page
+
+- [ ] Empty state: styled panel + CTA to shop
+- [ ] Catalog verifying: **Verifying cart against catalog…** info banner
+- [ ] Catalog error: error banner; page not blank
+- [ ] Unavailable lines: unified banner when any line removed or out of stock
+- [ ] Checkout errors: styled error banner; clears when blocking issues resolved
+- [ ] Checkout in progress: **Forging…** button + **Redirecting to secure checkout…**; Clear disabled
+
+### Checkout cancel
+
+- [ ] `/checkout/cancel?session=…` — sync status + error banners (§5)
+
+### Account forms
+
+- [ ] Login error → PageFeedback error banner
+- [ ] Password reset success query param → PageFeedback success on login page
+- [ ] Register sign-up / confirm errors → PageFeedback
+- [ ] Register confirm success → welcome toast (§6)
+- [ ] Notifications load error → PageFeedback on inbox page
+
+### Regression (M9a must not break)
+
+- [ ] Variant picker + qty rules unchanged
+- [ ] Promo auto-apply + abandon sync unchanged (§17)
+- [ ] Removed-from-catalog behavior unchanged (§17b)
+- [ ] Browser back/forward scroll behavior unchanged (§18a)
 
 ---
 
@@ -677,7 +799,7 @@ Add test sections here when each **new** milestone ships.
 
 ---
 
-## §18 — Go-live polish (2026-06-13)
+## §18a — Go-live polish (2026-06-13)
 
 **Status:** **Signed off** 2026-06-11 — deployed to production; monitor for bugs. Checklists below retained for regression.
 
