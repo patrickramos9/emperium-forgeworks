@@ -165,6 +165,7 @@ export function AdminPromoTemplatesPage() {
                     ? `${row.percent}% off subtotal`
                     : `${formatPrice(row.amountCents ?? 0)} off subtotal`}
                   {row.useForThankYou ? " · Thank-you template" : ""}
+                  {row.useForNewAccount ? " · New-account template" : ""}
                   {row.active ? " · Active" : " · Inactive"}
                   {row.defaultExpiresInDays
                     ? ` · Grants expire in ${row.defaultExpiresInDays} days`
@@ -188,7 +189,7 @@ export function AdminPromoTemplatesPage() {
         </h2>
         <p className="mt-1 text-body-sm text-on-surface-variant">
           All customer offers issued from templates — admin, thank-you, favorite,
-          and abandoned cart.
+          new account, and abandoned cart.
         </p>
         {orphanedGrantCount > 0 && (
           <p className="mt-2 text-body-sm text-error">

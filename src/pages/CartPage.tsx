@@ -393,7 +393,12 @@ export function CartPage() {
             ? "Mock checkout locally — no charge."
             : "Secure checkout via Stripe (cards, Apple Pay, Google Pay). Shipping at checkout."}
         </p>
-        {error && (
+        {checkingOut && (
+          <PageFeedback tone="info" className="mt-4 text-left">
+            Redirecting to secure checkout…
+          </PageFeedback>
+        )}
+        {error && !checkingOut && (
           <PageFeedback tone="error" className="mt-4 text-left">
             {error}
           </PageFeedback>
@@ -404,7 +409,8 @@ export function CartPage() {
               <button
                 type="button"
                 onClick={clearCart}
-                className="border border-outline-variant/30 px-4 py-2 font-label-md uppercase text-on-surface-variant"
+                disabled={checkingOut}
+                className="border border-outline-variant/30 px-4 py-2 font-label-md uppercase text-on-surface-variant disabled:opacity-50"
               >
                 Clear
               </button>

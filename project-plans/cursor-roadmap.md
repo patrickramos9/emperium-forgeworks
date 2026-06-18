@@ -28,8 +28,8 @@ Cursor should treat this file as the **source of truth** for:
 | **Next** | **M11** — paid → received → processing → shipped (+ tracking); customer notifications + optional SES email |
 | **Blocked** | _(none)_ — **SES production access** stalled (AWS support); **customer transactional email** optional — in-app order notifications work; third-party email (Resend/Postmark/etc.) or **M20** `EmailProvider` port are fallbacks |
 | **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
-| **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) |
-| **In progress** | **M9a** — cart polish shipped 2026-06-16; checkout redirect + account form feedback + QA remaining |
+| **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) · **M9a** UX polish (toasts, cart badge, checkout redirect feedback, account form banners) · **New-account promo grants** (`useForNewAccount` template + `postConfirmation` issuance) |
+| **In progress** | _(none)_ — **M9a** shipped 2026-06-16 |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§18 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -327,6 +327,7 @@ _(none — monitor production; fix bugs ad hoc)_
 | **thank_you** | On **paid** order (webhook final step) | Next order; template expiry | New grant after each **completed** purchase (while template active) |
 | **favorite** | First time user favorites product **P** (**M6b**) | Discount applies only when **P** is in cart (line-level or allocated to P’s subtotal) | If **P** still favorited after paid order → new grant (**M6b**) |
 | **abandoned_cart** | Cart idle ≥ N hours with items (**M6c**) | **Whole-cart subtotal** (not per line); tied to user + snapshot | Revoked when cart **fully empty**; new grant after new idle period (**M6c**) |
+| **new_account** | Customer confirms email on **sign-up** (`postConfirmation`) | Next order; template expiry | **Once per user lifetime** (no re-issue) |
 
 - **Favorite vs abandoned cart** — different triggers; both may exist for a user but only **one** wins at checkout (best savings → soonest expiry).
 - **Unfavorite** (v1): unused grant remains until used/expired (no automatic revoke).
@@ -345,7 +346,7 @@ _(none — monitor production; fix bugs ad hoc)_
 - `source` enum or flags for which issuance paths use this template
 
 **`PromoGrant`** (system + admin):
-- `templateId`, `userId`, `source` (`admin` | `thank_you` | `favorite` | `abandoned_cart`)
+- `templateId`, `userId`, `source` (`admin` | `thank_you` | `favorite` | `abandoned_cart` | `new_account`)
 - `productId?`, `cartSnapshotId?`
 - `expiresAt`, `revokedAt?`, `redeemedAt?`, `orderId?`
 - Optional display `code` / token for admin reference (not shared between users)
@@ -847,9 +848,11 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 
 ### M9a — Initial UX polish
 
-**Status:** **Partial** — scroll-to-top on forward nav shipped (2026-06-13). Remaining items planned after M18.
+**Status:** **Shipped** (2026-06-16) — scroll-to-top on forward nav (2026-06-13); toasts, cart badge bump, PDP/cart/favorites feedback, checkout redirect banner, account form `PageFeedback`, cancel-page sync banners.
 
 **Shipped (2026-06-13, see §3.1):** forward-navigation scroll reset (back/forward preserves position).
+
+**Shipped (2026-06-16):** global toast + `aria-live`; cart icon badge bump; PDP add-to-cart toast; favorites save/unsave toasts; cart loading/empty/error/unavailable-line banners; checkout “Forging…” + redirect status; login/register/notifications form feedback; checkout cancel sync feedback.
 
 **Goal:** Small, high-impact storefront UX improvements that make the shop feel finished. No new backend models unless strictly necessary.
 

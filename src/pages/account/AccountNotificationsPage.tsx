@@ -11,6 +11,7 @@ import {
   type NotificationRecord,
   type NotificationSortOrder,
 } from "@/services/notificationService";
+import { PageFeedback } from "@/components/PageFeedback";
 
 export function AccountNotificationsPage() {
   const navigate = useNavigate();
@@ -112,7 +113,7 @@ export function AccountNotificationsPage() {
         </div>
       )}
 
-      {error && <p className="mb-4 text-error">{error}</p>}
+      {error && <PageFeedback tone="error">{error}</PageFeedback>}
 
       {notifications.length === 0 ? (
         <p className="text-on-surface-variant">No notifications right now.</p>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { configureAmplify } from "@/lib/amplify";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
+import { PageFeedback } from "@/components/PageFeedback";
 
 export function CheckoutCancelPage() {
   const [searchParams] = useSearchParams();
@@ -66,12 +67,14 @@ export function CheckoutCancelPage() {
         Your cart is unchanged. Return when you are ready to forge.
       </p>
       {syncing && (
-        <p className="mt-3 text-body-sm text-on-surface-variant">
+        <PageFeedback tone="info" className="mx-auto mt-3 max-w-md text-center">
           Updating order status…
-        </p>
+        </PageFeedback>
       )}
       {syncError && (
-        <p className="mt-3 text-body-sm text-on-surface-variant">{syncError}</p>
+        <PageFeedback tone="error" className="mx-auto mt-3 max-w-md text-center">
+          {syncError}
+        </PageFeedback>
       )}
       <Link to="/cart" className="mt-8 inline-block text-primary underline">
         Back to cart

@@ -102,10 +102,15 @@ async function startStripeCheckout(
   });
 
   if (errors?.length) {
-    throw new Error(errors.map((e) => e.message).join("; "));
+    throw new Error(
+      errors.map((e) => e.message).join("; ") ||
+        "Checkout could not be started. Try again in a moment.",
+    );
   }
   if (!data?.redirectUrl) {
-    throw new Error("Stripe checkout could not be started.");
+    throw new Error(
+      "Secure checkout did not return a redirect URL. Try again or contact support.",
+    );
   }
 
   window.location.href = data.redirectUrl;

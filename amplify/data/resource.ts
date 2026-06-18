@@ -10,6 +10,7 @@ import { notifyOrderPlaced as notifyOrderPlacedFn } from "../functions/notify-or
 import { getStorefrontStats as getStorefrontStatsFn } from "../functions/get-storefront-stats/resource";
 import { updateOrderFulfillment as updateOrderFulfillmentFn } from "../functions/update-order-fulfillment/resource";
 import { cancelStripeCheckout as cancelStripeCheckoutFn } from "../functions/cancel-stripe-checkout/resource";
+import { addCustomerToGroup as addCustomerToGroupFn } from "../functions/add-customer-to-group/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -379,6 +380,8 @@ const schema = a.schema({
       useForFavorite: a.boolean().default(false),
       /** When true, idle cart triggers a grant on return (M6c). */
       useForAbandonedCart: a.boolean().default(false),
+      /** When true, new customer accounts receive a welcome grant on email confirm. */
+      useForNewAccount: a.boolean().default(false),
       /** Hours of cart inactivity before abandon grant (M6c). Default 24 in Lambda. */
       abandonAfterHours: a.integer(),
     })
@@ -393,7 +396,7 @@ const schema = a.schema({
     .model({
       templateId: a.id().required(),
       userId: a.string().required(),
-      source: a.enum(["admin", "thank_you", "favorite", "abandoned_cart"]),
+      source: a.enum(["admin", "thank_you", "favorite", "abandoned_cart", "new_account"]),
       productId: a.string(),
       cartSnapshotId: a.string(),
       expiresAt: a.datetime(),
@@ -545,6 +548,7 @@ const schema = a.schema({
   allow.resource(getStorefrontStatsFn),
   allow.resource(updateOrderFulfillmentFn),
   allow.resource(cancelStripeCheckoutFn),
+  allow.resource(addCustomerToGroupFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

@@ -16,6 +16,7 @@ export type PromoTemplateInput = {
   useForThankYou: boolean;
   useForFavorite: boolean;
   useForAbandonedCart: boolean;
+  useForNewAccount: boolean;
   abandonAfterHours?: number;
 };
 
@@ -30,6 +31,7 @@ function toPayload(input: PromoTemplateInput) {
     useForThankYou: input.useForThankYou,
     useForFavorite: input.useForFavorite,
     useForAbandonedCart: input.useForAbandonedCart,
+    useForNewAccount: input.useForNewAccount,
     abandonAfterHours: input.useForAbandonedCart
       ? (input.abandonAfterHours ?? 24)
       : null,
@@ -38,7 +40,11 @@ function toPayload(input: PromoTemplateInput) {
 
 async function clearExclusiveTemplateFlag(
   client: AmplifyDataClient,
-  flag: "useForThankYou" | "useForFavorite" | "useForAbandonedCart",
+  flag:
+    | "useForThankYou"
+    | "useForFavorite"
+    | "useForAbandonedCart"
+    | "useForNewAccount",
   exceptId?: string,
 ) {
   const PromoTemplate = requirePromoTemplateModel(client);
@@ -133,6 +139,9 @@ export async function createPromoTemplate(
   if (input.useForAbandonedCart) {
     await clearExclusiveTemplateFlag(client, "useForAbandonedCart");
   }
+  if (input.useForNewAccount) {
+    await clearExclusiveTemplateFlag(client, "useForNewAccount");
+  }
   const { data, errors } = await PromoTemplate.create(toPayload(input));
   if (errors?.length) {
     throw new Error(errors.map((e) => e.message).join("; "));
@@ -155,6 +164,9 @@ export async function updatePromoTemplate(
   }
   if (input.useForAbandonedCart) {
     await clearExclusiveTemplateFlag(client, "useForAbandonedCart", id);
+  }
+  if (input.useForNewAccount) {
+    await clearExclusiveTemplateFlag(client, "useForNewAccount", id);
   }
   const { data, errors } = await PromoTemplate.update({
     id,

@@ -5,11 +5,16 @@ import {
   hasCustomerSession,
   validateCustomerPassword,
 } from "@/lib/customerAuth";
+import { PageFeedback } from "@/components/PageFeedback";
+import { useNotificationBadge } from "@/context/NotificationBadgeContext";
+import { useToast } from "@/context/ToastContext";
 
 type RegisterMode = "signUp" | "confirm";
 
 export function AccountRegisterPage() {
   const navigate = useNavigate();
+  const { refreshNotificationBadge } = useNotificationBadge();
+  const { showToast } = useToast();
   const [mode, setMode] = useState<RegisterMode>("signUp");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -83,6 +88,13 @@ export function AccountRegisterPage() {
       const { confirmSignUp, signIn } = await import("aws-amplify/auth");
       await confirmSignUp({ username: email, confirmationCode: code });
       await signIn({ username: email, password });
+      showToast({
+        title: "Welcome to the forge",
+        description: "Check notifications for any welcome offer.",
+        tone: "success",
+        action: { label: "Notifications", href: "/account/notifications" },
+      });
+      window.setTimeout(() => refreshNotificationBadge(), 1500);
       navigate("/account");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Confirmation failed");
@@ -110,8 +122,11 @@ export function AccountRegisterPage() {
             Verify Email
           </h1>
           <p className="mb-6 text-body-sm text-on-surface-variant">
-            {message ?? "Enter the code we sent to your email."}
+            Enter the code we sent to your email.
           </p>
+          {message && (
+            <PageFeedback tone="success">{message}</PageFeedback>
+          )}
           <label className="mb-6 block">
             <span className="font-label-sm uppercase text-on-surface-variant">
               Verification code
@@ -126,7 +141,7 @@ export function AccountRegisterPage() {
               className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2 text-on-surface"
             />
           </label>
-          {error && <p className="mb-4 text-error">{error}</p>}
+          {error && <PageFeedback tone="error">{error}</PageFeedback>}
           <button
             type="submit"
             disabled={loading}
@@ -204,7 +219,7 @@ export function AccountRegisterPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2 text-on-surface"
           />
         </label>
-        {error && <p className="mb-4 text-error">{error}</p>}
+        {error && <PageFeedback tone="error">{error}</PageFeedback>}
         <button
           type="submit"
           disabled={loading}

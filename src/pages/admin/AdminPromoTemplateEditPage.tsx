@@ -49,6 +49,7 @@ export function AdminPromoTemplateEditPage() {
   const [useForThankYou, setUseForThankYou] = useState(false);
   const [useForFavorite, setUseForFavorite] = useState(false);
   const [useForAbandonedCart, setUseForAbandonedCart] = useState(false);
+  const [useForNewAccount, setUseForNewAccount] = useState(false);
   const [abandonAfterHours, setAbandonAfterHours] = useState("24");
   const [expiresInDays, setExpiresInDays] = useState("");
   const [loading, setLoading] = useState(!isNew);
@@ -103,6 +104,7 @@ export function AdminPromoTemplateEditPage() {
         setUseForThankYou(row.useForThankYou ?? false);
         setUseForFavorite(row.useForFavorite ?? false);
         setUseForAbandonedCart(row.useForAbandonedCart ?? false);
+        setUseForNewAccount(row.useForNewAccount ?? false);
         setAbandonAfterHours(
           row.abandonAfterHours != null ? String(row.abandonAfterHours) : "24",
         );
@@ -169,6 +171,7 @@ export function AdminPromoTemplateEditPage() {
       useForThankYou,
       useForFavorite,
       useForAbandonedCart,
+      useForNewAccount,
       abandonAfterHours:
         useForAbandonedCart && Number.isFinite(abandonHours) && abandonHours > 0
           ? abandonHours
@@ -396,6 +399,17 @@ export function AdminPromoTemplateEditPage() {
           />
           <span className="font-label-sm text-on-surface">
             Use for abandoned-cart grants (in-system on return)
+          </span>
+        </label>
+
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={useForNewAccount}
+            onChange={(e) => setUseForNewAccount(e.target.checked)}
+          />
+          <span className="font-label-sm text-on-surface">
+            Use for new-account welcome grants (on email confirmation)
           </span>
         </label>
 

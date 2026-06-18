@@ -6,6 +6,7 @@ import {
   isAlreadySignedInError,
 } from "@/lib/customerAuth";
 import { configureAmplify } from "@/lib/amplify";
+import { PageFeedback } from "@/components/PageFeedback";
 
 export function AccountLoginPage() {
   const navigate = useNavigate();
@@ -103,9 +104,9 @@ export function AccountLoginPage() {
           remains available.
         </p>
         {passwordResetSuccess && (
-          <p className="mb-4 text-secondary">
+          <PageFeedback tone="success">
             Password updated. Sign in with your new password.
-          </p>
+          </PageFeedback>
         )}
         <label className="mb-4 block">
           <span className="font-label-sm uppercase text-on-surface-variant">
@@ -133,7 +134,9 @@ export function AccountLoginPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2 text-on-surface"
           />
         </label>
-        {error && <p className="mb-4 text-error">{error}</p>}
+        {error && (
+          <PageFeedback tone="error">{error}</PageFeedback>
+        )}
         <button
           type="submit"
           disabled={loading}

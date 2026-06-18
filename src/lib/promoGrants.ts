@@ -65,6 +65,8 @@ export function formatGrantSourceLabel(
       return "Favorite";
     case "abandoned_cart":
       return "Abandoned cart";
+    case "new_account":
+      return "New account";
     default:
       return "—";
   }

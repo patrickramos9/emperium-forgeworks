@@ -57,9 +57,22 @@ export async function listGrantsForUser(
 
 export function findActiveTemplate(
   templates: PromoTemplate[],
-  flag: "useForThankYou" | "useForFavorite" | "useForAbandonedCart",
+  flag:
+    | "useForThankYou"
+    | "useForFavorite"
+    | "useForAbandonedCart"
+    | "useForNewAccount",
 ): PromoTemplate | undefined {
   return templates.find((t) => t.active && t[flag]);
+}
+
+export async function hasGrantForSource(
+  client: DataClient,
+  userId: string,
+  source: NonNullable<PromoGrant["source"]>,
+): Promise<boolean> {
+  const grants = await listGrantsForUser(client, userId);
+  return grants.some((grant) => grant.source === source);
 }
 
 export async function hasOpenGrant(
@@ -159,6 +172,30 @@ export async function issueFavoriteGrantIfNeeded(
     notification: {
       title: "Thanks for saving this piece",
       bodyPrefix: "Your favorite earned an offer —",
+    },
+  });
+  return true;
+}
+
+export async function issueNewAccountGrantIfNeeded(
+  client: DataClient,
+  userId: string,
+): Promise<boolean> {
+  const templates = await listAllTemplates(client);
+  const template = findActiveTemplate(templates, "useForNewAccount");
+  if (!template) return false;
+
+  if (await hasGrantForSource(client, userId, "new_account")) {
+    return false;
+  }
+
+  await createPromoGrantWithNotification(client, {
+    template,
+    userId,
+    source: "new_account",
+    notification: {
+      title: "Welcome to the forge",
+      bodyPrefix: "Thanks for creating an account —",
     },
   });
   return true;
