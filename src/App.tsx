@@ -27,6 +27,7 @@ import { AdminPromoTemplateEditPage } from "@/pages/admin/AdminPromoTemplateEdit
 import { AccountLoginPage } from "@/pages/account/AccountLoginPage";
 import { AccountForgotPasswordPage } from "@/pages/account/AccountForgotPasswordPage";
 import { AccountRegisterPage } from "@/pages/account/AccountRegisterPage";
+import { AccountRegisterVerifyPage } from "@/pages/account/AccountRegisterVerifyPage";
 import { AccountPage } from "@/pages/account/AccountPage";
 import { AccountOrdersPage } from "@/pages/account/AccountOrdersPage";
 import { AccountOrderDetailPage } from "@/pages/account/AccountOrderDetailPage";
@@ -115,6 +116,10 @@ export default function App() {
           <Route path="/account/login" element={<AccountLoginPage />} />
           <Route path="/account/forgot-password" element={<AccountForgotPasswordPage />} />
           <Route path="/account/register" element={<AccountRegisterPage />} />
+          <Route
+            path="/account/register/verify"
+            element={<AccountRegisterVerifyPage />}
+          />
           <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
           <Route path="/checkout/cancel" element={<CheckoutCancelPage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />

@@ -6,22 +6,19 @@ import {
   validateCustomerPassword,
 } from "@/lib/customerAuth";
 import { PageFeedback } from "@/components/PageFeedback";
-import { useNotificationBadge } from "@/context/NotificationBadgeContext";
-import { useToast } from "@/context/ToastContext";
 
-type RegisterMode = "signUp" | "confirm";
+function isUsernameExistsError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const name = "name" in err ? String(err.name) : "";
+  return name === "UsernameExistsException";
+}
 
 export function AccountRegisterPage() {
   const navigate = useNavigate();
-  const { refreshNotificationBadge } = useNotificationBadge();
-  const { showToast } = useToast();
-  const [mode, setMode] = useState<RegisterMode>("signUp");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
@@ -38,7 +35,6 @@ export function AccountRegisterPage() {
   async function handleSignUp(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    setMessage(null);
 
     const passwordError = validateCustomerPassword(password);
     if (passwordError) {
@@ -60,44 +56,29 @@ export function AccountRegisterPage() {
       return;
     }
 
+    const trimmedEmail = email.trim();
+
     try {
       const { signUp } = await import("aws-amplify/auth");
       await signUp({
-        username: email,
+        username: trimmedEmail,
         password,
         options: {
-          userAttributes: { email },
+          userAttributes: { email: trimmedEmail },
         },
       });
-      setMode("confirm");
-      setMessage("Check your email for a verification code.");
+      navigate(
+        `/account/register/verify?email=${encodeURIComponent(trimmedEmail)}`,
+        { state: { password } },
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign up failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleConfirm(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setMessage(null);
-    setLoading(true);
-
-    try {
-      const { confirmSignUp, signIn } = await import("aws-amplify/auth");
-      await confirmSignUp({ username: email, confirmationCode: code });
-      await signIn({ username: email, password });
-      showToast({
-        title: "Welcome to the forge",
-        description: "Check notifications for any welcome offer.",
-        tone: "success",
-        action: { label: "Notifications", href: "/account/notifications" },
-      });
-      window.setTimeout(() => refreshNotificationBadge(), 1500);
-      navigate("/account");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Confirmation failed");
+      if (isUsernameExistsError(err)) {
+        setError(
+          `An account with this email already exists. If you have not verified yet, complete verification below.`,
+        );
+      } else {
+        setError(err instanceof Error ? err.message : "Sign up failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -111,60 +92,9 @@ export function AccountRegisterPage() {
     );
   }
 
-  if (mode === "confirm") {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <form
-          onSubmit={(e) => void handleConfirm(e)}
-          className="w-full max-w-md border border-outline-variant/30 bg-surface-container-low p-8 iron-bevel"
-        >
-          <h1 className="mb-2 font-display-lg text-headline-lg uppercase text-primary">
-            Verify Email
-          </h1>
-          <p className="mb-6 text-body-sm text-on-surface-variant">
-            Enter the code we sent to your email.
-          </p>
-          {message && (
-            <PageFeedback tone="success">{message}</PageFeedback>
-          )}
-          <label className="mb-6 block">
-            <span className="font-label-sm uppercase text-on-surface-variant">
-              Verification code
-            </span>
-            <input
-              type="text"
-              required
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2 text-on-surface"
-            />
-          </label>
-          {error && <PageFeedback tone="error">{error}</PageFeedback>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="molten-glow w-full bg-primary py-3 font-label-md uppercase text-on-primary disabled:opacity-50"
-          >
-            {loading ? "Verifying..." : "Verify & Sign in"}
-          </button>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => {
-              setMode("signUp");
-              setCode("");
-              setError(null);
-            }}
-            className="mt-3 w-full py-2 font-label-sm uppercase text-on-surface-variant hover:text-primary"
-          >
-            Back
-          </button>
-        </form>
-      </main>
-    );
-  }
+  const verifyHref = email.trim()
+    ? `/account/register/verify?email=${encodeURIComponent(email.trim())}`
+    : "/account/register/verify";
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
@@ -176,7 +106,12 @@ export function AccountRegisterPage() {
           Create Account
         </h1>
         <p className="mb-6 text-body-sm text-on-surface-variant">
-          Optional — you can always check out as a guest.
+          Optional — you can always check out as a guest. We will email a
+          verification code; you can finish later from that email or{" "}
+          <Link to={verifyHref} className="text-primary underline">
+            this verification page
+          </Link>
+          .
         </p>
         <label className="mb-4 block">
           <span className="font-label-sm uppercase text-on-surface-variant">
@@ -219,7 +154,23 @@ export function AccountRegisterPage() {
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2 text-on-surface"
           />
         </label>
-        {error && <PageFeedback tone="error">{error}</PageFeedback>}
+        {error && (
+          <>
+            <PageFeedback tone="error">{error}</PageFeedback>
+            {error.includes("already exists") && (
+              <p className="mb-4 text-body-sm text-on-surface-variant">
+                <Link to={verifyHref} className="text-primary underline">
+                  Verify your email
+                </Link>{" "}
+                or{" "}
+                <Link to="/account/login" className="text-primary underline">
+                  sign in
+                </Link>
+                .
+              </p>
+            )}
+          </>
+        )}
         <button
           type="submit"
           disabled={loading}

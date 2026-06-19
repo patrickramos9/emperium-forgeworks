@@ -56,6 +56,14 @@ export function AccountLoginPage() {
         return;
       }
 
+      if (result.nextStep.signInStep === "CONFIRM_SIGN_UP") {
+        navigate(
+          `/account/register/verify?email=${encodeURIComponent(email.trim())}`,
+          { state: { password } },
+        );
+        return;
+      }
+
       setError(
         `Sign-in requires another step: ${result.nextStep.signInStep}. Contact support if this persists.`,
       );
@@ -150,6 +158,17 @@ export function AccountLoginPage() {
             className="text-primary underline"
           >
             Forgot password?
+          </Link>
+          {" · "}
+          <Link
+            to={
+              email.trim()
+                ? `/account/register/verify?email=${encodeURIComponent(email.trim())}`
+                : "/account/register/verify"
+            }
+            className="text-primary underline"
+          >
+            Verify email
           </Link>
         </p>
         <p className="mt-4 text-center text-label-sm text-on-surface-variant">

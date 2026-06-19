@@ -3,9 +3,32 @@ import { addCustomerToGroup } from "../functions/add-customer-to-group/resource"
 import { listCustomers } from "../functions/list-customers/resource";
 import { lookupCustomerByEmail } from "../functions/lookup-customer-by-email/resource";
 
+const siteUrl = (
+  process.env.SITE_URL ??
+  process.env.VITE_SITE_URL ??
+  "https://emperiumforgeworks.com"
+).replace(/\/$/, "");
+
+const verifyAccountUrl = `${siteUrl}/account/register/verify`;
+
 export const auth = defineAuth({
   loginWith: {
-    email: true,
+    email: {
+      verificationEmailStyle: "CODE",
+      verificationEmailSubject: "Verify your Emperium Forgeworks account",
+      verificationEmailBody: (createCode) =>
+        [
+          "Welcome to Emperium Forgeworks.",
+          "",
+          `Your verification code is: ${createCode()}`,
+          "",
+          `Enter this code at ${verifyAccountUrl} to finish creating your account.`,
+          "",
+          "You can complete verification at any time using that link and the code above.",
+          "",
+          "If you did not sign up, you can ignore this email.",
+        ].join("\n"),
+    },
   },
   groups: ["admin", "customer"],
   triggers: {
