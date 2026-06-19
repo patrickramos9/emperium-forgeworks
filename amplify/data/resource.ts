@@ -339,7 +339,13 @@ const schema = a.schema({
       /** Merchandise discount (before shipping). */
       discountCents: a.integer(),
       promoGrantId: a.id(),
-      promoSource: a.enum(["admin", "thank_you", "favorite", "abandoned_cart"]),
+      promoSource: a.enum([
+        "admin",
+        "thank_you",
+        "favorite",
+        "abandoned_cart",
+        "new_account",
+      ]),
       promoLabel: a.string(),
       promoExpiresAt: a.datetime(),
       /** When support inbox email was sent for this order. */
