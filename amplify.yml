@@ -7,6 +7,7 @@ backend:
         - npm ci --cache .npm --prefer-offline
         - npm ci --prefix amplify --cache .npm-amplify --prefer-offline
         - npm ci --prefix amplify/functions/add-customer-to-group --cache .npm-fn-add-customer --prefer-offline
+        - npm ci --prefix amplify/functions/issue-new-account-grant --cache .npm-fn-issue-new-account --prefer-offline
         - npm ci --prefix amplify/functions/lookup-customer-by-email --cache .npm-fn-lookup-customer --prefer-offline
         - npm ci --prefix amplify/functions/list-customers --cache .npm-fn-list-customers --prefer-offline
         - npm ci --prefix amplify/functions/get-ga4-dashboard --cache .npm-fn-ga4-dashboard --prefer-offline
@@ -31,6 +32,8 @@ backend:
       - .npm-amplify/**/*
       - amplify/functions/add-customer-to-group/node_modules/**/*
       - .npm-fn-add-customer/**/*
+      - amplify/functions/issue-new-account-grant/node_modules/**/*
+      - .npm-fn-issue-new-account/**/*
       - amplify/functions/lookup-customer-by-email/node_modules/**/*
       - .npm-fn-lookup-customer/**/*
       - amplify/functions/list-customers/node_modules/**/*

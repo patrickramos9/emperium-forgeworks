@@ -8,6 +8,7 @@ import {
 import { PageFeedback } from "@/components/PageFeedback";
 import { useNotificationBadge } from "@/context/NotificationBadgeContext";
 import { useToast } from "@/context/ToastContext";
+import { ensureNewAccountWelcomeGrant } from "@/services/newAccountPromoService";
 
 type VerifyLocationState = {
   password?: string;
@@ -73,6 +74,11 @@ export function AccountRegisterVerifyPage() {
       const { confirmSignUp, signIn } = await import("aws-amplify/auth");
       await confirmSignUp({ username: trimmedEmail, confirmationCode: code.trim() });
       await signIn({ username: trimmedEmail, password });
+      try {
+        await ensureNewAccountWelcomeGrant();
+      } catch (grantErr) {
+        console.error("Welcome grant failed", grantErr);
+      }
       showToast({
         title: "Welcome to the forge",
         description: "Check notifications for any welcome offer.",

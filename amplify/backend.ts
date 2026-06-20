@@ -14,6 +14,7 @@ import { notifyOrderPlaced } from "./functions/notify-order-placed/resource";
 import { getStorefrontStats } from "./functions/get-storefront-stats/resource";
 import { updateOrderFulfillment } from "./functions/update-order-fulfillment/resource";
 import { cancelStripeCheckout } from "./functions/cancel-stripe-checkout/resource";
+import { issueNewAccountGrant } from "./functions/issue-new-account-grant/resource";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
@@ -31,6 +32,7 @@ const backend = defineBackend({
   getStorefrontStats,
   updateOrderFulfillment,
   cancelStripeCheckout,
+  issueNewAccountGrant,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;

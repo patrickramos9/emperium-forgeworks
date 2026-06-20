@@ -10,7 +10,7 @@ import { notifyOrderPlaced as notifyOrderPlacedFn } from "../functions/notify-or
 import { getStorefrontStats as getStorefrontStatsFn } from "../functions/get-storefront-stats/resource";
 import { updateOrderFulfillment as updateOrderFulfillmentFn } from "../functions/update-order-fulfillment/resource";
 import { cancelStripeCheckout as cancelStripeCheckoutFn } from "../functions/cancel-stripe-checkout/resource";
-import { addCustomerToGroup as addCustomerToGroupFn } from "../functions/add-customer-to-group/resource";
+import { issueNewAccountGrant as issueNewAccountGrantFn } from "../functions/issue-new-account-grant/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -89,6 +89,10 @@ const schema = a.schema({
   ToggleFavoriteResult: a.customType({
     favorited: a.boolean().required(),
     grantIssued: a.boolean().required(),
+  }),
+
+  IssueNewAccountGrantResult: a.customType({
+    issued: a.boolean().required(),
   }),
 
   SyncCartSnapshotResult: a.customType({
@@ -175,6 +179,12 @@ const schema = a.schema({
     .returns(a.ref("ToggleFavoriteResult"))
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(toggleProductFavoriteFn)),
+
+  issueNewAccountWelcomeGrant: a
+    .mutation()
+    .returns(a.ref("IssueNewAccountGrantResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(issueNewAccountGrantFn)),
 
   syncCartSnapshot: a
     .mutation()
@@ -554,7 +564,7 @@ const schema = a.schema({
   allow.resource(getStorefrontStatsFn),
   allow.resource(updateOrderFulfillmentFn),
   allow.resource(cancelStripeCheckoutFn),
-  allow.resource(addCustomerToGroupFn),
+  allow.resource(issueNewAccountGrantFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

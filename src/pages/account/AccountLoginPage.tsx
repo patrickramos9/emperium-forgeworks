@@ -7,6 +7,7 @@ import {
 } from "@/lib/customerAuth";
 import { configureAmplify } from "@/lib/amplify";
 import { PageFeedback } from "@/components/PageFeedback";
+import { ensureNewAccountWelcomeGrant } from "@/services/newAccountPromoService";
 
 export function AccountLoginPage() {
   const navigate = useNavigate();
@@ -52,6 +53,11 @@ export function AccountLoginPage() {
       const result = await signIn({ username: email, password });
 
       if (result.isSignedIn) {
+        try {
+          await ensureNewAccountWelcomeGrant();
+        } catch (grantErr) {
+          console.error("Welcome grant failed", grantErr);
+        }
         navigate(returnTo);
         return;
       }
