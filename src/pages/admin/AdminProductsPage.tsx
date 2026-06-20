@@ -28,6 +28,7 @@ interface AdminProductRow {
   priceCents: number;
   sortOrder: number;
   featured: boolean;
+  vaultOnly: boolean;
   shippingProfileLabel: string;
   activeCartCount: number;
   favoriteCount: number;
@@ -117,6 +118,7 @@ export function AdminProductsPage() {
             priceCents: row.priceCents,
             sortOrder: row.sortOrder ?? 0,
             featured: row.featured ?? false,
+            vaultOnly: row.vaultOnly ?? false,
             shippingProfileLabel: profileLabel,
             activeCartCount: row.activeCartCount ?? 0,
             favoriteCount: row.favoriteCount ?? 0,
@@ -376,7 +378,15 @@ export function AdminProductsPage() {
                   </div>
                 )}
 
-                <div className="aspect-[1.26] bg-surface-container-high">
+                <div className="relative aspect-[1.26] bg-surface-container-high">
+                  {product.vaultOnly && (
+                    <div
+                      className="absolute bottom-2 left-2 z-10 bg-surface-container-highest/90 px-2 py-1 font-label-sm uppercase text-secondary"
+                      title="Visible only in the Vault, not the public shop"
+                    >
+                      Vault only
+                    </div>
+                  )}
                   {product.image ? (
                     <img
                       src={product.image}
