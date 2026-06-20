@@ -20,15 +20,15 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-16
+**Last updated:** 2026-06-20
 
 | Item | State |
 |------|--------|
 | **Phase** | **Core commerce live** — **M11 customer order status** is next (critical) |
 | **Next** | **M11** — paid → received → processing → shipped (+ tracking); customer notifications + optional SES email |
 | **Blocked** | _(none)_ — **SES production access** stalled (AWS support); **customer transactional email** optional — in-app order notifications work; third-party email (Resend/Postmark/etc.) or **M20** `EmailProvider` port are fallbacks |
-| **Recently verified** | **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
-| **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) · **M9a** UX polish (toasts, cart badge, checkout redirect feedback, account form banners) · **New-account promo grants** (`useForNewAccount` template + `postConfirmation` issuance) |
+| **Recently verified** | **M6 new-account promo** (2026-06-20) · **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
+| **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) · **M9a** UX polish (toasts, cart badge, checkout redirect feedback, account form banners) |
 | **In progress** | _(none)_ |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
@@ -175,7 +175,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M17** — Removed-from-catalog UX (cart + favorites) — fixes **B1** — **production verified** (2026-06-11)
 - **Go-live polish (2026-06-13)** — see **§3.1** below — **production verified** (2026-06-11; monitor for bugs)
 - **M9a** — Initial UX polish (toasts, cart badge bump, PDP/cart/favorites/checkout/account feedback) — **shipped** (2026-06-16; deploy frontend)
-- **M6 new-account promo** — `useForNewAccount` template flag + `new_account` grant on Cognito email confirm (`postConfirmation`) — **shipped** (2026-06-16; deploy backend)
+- **M6 new-account promo** — `useForNewAccount` template flag + `new_account` grant via `issueNewAccountWelcomeGrant` after verify/sign-in — **production verified** (2026-06-20)
 
 ### 3.1 Go-live polish batch (2026-06-13)
 
@@ -198,7 +198,7 @@ Shipped in repo during pre-launch polish. **Signed off** 2026-06-11 (deployed; m
 
 ### 3.2 M9a + new-account promo (2026-06-16)
 
-Shipped in repo. Regression checklists in [docs/qa-test-plan.md](../docs/qa-test-plan.md) §20 and §17 (new-account).
+**M9a:** shipped in repo (deploy frontend). **New-account promo:** **production verified** 2026-06-20. Regression checklists in [docs/qa-test-plan.md](../docs/qa-test-plan.md) §20 and §17 (new-account).
 
 | Area | What shipped |
 |------|----------------|
@@ -208,9 +208,9 @@ Shipped in repo. Regression checklists in [docs/qa-test-plan.md](../docs/qa-test
 | **Cart** | Loading / empty / error / unavailable-line banners; checkout “Forging…” + redirect status; clear disabled during redirect |
 | **Checkout cancel** | Sync status/error banners on `/checkout/cancel` |
 | **Account forms** | Login / register / notifications use `PageFeedback`; register welcome toast + notification badge refresh |
-| **New-account promo** | `PromoTemplate.useForNewAccount`; grant `source: new_account` on `PostConfirmation_ConfirmSignUp`; admin template checkbox; once per user lifetime |
+| **New-account promo** | `PromoTemplate.useForNewAccount`; grant `source: new_account` via `issueNewAccountWelcomeGrant` mutation (called after verify/sign-in); admin template checkbox; once per user lifetime |
 
-**Deploy:** Frontend for M9a UX; **backend redeploy** for schema enum + `add-customer-to-group` Lambda data access + grant issuance.
+**Deploy:** Frontend for M9a UX + `ensureNewAccountWelcomeGrant()`; **backend redeploy** for schema enum + `issue-new-account-grant` Lambda.
 
 ### Blocked / waiting
 
@@ -344,7 +344,7 @@ _(none — monitor production; fix bugs ad hoc)_
 | **thank_you** | On **paid** order (webhook final step) | Next order; template expiry | New grant after each **completed** purchase (while template active) |
 | **favorite** | First time user favorites product **P** (**M6b**) | Discount applies only when **P** is in cart (line-level or allocated to P’s subtotal) | If **P** still favorited after paid order → new grant (**M6b**) |
 | **abandoned_cart** | Cart idle ≥ N hours with items (**M6c**) | **Whole-cart subtotal** (not per line); tied to user + snapshot | Revoked when cart **fully empty**; new grant after new idle period (**M6c**) |
-| **new_account** | Customer confirms email on **sign-up** (`postConfirmation`) | Next order; template expiry | **Once per user lifetime** (no re-issue) |
+| **new_account** | Customer verifies email and signs in (`issueNewAccountWelcomeGrant`) | Next order; template expiry | **Once per user lifetime** (no re-issue) |
 
 - **Favorite vs abandoned cart** — different triggers; both may exist for a user but only **one** wins at checkout (best savings → soonest expiry).
 - **Unfavorite** (v1): unused grant remains until used/expired (no automatic revoke).
@@ -400,7 +400,7 @@ _(none — monitor production; fix bugs ad hoc)_
 |-----------|---------|
 | **M6** | Templates, grants, admin assign/revoke, auto-apply cart + checkout, order fields, thank-you on paid webhook, in-system notifications |
 | **M6b** | `Favorite` model + UI + favorite issuance + post-purchase re-issue |
-| **M6 (new-account)** | `useForNewAccount` template + `new_account` grant on email confirm — **shipped** 2026-06-16 |
+| **M6 (new-account)** | `useForNewAccount` template + `new_account` grant on verify/sign-in — **production verified** 2026-06-20 |
 | **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
 | **M6d** | Abandoned-cart email (with M13) |
 | **M6e** | Guest identity (cookie) + server guest cart sync; merge on sign-in; `activeCartCount` + abandon paths include guests |

@@ -4,7 +4,7 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
-**Roadmap last synced:** 2026-06-16
+**Roadmap last synced:** 2026-06-20
 
 ---
 
@@ -49,19 +49,19 @@ Pre-launch sign-off closed 2026-06-11. Run smoke after deploys; full §6–§20 
 | **Catalog/admin product change** | §2 PDP, §17b, §9, §18a admin catalog |
 | **New milestone** | Matching section below + remove from **Not yet built** |
 
-**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c**), M7b, M8b/c/d, M15, **M17**, go-live polish §18a, order notification email.
+**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, go-live polish §18a, order notification email.
 
-**Shipped in repo — verify after deploy:** **M9a** (§20), **M6 new-account promo** (§17), **M11** (§19; needs backend deploy).
+**Shipped in repo — verify after deploy:** **M9a** (§20), **M11** (§19; needs backend deploy).
 
 **Do not test yet:** M19, M18, M6d marketing email, M10, M12, M13, M16, **M9** (SEO/gallery — not M9a).
 
-### Deploy prerequisites (M6b/c + M17 + new-account) — signed off 2026-06-11; extend for new-account 2026-06-16
+### Deploy prerequisites (M6b/c + M17 + new-account) — signed off 2026-06-11; new-account signed off 2026-06-20
 
 - [x] Amplify **backend** deployed: `Favorite`, `CartSnapshot`, `toggleProductFavorite`, `syncCartSnapshot`, `PromoTemplate` flags, `Favorite.productSlug`
-- [ ] Amplify **backend** redeployed for **new-account promo**: `PromoGrant.source` includes `new_account`, `PromoTemplate.useForNewAccount`, `addCustomerToGroup` postConfirmation grant issuance
+- [x] Amplify **backend** redeployed for **new-account promo**: `PromoGrant.source` includes `new_account`, `PromoTemplate.useForNewAccount`, `issueNewAccountWelcomeGrant` mutation + Lambda
 - [x] Amplify **frontend** deployed against current `amplify_outputs.json`
 - [x] Promo templates configured per source (admin, thank-you, favorite, abandoned cart, new-account)
-- [ ] Promo template with **Use for new-account welcome grants** (only one active) — for §17 new-account tests
+- [x] Promo template with **Use for new-account welcome grants** (only one active) — **New Account** template active
 - [x] Order notification Lambdas/schema + SES verified
 
 ### Promo test data reset (between runs)
@@ -272,8 +272,8 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 ### Auth
 
 - [ ] Register new customer; confirm email if Cognito requires verification
-- [ ] **Register confirm (M9a + new-account):** after verify + sign-in → welcome **toast** with link to notifications; account menu notification badge updates (~1–2s)
-- [ ] **New-account grant (§17):** with `useForNewAccount` template active, confirm new email → **Welcome to the forge** notification + open `new_account` grant (once per user)
+- [x] **Register confirm (M9a + new-account):** after verify + sign-in → welcome **toast** with link to notifications; account menu notification badge updates (~1–2s)
+- [x] **New-account grant (§17):** with `useForNewAccount` template active, confirm new email → **Welcome to the forge** notification + open `new_account` grant (once per user)
 - [ ] Login / logout
 - [ ] **Form feedback (M9a):** login/register/notifications errors show styled **PageFeedback** banner (not bare red text only)
 - [ ] Forgot password flow — success message after reset uses consistent banner styling
@@ -574,19 +574,21 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 
 ### M6 — New-account welcome grants
 
-**Requires:** Backend redeploy with `useForNewAccount`, `new_account` source, `postConfirmation` grant issuance.
+**Production verified:** 2026-06-20 (register → verify → sign-in → welcome notification + open grant).
+
+**Requires:** Backend with `useForNewAccount`, `new_account` source, `issueNewAccountWelcomeGrant` mutation (frontend calls after verify/sign-in).
 
 **Setup**
 
-- [ ] One active template with **Use for new-account welcome grants** (only one system-wide)
-- [ ] Fresh test email never registered before (or delete Cognito user + reset grants via `reset-promo-data.ts`)
+- [x] One active template with **Use for new-account welcome grants** (only one system-wide)
+- [x] Fresh test email never registered before (or delete Cognito user + reset grants via `reset-promo-data.ts`)
 
 **Issuance**
 
-- [ ] Register → confirm email → sign in: **Welcome to the forge** in Account → Notifications
-- [ ] Admin **Issued grants**: source **New account**, status **open**, correct template/discount
-- [ ] Grant applies at cart/checkout like other whole-cart grants (best-savings tie-break vs favorite/abandon if multiple)
-- [ ] **Once per lifetime:** same user cannot receive a second `new_account` grant (re-register same email blocked by Cognito; admin-created users without email confirm do not receive grant)
+- [x] Register → confirm email → sign in: **Welcome to the forge** in Account → Notifications
+- [x] Admin **Issued grants**: source **New account**, status **open**, correct template/discount
+- [x] Grant applies at cart/checkout like other whole-cart grants (best-savings tie-break vs favorite/abandon if multiple)
+- [x] **Once per lifetime:** same user cannot receive a second `new_account` grant (re-register same email blocked by Cognito; admin-created users without email confirm do not receive grant)
 
 **Template rules**
 
@@ -712,9 +714,9 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M13** | Marketing pixels / UTM on orders | — |
 | **M6e** | Guest cart server sync + identity merge | — |
 
-**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c), §17b (M17), §18a (go-live polish).
+**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish).
 
-**Shipped in repo — verify after deploy:** §20 (M9a), §17 new-account, §19 (M11).
+**Shipped in repo — verify after deploy:** §20 (M9a), §19 (M11).
 
 Add test sections here when each **new** milestone ships.
 
