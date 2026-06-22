@@ -45,6 +45,38 @@ export async function markPendingOrderCancelled(
   return true;
 }
 
+/** Cancel open pending checkouts before starting a new Stripe session for the same user. */
+export async function cancelSupersededPendingOrders(
+  client: DataClient,
+  userId: string,
+): Promise<void> {
+  const rows: OrderRecord[] = [];
+  let nextToken: string | undefined;
+
+  do {
+    const response = await client.models.Order.list({
+      filter: { userId: { eq: userId }, status: { eq: "pending" } },
+      limit: 50,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row) rows.push(row);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  for (const order of rows) {
+    try {
+      await markPendingOrderCancelled(client, order.id);
+    } catch (err) {
+      console.warn(`Could not cancel superseded pending order ${order.id}`, err);
+    }
+  }
+}
+
 export function paymentIntentIdFromSession(
   session: Stripe.Checkout.Session,
 ): string | undefined {

@@ -105,10 +105,22 @@ export function orderStatusLabel(
   }
 }
 
+/** Checkout failed before Stripe session creation — not a real order for customers. */
+export function isOrphanedPendingCheckout(
+  order: Pick<OrderRecord, "status" | "externalSessionId">,
+): boolean {
+  return (
+    order.status === "pending" &&
+    typeof order.externalSessionId === "string" &&
+    order.externalSessionId.startsWith("pending_")
+  );
+}
+
 export async function listCustomerOrders(
   client: AmplifyDataClient,
 ): Promise<OrderRecord[]> {
-  return listAllOrders(client);
+  const orders = await listAllOrders(client);
+  return orders.filter((order) => !isOrphanedPendingCheckout(order));
 }
 
 /** Admin — paginated list of all orders. */

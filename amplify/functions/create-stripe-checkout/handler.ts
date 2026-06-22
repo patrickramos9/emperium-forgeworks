@@ -12,6 +12,11 @@ import {
 } from "./shippingCalc.js";
 import { distributeDiscountToLines } from "./promoCalc.js";
 import { resolvePromoForCheckout } from "./resolvePromo.js";
+import {
+  cancelSupersededPendingOrders,
+  markPendingOrderCancelled,
+  paymentIntentIdFromSession,
+} from "../order-shared/stripeOrderStatus.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -217,7 +222,29 @@ async function createStripeCheckoutSession(
     sessionId: session.id,
     redirectUrl: session.url,
     paymentProvider: "stripe" as const,
+    session,
   };
+}
+
+async function attachOrderIdToStripeSession(
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+  orderId: string,
+  userId?: string,
+) {
+  await stripe.checkout.sessions.update(session.id, {
+    metadata: {
+      orderId,
+      ...(userId ? { userId } : {}),
+    },
+  });
+
+  const paymentIntentId = paymentIntentIdFromSession(session);
+  if (paymentIntentId) {
+    await stripe.paymentIntents.update(paymentIntentId, {
+      metadata: { orderId },
+    });
+  }
 }
 
 export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
@@ -252,9 +279,6 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       event.identity && "sub" in event.identity
         ? (event.identity.sub as string | undefined)
         : undefined;
-
-    const pendingId = crypto.randomUUID();
-    const pendingSessionId = `pending_${pendingId}`;
 
     const snapshots = lineItems.map((item) => ({
       productId: item.productId,
@@ -299,33 +323,6 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
         ? distributeDiscountToLines(lineItems, discountCents)
         : lineItems;
 
-    const createResult = await dataClient.models.Order.create({
-      externalSessionId: pendingSessionId,
-      paymentProvider: "stripe",
-      status: "pending",
-      lineItems: JSON.stringify(snapshots),
-      subtotalCents,
-      totalCents: Math.max(0, subtotalCents - discountCents),
-      ...(discountCents > 0
-        ? {
-            discountCents,
-            promoGrantId: promo!.grantId,
-            promoSource: promo!.source,
-            promoLabel: promo!.label,
-            ...(promo!.expiresAt ? { promoExpiresAt: promo!.expiresAt } : {}),
-          }
-        : {}),
-      ...(userId ? { userId } : {}),
-    });
-
-    if (createResult.errors?.length) {
-      throw new Error(createResult.errors.map((e) => e.message).join("; "));
-    }
-    if (!createResult.data?.id) {
-      throw new Error("Could not create pending order.");
-    }
-
-    const orderId = createResult.data.id;
     const allProfiles = await loadShippingProfiles();
     const activeProfiles = allProfiles.filter((p) => p.active);
     if (!activeProfiles.length) {
@@ -362,38 +359,89 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       defaultProfile,
     );
 
-    const stripe = new Stripe(secretKey);
-    const session = await createStripeCheckoutSession(
-      stripe,
-      checkoutLines,
-      lineItems,
-      subtotalCents,
-      shipping,
-      {
-        successUrl,
-        cancelUrl,
-        metadata: { orderId },
-        ...(discountCents > 0 && promo
-          ? {
-              promoLabel: promo.label,
-              discountCents,
-            }
-          : {}),
-      },
-    );
-
-    const updateResult = await dataClient.models.Order.update({
-      id: orderId,
-      externalSessionId: session.sessionId,
-    });
-
-    if (updateResult.errors?.length) {
-      throw new Error(updateResult.errors.map((e) => e.message).join("; "));
+    if (userId) {
+      await cancelSupersededPendingOrders(dataClient, userId);
     }
 
-    return {
-      sessionId: session.sessionId,
-      redirectUrl: session.redirectUrl,
-      paymentProvider: "stripe",
-    };
+    const stripe = new Stripe(secretKey);
+    let checkoutSession: Stripe.Checkout.Session | null = null;
+    let orderId: string | null = null;
+
+    try {
+      const sessionResult = await createStripeCheckoutSession(
+        stripe,
+        checkoutLines,
+        lineItems,
+        subtotalCents,
+        shipping,
+        {
+          successUrl,
+          cancelUrl,
+          ...(userId ? { metadata: { userId } } : {}),
+          ...(discountCents > 0 && promo
+            ? {
+                promoLabel: promo.label,
+                discountCents,
+              }
+            : {}),
+        },
+      );
+      checkoutSession = sessionResult.session;
+
+      const createResult = await dataClient.models.Order.create({
+        externalSessionId: sessionResult.sessionId,
+        paymentProvider: "stripe",
+        status: "pending",
+        lineItems: JSON.stringify(snapshots),
+        subtotalCents,
+        totalCents: Math.max(0, subtotalCents - discountCents),
+        ...(discountCents > 0
+          ? {
+              discountCents,
+              promoGrantId: promo!.grantId,
+              promoSource: promo!.source,
+              promoLabel: promo!.label,
+              ...(promo!.expiresAt ? { promoExpiresAt: promo!.expiresAt } : {}),
+            }
+          : {}),
+        ...(userId ? { userId } : {}),
+      });
+
+      if (createResult.errors?.length) {
+        throw new Error(createResult.errors.map((e) => e.message).join("; "));
+      }
+      if (!createResult.data?.id) {
+        throw new Error("Could not create pending order.");
+      }
+
+      orderId = createResult.data.id;
+      await attachOrderIdToStripeSession(
+        stripe,
+        checkoutSession,
+        orderId,
+        userId,
+      );
+
+      return {
+        sessionId: sessionResult.sessionId,
+        redirectUrl: sessionResult.redirectUrl,
+        paymentProvider: "stripe",
+      };
+    } catch (err) {
+      if (orderId) {
+        try {
+          await markPendingOrderCancelled(dataClient, orderId);
+        } catch (cancelErr) {
+          console.error("Could not cancel failed checkout order", cancelErr);
+        }
+      }
+      if (checkoutSession?.id) {
+        try {
+          await stripe.checkout.sessions.expire(checkoutSession.id);
+        } catch (expireErr) {
+          console.warn("Could not expire failed checkout session", expireErr);
+        }
+      }
+      throw err;
+    }
   };

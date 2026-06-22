@@ -13,6 +13,7 @@ import {
   formatOrderDate,
   formatShippingAddress,
   getOrderById,
+  isOrphanedPendingCheckout,
   orderStatusLabel,
   parseOrderLineItems,
   parseShippingAddress,
@@ -42,7 +43,7 @@ export function AccountOrderDetailPage() {
       try {
         const userId = await getCustomerUserId();
         const row = await getOrderById(client, orderId);
-        if (!row || row.userId !== userId) {
+        if (!row || row.userId !== userId || isOrphanedPendingCheckout(row)) {
           setError("Order not found.");
           return;
         }
