@@ -8,10 +8,12 @@ import {
 } from "@/lib/adminOrderCustomer";
 import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
 import {
+  adminOrderQueueStatusLabel,
+} from "@/lib/orderFulfillment";
+import {
   formatOrderDate,
   listAllOrders,
   orderLineItemsSummary,
-  orderStatusLabel,
   parseOrderLineItems,
   type OrderRecord,
 } from "@/services/orderService";
@@ -88,7 +90,7 @@ export function AdminOrdersPage() {
               <tr>
                 <th className="p-3">Date</th>
                 <th className="p-3">Customer</th>
-                <th className="p-3">Status</th>
+                <th className="p-3">Fulfillment</th>
                 <th className="p-3">Provider</th>
                 <th className="p-3">Total</th>
                 <th className="p-3">Summary</th>
@@ -114,7 +116,9 @@ export function AdminOrdersPage() {
                         }
                       />
                     </td>
-                    <td className="p-3">{orderStatusLabel(order.status)}</td>
+                    <td className="p-3">
+                      {adminOrderQueueStatusLabel(order)}
+                    </td>
                     <td className="p-3 text-on-surface-variant">
                       {order.paymentProvider ?? "—"}
                     </td>

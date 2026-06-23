@@ -1,4 +1,5 @@
 import type { Schema } from "../../amplify/data/resource";
+import { orderStatusLabel } from "@/services/orderService";
 
 export type FulfillmentStatus = NonNullable<
   Schema["Order"]["type"]["fulfillmentStatus"]
@@ -45,6 +46,18 @@ export function fulfillmentStatusLabel(
     default:
       return "—";
   }
+}
+
+/** Admin order list — fulfillment progress for paid orders; payment status otherwise. */
+export function adminOrderQueueStatusLabel(order: {
+  status?: string | null;
+  fulfillmentStatus?: FulfillmentStatus | null;
+}): string {
+  if (order.status === "paid" || order.fulfillmentStatus) {
+    const fulfillment = displayFulfillmentStatus(order);
+    if (fulfillment) return fulfillmentStatusLabel(fulfillment);
+  }
+  return orderStatusLabel(order.status);
 }
 
 export function nextFulfillmentStatus(
