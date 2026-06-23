@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useProducts } from "@/hooks/useProducts";
 import { OrderFulfillmentTimeline } from "@/components/OrderFulfillmentTimeline";
 import { OrderLineItemRow } from "@/components/OrderLineItemRow";
 import { formatPrice } from "@/data/seedProducts";
@@ -27,6 +28,7 @@ export function AccountOrderDetailPage() {
   const [order, setOrder] = useState<OrderRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { products: catalogProducts, loading: catalogLoading } = useProducts("all");
 
   useEffect(() => {
     async function load() {
@@ -186,7 +188,11 @@ export function AccountOrderDetailPage() {
         <ul className="mt-3 space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
           {items.map((item, index) => (
             <li key={`${item.productId}-${index}`}>
-              <OrderLineItemRow item={item} />
+              <OrderLineItemRow
+                item={item}
+                products={catalogProducts}
+                catalogLoaded={!catalogLoading}
+              />
             </li>
           ))}
         </ul>

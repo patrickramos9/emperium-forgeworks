@@ -295,9 +295,10 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
         resolveVariantLabelFromProductJson(product?.variants, item.variantId);
       return {
         productId: item.productId,
-        slug: item.slug,
+        slug: product?.slug?.trim() || item.slug,
         variantId: item.variantId,
         ...(variantLabel ? { variantLabel } : {}),
+        ...(product?.vaultOnly ? { vaultOnly: true } : {}),
         title: product?.title?.trim() || item.title,
         quantity: item.quantity,
         priceCents: item.priceCents,

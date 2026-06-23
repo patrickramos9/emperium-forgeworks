@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { OrderLineItemRow } from "@/components/OrderLineItemRow";
+import { useProducts } from "@/hooks/useProducts";
 import { formatPrice } from "@/data/seedProducts";
 import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
@@ -25,6 +26,7 @@ export function AccountOrdersPage() {
   const [reviewsEnabled, setReviewsEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { products: catalogProducts, loading: catalogLoading } = useProducts("all");
 
   const reviewByOrderId = useMemo(
     () => new Map(reviews.map((review) => [review.orderId, review])),
@@ -155,7 +157,12 @@ export function AccountOrdersPage() {
                 <ul className="mt-3 space-y-2 border-t border-outline-variant/10 pt-3">
                   {items.map((item, index) => (
                     <li key={`${order.id}-${index}`}>
-                      <OrderLineItemRow item={item} compact />
+                      <OrderLineItemRow
+                        item={item}
+                        products={catalogProducts}
+                        catalogLoaded={!catalogLoading}
+                        compact
+                      />
                     </li>
                   ))}
                 </ul>

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { OrderFulfillmentTimeline } from "@/components/OrderFulfillmentTimeline";
 import { OrderLineItemRow } from "@/components/OrderLineItemRow";
 import { formatPrice } from "@/data/seedProducts";
+import { useProducts } from "@/hooks/useProducts";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import {
   buildOrderCustomerDisplay,
@@ -48,6 +49,7 @@ export function AdminOrderDetailPage() {
   const [advancingFulfillment, setAdvancingFulfillment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const { products: catalogProducts, loading: catalogLoading } = useProducts("all");
 
   const nextStage = useMemo(
     () =>
@@ -447,7 +449,11 @@ export function AdminOrderDetailPage() {
           )}
           {items.map((item, index) => (
             <li key={`${item.productId}-${index}`}>
-              <OrderLineItemRow item={item} />
+              <OrderLineItemRow
+                item={item}
+                products={catalogProducts}
+                catalogLoaded={!catalogLoading}
+              />
             </li>
           ))}
         </ul>

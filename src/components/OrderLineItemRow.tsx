@@ -1,12 +1,16 @@
 import { Link } from "react-router-dom";
+import type { Product } from "@/data/seedProducts";
 import { formatPrice } from "@/data/seedProducts";
 import {
   orderLineItemDisplay,
+  resolveOrderLineItemHref,
   type OrderLineItemSnapshot,
 } from "@/lib/orderLineItems";
 
 type OrderLineItemRowProps = {
   item: OrderLineItemSnapshot;
+  products?: Product[];
+  catalogLoaded?: boolean;
   showPrice?: boolean;
   compact?: boolean;
   linkToProduct?: boolean;
@@ -15,6 +19,8 @@ type OrderLineItemRowProps = {
 
 export function OrderLineItemRow({
   item,
+  products = [],
+  catalogLoaded = false,
   showPrice = true,
   compact = false,
   linkToProduct = true,
@@ -24,16 +30,16 @@ export function OrderLineItemRow({
   const textClass = compact
     ? "text-label-sm text-on-surface-variant"
     : "text-body-md text-on-surface";
-  const slug = item.slug?.trim();
+  const href = resolveOrderLineItemHref(item, products, catalogLoaded);
   const titleText = `${productTitle} × ${item.quantity}`;
 
   return (
     <div className={`flex justify-between gap-4 ${textClass} ${className}`.trim()}>
       <div className="min-w-0">
         <p>
-          {linkToProduct && slug ? (
+          {linkToProduct && href ? (
             <Link
-              to={`/shop/${slug}`}
+              to={href}
               className="hover:text-primary hover:underline"
             >
               {titleText}
