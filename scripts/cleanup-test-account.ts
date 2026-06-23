@@ -3,6 +3,7 @@
  *
  * Usage:
  *   npx tsx scripts/cleanup-test-account.ts pramos074@hotmail.com
+ *   npx tsx scripts/cleanup-test-account.ts pramos074@hotmail.com --purge-cancelled-failed
  *
  * Requires admin Cognito sign-in (ADMIN_PASSWORD or default from reset-promo-data).
  * Orders use GraphQL delete when allowed; otherwise AWS CLI DynamoDB delete.
@@ -20,7 +21,9 @@ import type { Schema } from "../amplify/data/resource";
 Amplify.configure(outputs);
 
 const ADMIN_EMAIL = "admin@emperiumforgeworks.com";
-const TARGET_EMAIL = (process.argv[2] ?? "").trim().toLowerCase();
+const args = process.argv.slice(2);
+const PURGE_CANCELLED_FAILED = args.includes("--purge-cancelled-failed");
+const TARGET_EMAIL = args.find((arg) => !arg.startsWith("--"))?.trim().toLowerCase() ?? "";
 
 async function listAll<T extends { id: string }>(
   listFn: (args: {
@@ -132,9 +135,37 @@ function deleteOrderViaDynamoCli(
   deleteViaDynamoCli(tableName, { id: { S: orderId } }, region, `order-${orderId}`);
 }
 
+async function deleteOrder(
+  client: ReturnType<typeof generateClient<Schema>>,
+  order: Schema["Order"]["type"],
+  orderTable: string | undefined,
+  region: string,
+): Promise<string | undefined> {
+  const { errors } = await client.models.Order.delete({ id: order.id });
+  if (errors?.length) {
+    const msg = errors.map((e) => e.message).join("; ");
+    if (
+      msg.toLowerCase().includes("not authorized") ||
+      msg.toLowerCase().includes("unauthorized")
+    ) {
+      const table = orderTable ?? findTableName("Order", region);
+      console.log(`  GraphQL delete denied for ${order.id}; using DynamoDB...`);
+      deleteOrderViaDynamoCli(order.id, table, region);
+      return table;
+    }
+    throw new Error(`Failed to delete order ${order.id}: ${msg}`);
+  }
+  console.log(
+    `  Deleted order ${order.id} (${order.status ?? "unknown"}, ${order.fulfillmentStatus ?? "no fulfillment"})`,
+  );
+  return orderTable;
+}
+
 async function main() {
   if (!TARGET_EMAIL) {
-    console.error("Usage: npx tsx scripts/cleanup-test-account.ts <customer-email>");
+    console.error(
+      "Usage: npx tsx scripts/cleanup-test-account.ts <customer-email> [--purge-cancelled-failed]",
+    );
     process.exit(1);
   }
 
@@ -186,24 +217,19 @@ async function main() {
 
   let orderTable: string | undefined;
   for (const order of targetOrders) {
-    const { errors } = await client.models.Order.delete({ id: order.id });
-    if (errors?.length) {
-      const msg = errors.map((e) => e.message).join("; ");
-      if (
-        msg.toLowerCase().includes("not authorized") ||
-        msg.toLowerCase().includes("unauthorized")
-      ) {
-        orderTable ??= findTableName("Order", region);
-        console.log(`  GraphQL delete denied for ${order.id}; using DynamoDB...`);
-        deleteOrderViaDynamoCli(order.id, orderTable, region);
-        console.log(`  Deleted order ${order.id}`);
-        continue;
-      }
-      throw new Error(`Failed to delete order ${order.id}: ${msg}`);
-    }
-    console.log(
-      `  Deleted order ${order.id} (${order.status ?? "unknown"}, ${order.fulfillmentStatus ?? "no fulfillment"})`,
+    orderTable = await deleteOrder(client, order, orderTable, region);
+  }
+
+  if (PURGE_CANCELLED_FAILED) {
+    const terminalOrders = orders.filter(
+      (order) => order.status === "cancelled" || order.status === "failed",
     );
+    console.log(
+      `Found ${terminalOrders.length} cancelled/failed order(s) to purge.`,
+    );
+    for (const order of terminalOrders) {
+      orderTable = await deleteOrder(client, order, orderTable, region);
+    }
   }
 
   if (userId) {

@@ -17,6 +17,7 @@ import {
   markPendingOrderCancelled,
   paymentIntentIdFromSession,
 } from "../order-shared/stripeOrderStatus.js";
+import { resolveVariantLabelFromProductJson } from "../order-shared/resolveVariantLabel.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -118,6 +119,11 @@ function lineItemDescription(
   return parts.length ? parts.join(" · ") : undefined;
 }
 
+function checkoutDisplayTitle(item: CheckoutLineItem): string {
+  const variant = item.variantLabel?.trim();
+  return variant ? `${item.title} (${variant})` : item.title;
+}
+
 async function createStripeCheckoutSession(
   stripe: Stripe,
   items: CheckoutLineItem[],
@@ -179,7 +185,7 @@ async function createStripeCheckoutSession(
           currency: "usd",
           unit_amount: item.priceCents,
           product_data: {
-            name: item.title,
+            name: checkoutDisplayTitle(item),
             ...(description ? { description } : {}),
             ...(item.imageUrl?.startsWith("http")
               ? { images: [item.imageUrl] }
@@ -280,16 +286,24 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
         ? (event.identity.sub as string | undefined)
         : undefined;
 
-    const snapshots = lineItems.map((item) => ({
-      productId: item.productId,
-      slug: item.slug,
-      variantId: item.variantId,
-      title: item.title,
-      quantity: item.quantity,
-      priceCents: item.priceCents,
-    }));
-
     const productById = await loadProductsForLineItems(lineItems);
+
+    function snapshotForLineItem(item: CheckoutLineItem) {
+      const product = productById.get(item.productId);
+      const variantLabel =
+        item.variantLabel?.trim() ||
+        resolveVariantLabelFromProductJson(product?.variants, item.variantId);
+      return {
+        productId: item.productId,
+        slug: item.slug,
+        variantId: item.variantId,
+        ...(variantLabel ? { variantLabel } : {}),
+        title: product?.title?.trim() || item.title,
+        quantity: item.quantity,
+        priceCents: item.priceCents,
+      };
+    }
+
     const promoCatalog = [
       ...new Map(
         [...productById.values()].map((product) => [
@@ -363,6 +377,7 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       await cancelSupersededPendingOrders(dataClient, userId);
     }
 
+    const snapshots = lineItems.map((item) => snapshotForLineItem(item));
     const stripe = new Stripe(secretKey);
     let checkoutSession: Stripe.Checkout.Session | null = null;
     let orderId: string | null = null;

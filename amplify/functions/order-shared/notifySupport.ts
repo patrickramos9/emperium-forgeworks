@@ -17,6 +17,7 @@ export type OrderEmailPayload = {
 
 type LineItem = {
   title?: string;
+  variantLabel?: string;
   quantity?: number;
   priceCents?: number;
 };
@@ -35,15 +36,18 @@ function parseLineItems(raw: unknown): LineItem[] {
   }
 }
 
+function formatOrderLineItemText(item: LineItem): string {
+  const qty = item.quantity ?? 1;
+  const unit = item.priceCents ?? 0;
+  const title = item.title?.trim() || "Item";
+  const variant = item.variantLabel?.trim();
+  const label = variant ? `${title} — ${variant}` : title;
+  return `• ${label} × ${qty} — ${formatMoney(unit * qty)}`;
+}
+
 function formatLineItems(lines: LineItem[]): string {
   if (!lines.length) return "No line items recorded.";
-  return lines
-    .map((item) => {
-      const qty = item.quantity ?? 1;
-      const unit = item.priceCents ?? 0;
-      return `• ${item.title ?? "Item"} × ${qty} — ${formatMoney(unit * qty)}`;
-    })
-    .join("\n");
+  return lines.map(formatOrderLineItemText).join("\n");
 }
 
 export function buildOrderNotificationBody(

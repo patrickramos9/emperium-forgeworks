@@ -84,10 +84,11 @@ async function startStripeCheckout(
   }
 
   const base = SITE_URL.replace(/\/$/, "");
-  const lineItems = toLineItems(items).map((item) => ({
+  const lineItems = items.map((item) => ({
     productId: item.productId,
     slug: item.slug,
     variantId: item.variantId,
+    variantLabel: item.variantLabel,
     quantity: item.quantity,
     title: item.title,
     priceCents: item.priceCents,

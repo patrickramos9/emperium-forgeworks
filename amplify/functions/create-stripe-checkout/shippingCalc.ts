@@ -5,6 +5,7 @@ export type CheckoutLineItem = {
   productId: string;
   slug: string;
   variantId?: string;
+  variantLabel?: string;
   quantity: number;
   title: string;
   priceCents: number;
@@ -20,6 +21,7 @@ export function lineItemsFromArgs(
       productId: item.productId,
       slug: item.slug,
       variantId: item.variantId ?? undefined,
+      variantLabel: item.variantLabel?.trim() || undefined,
       quantity: item.quantity,
       title: item.title,
       priceCents: item.priceCents,

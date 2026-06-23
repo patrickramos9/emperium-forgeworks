@@ -66,6 +66,7 @@ const schema = a.schema({
     productId: a.string().required(),
     slug: a.string().required(),
     variantId: a.string(),
+    variantLabel: a.string(),
     quantity: a.integer().required(),
     title: a.string().required(),
     priceCents: a.integer().required(),

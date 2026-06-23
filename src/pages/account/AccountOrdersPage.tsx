@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { OrderLineItemRow } from "@/components/OrderLineItemRow";
 import { formatPrice } from "@/data/seedProducts";
 import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
@@ -151,18 +152,10 @@ export function AccountOrdersPage() {
                 </p>
               )}
               {items.length > 0 && (
-                <ul className="mt-3 space-y-1 border-t border-outline-variant/10 pt-3">
+                <ul className="mt-3 space-y-2 border-t border-outline-variant/10 pt-3">
                   {items.map((item, index) => (
-                    <li
-                      key={`${order.id}-${index}`}
-                      className="flex justify-between gap-4 text-label-sm text-on-surface-variant"
-                    >
-                      <span>
-                        {item.title} × {item.quantity}
-                      </span>
-                      <span>
-                        {formatPrice(item.priceCents * item.quantity)}
-                      </span>
+                    <li key={`${order.id}-${index}`}>
+                      <OrderLineItemRow item={item} compact />
                     </li>
                   ))}
                 </ul>

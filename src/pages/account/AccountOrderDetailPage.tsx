@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { OrderFulfillmentTimeline } from "@/components/OrderFulfillmentTimeline";
+import { OrderLineItemRow } from "@/components/OrderLineItemRow";
 import { formatPrice } from "@/data/seedProducts";
 import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import { getCustomerUserId } from "@/lib/customerAuth";
@@ -182,18 +183,10 @@ export function AccountOrderDetailPage() {
         <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
           Items
         </h2>
-        <ul className="mt-3 space-y-2 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
+        <ul className="mt-3 space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
           {items.map((item, index) => (
-            <li
-              key={`${item.productId}-${index}`}
-              className="flex justify-between gap-4 text-body-md"
-            >
-              <span>
-                {item.title} × {item.quantity}
-              </span>
-              <span className="text-primary">
-                {formatPrice(item.priceCents * item.quantity)}
-              </span>
+            <li key={`${item.productId}-${index}`}>
+              <OrderLineItemRow item={item} />
             </li>
           ))}
         </ul>
