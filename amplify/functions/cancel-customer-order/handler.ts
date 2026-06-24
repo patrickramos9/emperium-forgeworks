@@ -4,6 +4,7 @@ import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtim
 import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import Stripe from "stripe";
 import type { Schema } from "../../data/resource";
+import { assertCustomerCanCancelOrder } from "../order-shared/refunds.js";
 import { issueOrderRefund } from "../order-shared/issueOrderRefund.js";
 import { getOrderById } from "../order-shared/stripeOrderStatus.js";
 
@@ -14,47 +15,38 @@ Amplify.configure(resourceConfig, libraryOptions);
 
 const dataClient = generateClient<Schema>();
 
-const STRIPE_REASONS = new Set([
-  "requested_by_customer",
-  "duplicate",
-  "fraudulent",
-]);
-
-export const handler: Schema["createStripeRefund"]["functionHandler"] =
+export const handler: Schema["cancelCustomerOrder"]["functionHandler"] =
   async (event) => {
-    const orderId = event.arguments.orderId;
-    const amountArg = event.arguments.amountCents;
-    const reason = event.arguments.reason ?? "requested_by_customer";
-    const refundNotes = event.arguments.refundNotes?.trim() || undefined;
-
-    if (!STRIPE_REASONS.has(reason)) {
-      throw new Error("Invalid refund reason.");
+    const userId =
+      event.identity && "sub" in event.identity
+        ? (event.identity.sub as string | undefined)
+        : undefined;
+    if (!userId) {
+      throw new Error("Sign in to cancel an order.");
     }
 
+    const orderId = event.arguments.orderId;
     const order = await getOrderById(dataClient, orderId);
     if (!order) {
       throw new Error("Order not found.");
     }
-    if (order.paymentProvider !== "stripe") {
-      throw new Error(
-        "Stripe refunds apply only to Stripe-paid orders. Update payment status manually for mock checkout.",
-      );
-    }
-    if (order.status !== "paid" && order.status !== "refunded") {
-      throw new Error("Only paid orders can be refunded.");
-    }
+
+    assertCustomerCanCancelOrder(order, userId);
 
     const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
+    const stripe =
+      order.paymentProvider === "stripe" && secretKey
+        ? new Stripe(secretKey)
+        : undefined;
+
+    if (order.paymentProvider === "stripe" && !stripe) {
       throw new Error("Stripe is not configured.");
     }
 
-    const stripe = new Stripe(secretKey);
     const result = await issueOrderRefund(dataClient, order, {
-      amountCents: amountArg ?? undefined,
-      reason,
-      refundNotes,
-      source: "admin",
+      reason: "requested_by_customer",
+      refundNotes: "Customer cancelled before shipment.",
+      source: "customer_cancel",
       stripe,
     });
 

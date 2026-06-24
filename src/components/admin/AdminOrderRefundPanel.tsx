@@ -135,7 +135,10 @@ export function AdminOrderRefundPanel({
                 </span>
                 <span className="text-on-surface-variant">
                   {" "}
-                  · {new Date(entry.createdAt).toLocaleString()} · {entry.source}
+                  · {new Date(entry.createdAt).toLocaleString()} ·{" "}
+                  {entry.source === "customer_cancel"
+                    ? "customer cancellation"
+                    : entry.source}
                   {entry.reason ? ` · ${entry.reason}` : ""}
                 </span>
               </li>

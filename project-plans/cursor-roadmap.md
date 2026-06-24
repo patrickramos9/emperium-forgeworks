@@ -688,6 +688,18 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 - Admin: create manual **replacement order** (future) or send **one-time discount code** (M6) for difference.
 - Document in admin UI: “Exchanges are handled case-by-case — approve return, then re-ship or refund difference.”
 
+#### Phase D — Customer pre-ship cancellation (M16d) — **shipped** (2026-06-22)
+
+**Goal:** Customer cancels any **paid, not-yet-shipped** order from **Account → Order details**; full refund issued automatically.
+
+**Eligibility:** `status === paid`, fulfillment **not** `shipped`, no `shippedAt`, refundable balance > 0, order belongs to signed-in customer.
+
+**Backend:** `cancelCustomerOrder` mutation → `issueOrderRefund` (full amount, `source: customer_cancel`, Stripe `requested_by_customer`).
+
+**Policy:** `/shipping-returns` — cancellations before shipment; returns after ship.
+
+**Acceptance:** Customer cancels while order is in Received/Processing → refunded in Stripe + order shows **Cancelled**; after ship, cancel UI hidden, return flow only.
+
 #### Out of scope (v1)
 
 - Automated return labels (EasyPost/ShipStation).

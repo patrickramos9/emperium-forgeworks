@@ -25,6 +25,10 @@ const SECTIONS: {
         heading: "Tracking",
         body: "When your order ships, you will receive tracking information by email if one was provided at checkout.",
       },
+      {
+        heading: "Cancellations before shipment",
+        body: "Signed-in customers may cancel any paid order that has not shipped yet from Account → Order details. A full refund is issued automatically to your original payment method. Once an order has shipped, self-service cancellation is no longer available—use the return process instead.",
+      },
     ],
   },
   {

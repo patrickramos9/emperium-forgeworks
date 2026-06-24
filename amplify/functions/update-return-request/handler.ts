@@ -19,7 +19,7 @@ const STATUSES = new Set([
   "closed",
 ]);
 
-export const handler: Schema["updateReturnRequest"]["functionHandler"] =
+export const handler: Schema["adminUpdateReturnRequest"]["functionHandler"] =
   async (event) => {
     const returnRequestId = event.arguments.returnRequestId;
     const status = event.arguments.status;

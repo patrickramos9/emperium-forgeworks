@@ -14,6 +14,7 @@ import { issueNewAccountGrant as issueNewAccountGrantFn } from "../functions/iss
 import { createStripeRefund as createStripeRefundFn } from "../functions/create-stripe-refund/resource";
 import { submitReturnRequest as submitReturnRequestFn } from "../functions/submit-return-request/resource";
 import { updateReturnRequest as updateReturnRequestFn } from "../functions/update-return-request/resource";
+import { cancelCustomerOrder as cancelCustomerOrderFn } from "../functions/cancel-customer-order/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -126,6 +127,13 @@ const schema = a.schema({
   }),
 
   CreateStripeRefundResult: a.customType({
+    success: a.boolean().required(),
+    refundId: a.string(),
+    refundedCents: a.integer().required(),
+    orderStatus: a.string().required(),
+  }),
+
+  CancelCustomerOrderResult: a.customType({
     success: a.boolean().required(),
     refundId: a.string(),
     refundedCents: a.integer().required(),
@@ -263,6 +271,13 @@ const schema = a.schema({
     .authorization((allow) => [allow.group("admin")])
     .handler(a.handler.function(createStripeRefundFn)),
 
+  cancelCustomerOrder: a
+    .mutation()
+    .arguments({ orderId: a.id().required() })
+    .returns(a.ref("CancelCustomerOrderResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(cancelCustomerOrderFn)),
+
   submitReturnRequest: a
     .mutation()
     .arguments({
@@ -281,7 +296,7 @@ const schema = a.schema({
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(submitReturnRequestFn)),
 
-  updateReturnRequest: a
+  adminUpdateReturnRequest: a
     .mutation()
     .arguments({
       returnRequestId: a.id().required(),
@@ -682,6 +697,7 @@ const schema = a.schema({
   allow.resource(createStripeRefundFn),
   allow.resource(submitReturnRequestFn),
   allow.resource(updateReturnRequestFn),
+  allow.resource(cancelCustomerOrderFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

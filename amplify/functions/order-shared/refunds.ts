@@ -10,7 +10,7 @@ export type RefundLedgerEntry = {
   amountCents: number;
   reason?: string | null;
   createdAt: string;
-  source: "admin" | "webhook";
+  source: "admin" | "webhook" | "customer_cancel";
 };
 
 const RETURN_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -117,5 +117,33 @@ export function isWithinReturnWindow(
 
 export function canCustomerRequestReturn(order: OrderRecord): boolean {
   if (order.status !== "paid") return false;
+  if (orderHasShipped(order)) return false;
   return isWithinReturnWindow(order);
 }
+
+export function orderHasShipped(order: OrderRecord): boolean {
+  if (order.fulfillmentStatus === "shipped") return true;
+  if (order.shippedAt) return true;
+  return false;
+}
+
+export function canCustomerCancelOrder(order: OrderRecord): boolean {
+  if (order.status !== "paid") return false;
+  if (orderHasShipped(order)) return false;
+  return refundableCentsRemaining(order) > 0;
+}
+
+export function assertCustomerCanCancelOrder(
+  order: OrderRecord,
+  userId: string,
+): void {
+  if (order.userId !== userId) {
+    throw new Error("Order not found.");
+  }
+  if (!canCustomerCancelOrder(order)) {
+    throw new Error(
+      "This order cannot be cancelled. Only paid orders that have not shipped may be cancelled from your account.",
+    );
+  }
+}
+

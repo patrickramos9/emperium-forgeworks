@@ -8,7 +8,7 @@ export type RefundLedgerEntry = {
   amountCents: number;
   reason?: string | null;
   createdAt: string;
-  source: "admin" | "webhook";
+  source: "admin" | "webhook" | "customer_cancel";
 };
 
 const RETURN_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -38,7 +38,28 @@ export function isPartiallyRefunded(order: OrderRecord): boolean {
   return refunded > 0 && refunded < order.totalCents;
 }
 
+export function isCustomerCancelledOrder(order: OrderRecord): boolean {
+  return parseRefundLedger(order.refunds).some(
+    (entry) => entry.source === "customer_cancel",
+  );
+}
+
+export function orderHasShipped(order: OrderRecord): boolean {
+  if (order.fulfillmentStatus === "shipped") return true;
+  if (order.shippedAt) return true;
+  return false;
+}
+
+export function canCustomerCancelOrder(order: OrderRecord): boolean {
+  if (order.status !== "paid") return false;
+  if (orderHasShipped(order)) return false;
+  return refundableCentsRemaining(order) > 0;
+}
+
 export function paymentStatusDetail(order: OrderRecord): string {
+  if (isCustomerCancelledOrder(order)) {
+    return "Cancelled";
+  }
   const refunded = order.refundedCents ?? 0;
   if (order.status === "refunded" || refunded >= order.totalCents) {
     return "Refunded";
@@ -70,6 +91,7 @@ export function isWithinReturnWindow(
 
 export function canCustomerRequestReturn(order: OrderRecord): boolean {
   if (order.status !== "paid") return false;
+  if (!orderHasShipped(order)) return false;
   return isWithinReturnWindow(order);
 }
 

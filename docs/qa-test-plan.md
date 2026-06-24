@@ -699,6 +699,13 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 **Status:** **Shipped** 2026-06-22 — deploy backend (schema + Lambdas) + frontend before testing.
 
+### Customer pre-ship cancellation (M16d)
+
+- [ ] Paid order not shipped → **Cancel order** on order detail → confirm → full refund in Stripe
+- [ ] Order shows **Cancelled**; refund ledger entry `customer cancellation`
+- [ ] After admin marks **Shipped** → cancel section hidden; return link available when in window
+- [ ] `/shipping-returns` documents pre-ship cancellation policy
+
 ### Admin refunds (M16a)
 
 - [ ] Paid Stripe order → **Admin → Orders → detail** → Refunds panel shows PaymentIntent, refundable balance

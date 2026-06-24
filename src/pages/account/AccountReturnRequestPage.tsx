@@ -185,6 +185,11 @@ export function AccountReturnRequestPage() {
           your return.
         </p>
         <p className="mt-3">
+          If your order has <strong>not shipped yet</strong>, cancel it from{" "}
+          <strong>Account → Order details</strong> for an automatic full refund
+          instead of starting a return.
+        </p>
+        <p className="mt-3">
           Questions?{" "}
           <a
             href={`mailto:${CONTACT_EMAIL}`}

@@ -134,13 +134,13 @@ export async function updateReturnRequest(
     adminNotes?: string;
   },
 ): Promise<ReturnRequestRecord> {
-  if (!client.mutations.updateReturnRequest) {
+  if (!client.mutations.adminUpdateReturnRequest) {
     throw new Error(
       "Return request updates are not deployed. Redeploy the Amplify backend.",
     );
   }
 
-  const { data, errors } = await client.mutations.updateReturnRequest({
+  const { data, errors } = await client.mutations.adminUpdateReturnRequest({
     returnRequestId: input.returnRequestId,
     ...(input.status ? { status: input.status } : {}),
     ...(input.adminNotes !== undefined ? { adminNotes: input.adminNotes } : {}),

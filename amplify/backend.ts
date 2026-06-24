@@ -18,6 +18,7 @@ import { issueNewAccountGrant } from "./functions/issue-new-account-grant/resour
 import { createStripeRefund } from "./functions/create-stripe-refund/resource";
 import { submitReturnRequest } from "./functions/submit-return-request/resource";
 import { updateReturnRequest } from "./functions/update-return-request/resource";
+import { cancelCustomerOrder } from "./functions/cancel-customer-order/resource";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
@@ -39,6 +40,7 @@ const backend = defineBackend({
   createStripeRefund,
   submitReturnRequest,
   updateReturnRequest,
+  cancelCustomerOrder,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -105,6 +107,11 @@ backend.notifyOrderPlaced.addEnvironment(
 );
 
 backend.createStripeRefund.addEnvironment(
+  "STRIPE_SECRET_KEY",
+  process.env.STRIPE_SECRET_KEY ?? "",
+);
+
+backend.cancelCustomerOrder.addEnvironment(
   "STRIPE_SECRET_KEY",
   process.env.STRIPE_SECRET_KEY ?? "",
 );
