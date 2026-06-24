@@ -4,6 +4,7 @@ import { formatPrice } from "@/data/seedProducts";
 import {
   orderLineItemDisplay,
   resolveOrderLineItemHref,
+  type OrderLineItemLinkContext,
   type OrderLineItemSnapshot,
 } from "@/lib/orderLineItems";
 
@@ -11,6 +12,7 @@ type OrderLineItemRowProps = {
   item: OrderLineItemSnapshot;
   products?: Product[];
   catalogLoaded?: boolean;
+  linkContext?: OrderLineItemLinkContext;
   showPrice?: boolean;
   compact?: boolean;
   linkToProduct?: boolean;
@@ -21,6 +23,7 @@ export function OrderLineItemRow({
   item,
   products = [],
   catalogLoaded = false,
+  linkContext = "storefront",
   showPrice = true,
   compact = false,
   linkToProduct = true,
@@ -30,7 +33,12 @@ export function OrderLineItemRow({
   const textClass = compact
     ? "text-label-sm text-on-surface-variant"
     : "text-body-md text-on-surface";
-  const href = resolveOrderLineItemHref(item, products, catalogLoaded);
+  const href = resolveOrderLineItemHref(
+    item,
+    products,
+    catalogLoaded,
+    linkContext,
+  );
   const titleText = `${productTitle} × ${item.quantity}`;
 
   return (

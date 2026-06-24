@@ -26,6 +26,7 @@ export interface CartLine {
   imageUrl?: string;
   variantId?: string;
   variantLabel?: string;
+  vaultOnly?: boolean;
 }
 
 interface CartContextValue {
@@ -146,6 +147,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               imageUrl: productPrimaryImageRef(product),
               variantId: variant?.id,
               variantLabel: variant?.label,
+              vaultOnly: product.vaultOnly,
             },
           ];
         }
@@ -208,7 +210,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             productId: product.id,
             slug: product.slug,
             key: lineKey(product.id, item.variantId),
+            vaultOnly: product.vaultOnly,
           };
+          changed = true;
+        } else if (product.vaultOnly !== item.vaultOnly) {
+          updated = { ...updated, vaultOnly: product.vaultOnly };
           changed = true;
         }
 

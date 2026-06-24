@@ -453,6 +453,7 @@ export function AdminOrderDetailPage() {
                 item={item}
                 products={catalogProducts}
                 catalogLoaded={!catalogLoading}
+                linkContext="admin"
               />
             </li>
           ))}

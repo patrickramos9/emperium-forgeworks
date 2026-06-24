@@ -42,28 +42,45 @@ export function formatOrderLineItemSummary(item: OrderLineItemSnapshot): string 
   return `${productTitle} — ${variantLabel}`;
 }
 
-/** Storefront PDP path when the product still exists; null when delisted or unknown. */
+export function productDetailPath(product: {
+  slug: string;
+  vaultOnly?: boolean | null;
+}): string {
+  const base = product.vaultOnly ? "/vault" : "/shop";
+  return `${base}/${product.slug}`;
+}
+
+export function productAdminEditPath(slug: string): string {
+  return `/admin/products/${slug}`;
+}
+
+export type OrderLineItemLinkContext = "storefront" | "admin";
+
+/** Product link for order line items; null when delisted (storefront) or unknown slug. */
 export function resolveOrderLineItemHref(
   item: OrderLineItemSnapshot,
   products: Product[] = [],
   catalogLoaded = false,
+  linkContext: OrderLineItemLinkContext = "storefront",
 ): string | null {
   const product =
     products.find((row) => row.id === item.productId) ??
     products.find((row) => row.slug === item.slug);
 
+  const slug = product?.slug?.trim() || item.slug?.trim();
+  if (!slug) return null;
+
+  if (linkContext === "admin") {
+    return productAdminEditPath(slug);
+  }
+
   if (product) {
-    const base = product.vaultOnly ? "/vault" : "/shop";
-    return `${base}/${product.slug}`;
+    return productDetailPath(product);
   }
 
   if (catalogLoaded) return null;
 
-  const slug = item.slug?.trim();
-  if (!slug) return null;
-
-  const base = item.vaultOnly ? "/vault" : "/shop";
-  return `${base}/${slug}`;
+  return productDetailPath({ slug, vaultOnly: item.vaultOnly });
 }
 
 export function toOrderLineItemSnapshots(

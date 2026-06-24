@@ -5,6 +5,7 @@ import { useNotificationBadge } from "@/context/NotificationBadgeContext";
 import { formatPrice } from "@/data/seedProducts";
 import { CartLineThumbnail } from "@/components/CartLineThumbnail";
 import { findCatalogProduct } from "@/lib/cartLineImage";
+import { productDetailPath } from "@/lib/orderLineItems";
 import { useProducts } from "@/hooks/useProducts";
 import { IS_LOCAL } from "@/lib/config";
 import {
@@ -277,7 +278,14 @@ export function CartPage() {
                   <p className="font-headline-md text-on-surface">{item.title}</p>
                 ) : (
                   <Link
-                    to={`/shop/${item.slug}`}
+                    to={
+                      catalogProduct
+                        ? productDetailPath(catalogProduct)
+                        : productDetailPath({
+                            slug: item.slug,
+                            vaultOnly: item.vaultOnly,
+                          })
+                    }
                     className="font-headline-md text-on-surface hover:text-primary"
                   >
                     {item.title}
