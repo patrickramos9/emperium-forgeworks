@@ -20,22 +20,22 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-20
+**Last updated:** 2026-06-22
 
 | Item | State |
 |------|--------|
-| **Phase** | **Core commerce live** — **M11 customer order status** is next (critical) |
-| **Next** | **M11** — paid → received → processing → shipped (+ tracking); customer notifications + optional SES email |
+| **Phase** | **Post-M11** — **M16 returns, refunds & exchanges** is next |
+| **Next** | **M16** — admin Stripe refunds (M16a), then return requests (M16b); policy page exists, ops email-only today |
 | **Blocked** | _(none)_ — **SES production access** stalled (AWS support); **customer transactional email** optional — in-app order notifications work; third-party email (Resend/Postmark/etc.) or **M20** `EmailProvider` port are fallbacks |
-| **Recently verified** | **M6 new-account promo** (2026-06-20) · **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
-| **Recently shipped (repo)** | **M15** `us_free_international_flat` shipping rate type (2026-06-14; deploy backend + create profile in admin) · **`Product.activeCartCount`** on admin product cards (signed-in carts only until **M6e**) · **M9a** UX polish (toasts, cart badge, checkout redirect feedback, account form banners) |
+| **Recently verified** | **M11** customer order status + shipping (2026-06-23) · **M6 new-account promo** (2026-06-20) · **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
+| **Recently shipped (repo)** | **M11 polish** (2026-06-23): checkout orphan-order fix, order line variant labels, product links (shop/vault/admin), admin orders fulfillment column · **M15** `us_free_international_flat` (2026-06-14) · **M9a** UX polish (2026-06-16) |
 | **In progress** | _(none)_ |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
-M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M9a** (done) → **M11** (customer order status + shipping) → **M19** → **M18** → **M8a.3** (inbox vs campaigns) → **M16** → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
+M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M9a** (done) → **M11** (done) → **M16** (returns/refunds) → **M21** (printing as a service) → **M19** (catalog sales & bundles) → **M18** → **M8a.3** (inbox vs campaigns) → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -176,6 +176,23 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **Go-live polish (2026-06-13)** — see **§3.1** below — **production verified** (2026-06-11; monitor for bugs)
 - **M9a** — Initial UX polish (toasts, cart badge bump, PDP/cart/favorites/checkout/account feedback) — **shipped** (2026-06-16; deploy frontend)
 - **M6 new-account promo** — `useForNewAccount` template flag + `new_account` grant via `issueNewAccountWelcomeGrant` after verify/sign-in — **production verified** (2026-06-20)
+- **M11** — Customer order status + shipping (`fulfillmentStatus`, 4-stage timeline, admin fulfillment stepper, in-app `order` notifications, tracking on ship, order detail with line items/variants/product links) — **production verified** (2026-06-23); checkout orphan-order fix; admin orders list fulfillment column; cart/admin product link routing (shop vs vault vs admin edit)
+
+### 3.3 M11 — customer order status + shipping (2026-06-23)
+
+**Signed off** 2026-06-23 — regression checklist [docs/qa-test-plan.md](../docs/qa-test-plan.md) §19.
+
+| Area | What shipped |
+|------|----------------|
+| **Fulfillment** | `fulfillmentStatus` on `Order`; admin advance paid → received → processing → shipped; carrier + tracking required on ship |
+| **Customer** | `/account/orders/:orderId` timeline, ship-to, tracking; order history fulfillment labels; `kind: order` notifications |
+| **Admin** | Fulfillment stepper on order detail; orders list/dashboard show **fulfillment** (not payment status only) |
+| **Checkout hardening** | Stripe session before DB order; cancel superseded pending orders; hide orphan `pending_*` rows on customer orders |
+| **Order line items** | Variant labels on snapshots; product links (customer: shop/vault; admin: product edit); cart vault-only links |
+
+**Optional (deferred):** Customer transactional email on paid/shipped — blocked on SES production access (in-app notifications verified).
+
+**Deploy:** Backend (`updateOrderFulfillment`, checkout Lambda) + frontend.
 
 ### 3.1 Go-live polish batch (2026-06-13)
 
@@ -228,19 +245,22 @@ _(none — monitor production; fix bugs ad hoc)_
 
 ### Planned (not started)
 
-**Next (critical — shopper-facing)**
+**Next**
 
-- **M11** — **Customer order status + shipping** — paid → received → processing → shipped; tracking on ship; in-app `order` notifications; optional customer email when SES production ready (see §4)
+- **M16** — Returns, refunds & exchanges (admin Stripe refunds **M16a** first; return requests **M16b**)
 
-**Core + polish (after M11)**
+**Then**
 
+- **M21** — **Printing as a Service** — home-page entry, policy + print configurator, STL upload, standard cart/checkout (see §4)
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
+
+**Core + polish (after M19)**
+
 - **M18** — **Cart price-change** in-system notifications (sale or list price up/down for items in cart)
 - **M8a.3** — **Inbox messages vs notification campaigns** — split immutable per-customer deliveries from editable admin broadcasts (see §4)
 
 **Later**
 
-- **M16** — Returns, refunds & exchanges
 - **M10** — Admin–customer chat
 - **M12** — Notification preferences _(depends on **M8a.3**)_
 - **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
@@ -596,7 +616,7 @@ Prefer **one sync code path** in Lambda with shared line-item normalization (`ca
 
 ### M16 — Returns, refunds & exchanges
 
-**Status:** Planned — policy page exists (`/shipping-returns`); operations are email-only today.
+**Status:** **Next** — policy page exists (`/shipping-returns`); operations are email-only today. **M11** shipped — return window can use `deliveredAt`.
 
 **Goal:** Support your published policy (30-day returns on new products, buyer pays return shipping, refund within ~2 days of receipt) with admin tools and optional customer self-service — without building a full RMA/ERP.
 
@@ -985,9 +1005,9 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 
 ---
 
-### M11 — Customer order status + shipping (critical — next)
+### M11 — Customer order status + shipping
 
-**Status:** **In progress** — implemented in repo (2026-06-11); deploy backend + QA §19.
+**Status:** **Production verified** (2026-06-23). See **§3.3** for sign-off summary. Regression: [docs/qa-test-plan.md](../docs/qa-test-plan.md) §19.
 
 **Goal:** Close the post-purchase communication gap. Separate **payment** status (`pending` \| `paid` \| `failed`) from **fulfillment** progress customers actually care about.
 
@@ -1212,7 +1232,7 @@ On each fulfillment transition (when `userId` is set):
 
 ### M19 — Catalog sales & product bundles
 
-**Status:** Planned — **after M17**, **before M18** (price alerts need stable sale fields).
+**Status:** Planned — **after M21**, **before M18** (price alerts need stable sale fields from M19).
 
 **Goal:** Admin-defined **storefront sales** on individual products and **bundles** (multi-SKU single purchase). Distinct from **M6** (per-account promo grants auto-applied at checkout).
 
@@ -1248,6 +1268,121 @@ On each fulfillment transition (when `userId` is set):
 
 - Admin sets 20% off a SKU for two weeks; storefront shows sale; cart/checkout totals match.
 - Admin creates bundle at fixed price; customer adds once; order line items and shipping resolve correctly.
+
+---
+
+### M21 — Printing as a Service
+
+**Status:** Planned — **after M16**, **before M19**. **M11** + **M15** + checkout are sufficient foundations.
+
+**Goal:** Let customers order **prints of their own STL files** through the normal storefront: policy acknowledgment → configure print → add to cart → Stripe checkout → standard **M11** fulfillment. Entry from the existing home-page card (today disabled **Custom Forge**).
+
+**Depends on:** **M3b** (checkout), **M11** (order + fulfillment), **M15** (shipping on checkout). Optional: **M20b** (`BlobStorageProvider`) — v1 may use Amplify Storage + S3 prefix like sculptor uploads.
+
+**Out of scope (v1):**
+
+- Bespoke sculpt **commissions** (design-from-scratch) — keep as email/`CONTACT_EMAIL`; do not conflate with print-service flow.
+- Automated mesh repair, volume-based instant quotes, or printability scoring.
+- Customer file retention after job completion (must delete — see policy + lifecycle below).
+- Re-selling or listing customer STLs in the catalog.
+- **M11a** / **M11b** printer automation (admin prints manually in v1).
+
+#### Customer flow
+
+1. **Home** (`HomePage`) — enable the featured card CTA (retitle/copy to **Printing as a Service**; link to `/print`).
+2. **`/print`** — single page (or policy + configurator sections):
+   - **Policy** (visible before submit; require explicit acknowledgment checkbox):
+     - Customer **owns or has rights** to print the file; no infringing / unlicensed third-party IP.
+     - Emperium Forgeworks **does not keep a copy** of the STL after the print job is complete and shipped (operational deletion — see backend).
+     - We **do not re-sell** the physical print or the digital file once the order is complete.
+     - Standard shop terms / liability limits apply (link to **Forge Terms**).
+   - **Configurator** — all required before **Add to cart**:
+     | Field | Notes |
+     |-------|--------|
+     | **Size** | Admin-defined tier (e.g. 32mm, 75mm, 100mm, custom band) — drives **price** |
+     | **Resin type** | Admin-defined options (e.g. standard, tough, flexible) — may adjust price |
+     | **Resin color** | Admin-defined options per type or global palette |
+     | **STL file** | `.stl` only; max size cap (env/config); one file **per cart line** |
+   - Live **price preview** from selected size/type surcharges.
+   - **Add to cart** → existing `/cart` → **M3b** checkout → **M11** order detail + admin queue.
+
+3. **Auth:** Require **signed-in customer** for upload + checkout (guest STL upload deferred to **M6e**).
+
+#### Cart & checkout integration
+
+Reuse existing cart/checkout — no separate payment path.
+
+1. **Cart line shape** — extend `CartLine` / localStorage with optional `printService` payload:
+   - `uploadId`, `originalFileName`, `storagePath`
+   - `sizeTierId`, `sizeLabel`
+   - `resinTypeId`, `resinTypeLabel`
+   - `resinColorId`, `resinColorLabel`
+   - `priceCents` (resolved at add-to-cart from admin pricing table)
+   - `productId` / `slug` — point at a dedicated catalog row (e.g. `printing-as-a-service`) **or** synthetic id with admin base SKU (prefer **one hidden `Product`** for shipping profile + title in order emails).
+
+2. **Line identity** — `lineKey` includes `uploadId` so two prints of the same file/config are separate lines.
+
+3. **Checkout** — extend `CheckoutCartLine` (and order `lineItems` JSON snapshot) with the same `printService` fields + `variantLabel` summary for display (e.g. `75mm · Tough · Charcoal`).
+
+4. **Catalog validation** — print-service lines **skip** standard PDP catalog checks (`getCartLineIssues` / M17 rules); validate against live **PrintServiceConfig** instead.
+
+5. **Promos** — **M6** grants apply to print-service lines like any other line (one grant per order unchanged).
+
+#### Backend & storage
+
+1. **`PrintServiceConfig`** (model or admin-editable singleton JSON):
+   - `active: boolean`
+   - `sizeTiers[]`: `{ id, label, priceCents, sortOrder }`
+   - `resinTypes[]`: `{ id, label, priceDeltaCents?, sortOrder }`
+   - `resinColors[]`: `{ id, label, resinTypeIds?, sortOrder }`
+   - `maxFileBytes`, `acceptedExtensions: ["stl"]`
+   - Policy body copy (markdown or structured bullets) for `/print` page.
+
+2. **S3 / Storage** — new prefix `print-jobs/{userId}/{uploadId}/…` in `productImages` bucket (or dedicated prefix documented in `storage/resource.ts`):
+   - **customer** group: `write` + `read` own prefix only (use identity-scoped path or presigned upload Lambda).
+   - **admin** group: `read` + `delete` for fulfillment.
+   - Prefer **presigned upload** Lambda if path-level IAM is awkward.
+
+3. **`purgePrintJobFile`** — Lambda (or fulfillment hook):
+   - On order **`fulfillmentStatus = shipped`** (or admin **Mark file purged**), delete STL object(s) for linked `uploadId`s.
+   - Set `printService.filePurgedAt` on line snapshot; admin UI shows purge status.
+   - Idempotent; log failures for manual cleanup.
+
+4. **Support email** — include print params + admin download link (presigned GET, short TTL) in existing `notifySupport` line-item block.
+
+#### Admin
+
+1. **`/admin/print-service`** (or section under Settings):
+   - Edit size tiers, resin types/colors, pricing, policy text, `active` toggle.
+2. **Order detail** — for print-service lines:
+   - Show config summary + **Download STL** (presigned).
+   - Show **File purged** timestamp when lifecycle ran.
+3. **Orders list** — optional badge/filter **Print job** (nice-to-have v1).
+
+#### Frontend files (expected)
+
+- `src/pages/PrintServicePage.tsx` — policy + configurator.
+- `src/lib/printServiceUpload.ts` — STL upload helper (mirror `sculptorImageUpload.ts`).
+- `src/services/printServiceConfigService.ts` — fetch config, resolve price.
+- Extend `CartContext`, `CartPage`, `OrderLineItemRow`, checkout service for `printService` lines.
+- `HomePage.tsx` — enable card → `/print`.
+- `App.tsx` — route `/print`.
+
+#### Cursor rules
+
+- Do **not** add customer STLs to the public product catalog or Merchant feed (**M13**).
+- Do **not** retain STL files beyond shipped + purge job (policy is contractual and technical).
+- Keep print-service logic in dedicated modules; do not fork checkout Lambda into a second code path.
+- Validate file type/size server-side in upload Lambda, not only client-side.
+
+#### Acceptance
+
+- Home card navigates to `/print`; disabled state removed when `PrintServiceConfig.active`.
+- Customer cannot add to cart until policy checked + all four parameters set + valid STL uploaded.
+- Cart shows human-readable config; checkout total matches admin pricing table.
+- Paid order appears in admin with downloadable STL and print parameters on line items.
+- After admin marks **shipped**, purge job removes STL from storage; admin sees **File purged**; repeat purge is safe.
+- Customer order detail shows config summary; no public link to STL file.
 
 ---
 

@@ -4,7 +4,7 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
-**Roadmap last synced:** 2026-06-20
+**Roadmap last synced:** 2026-06-22
 
 ---
 
@@ -31,15 +31,15 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 | M17 | Removed-from-catalog | §17b |
 | Go-live polish | Order email, catalog, scroll | §18a |
 | **M9a** | UX polish (toasts, feedback) | §20 |
-| **M11** | Order status + shipping _(repo; deploy to test)_ | §19 |
+| **M11** | Order status + shipping | §19 |
 
 ---
 
 ## Testing now
 
-**Next milestone:** **M11** — customer order status (paid → received → processing → shipped + tracking). See §19 when spec is implemented.
+**Next milestone:** **M16** — returns, refunds & exchanges (admin Stripe refunds first).
 
-Pre-launch sign-off closed 2026-06-11. Run smoke after deploys; full §6–§20 checklists for regression when touching related code.
+Pre-launch sign-off closed 2026-06-11. **M11** signed off 2026-06-23 (§19). Run smoke after deploys; full §6–§20 checklists for regression when touching related code.
 
 | When | What to run |
 |------|-------------|
@@ -49,11 +49,9 @@ Pre-launch sign-off closed 2026-06-11. Run smoke after deploys; full §6–§20 
 | **Catalog/admin product change** | §2 PDP, §17b, §9, §18a admin catalog |
 | **New milestone** | Matching section below + remove from **Not yet built** |
 
-**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, go-live polish §18a, order notification email.
+**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, **M11** (§19), go-live polish §18a, order notification email, **M9a** (§20).
 
-**Shipped in repo — verify after deploy:** **M9a** (§20), **M11** (§19; needs backend deploy).
-
-**Do not test yet:** M19, M18, M6d marketing email, M10, M12, M13, M16, **M9** (SEO/gallery — not M9a).
+**Do not test yet:** M19, M18, M21, M6d marketing email, M10, M12, M13, M16, **M9** (SEO/gallery — not M9a).
 
 ### Deploy prerequisites (M6b/c + M17 + new-account) — signed off 2026-06-11; new-account signed off 2026-06-20
 
@@ -700,8 +698,9 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 | Milestone | Feature | Notes |
 |-----------|---------|--------|
-| **M11** | Customer order status + shipping tracking | **In repo** — deploy + run §19 |
-| **M19** | Catalog sales & bundles (list/compare pricing) | After M11 |
+| **M16** | Returns, refunds & exchanges | **Next** |
+| **M21** | Printing as a Service (`/print`, STL upload, cart/checkout) | After M16 |
+| **M19** | Catalog sales & bundles (list/compare pricing) | After M21 |
 | **M18** | Cart price-change in-system notifications | After M19 + M6c |
 | **M9** | Polish & growth (gallery, SEO, structured data) | **Not M9a** — UX polish shipped §20 |
 | **M6d** | Abandoned-cart **email** | In-system M6c only today |
@@ -709,14 +708,11 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M10** | Admin–customer chat | — |
 | **M11a** / **M11b** / **M14** | Fabrication sub-stages, Pi bridge, ForgeLink | Deferred |
 | **M15b** | Cart shipping estimate preview; Stripe ETA UI | — |
-| **M16** | Returns, refunds, exchanges | Email-only policy today |
 | **M12** | Notification preferences | Depends on M8a.3 |
 | **M13** | Marketing pixels / UTM on orders | — |
 | **M6e** | Guest cart server sync + identity merge | — |
 
-**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish).
-
-**Shipped in repo — verify after deploy:** §20 (M9a), §19 (M11).
+**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a).
 
 Add test sections here when each **new** milestone ships.
 
@@ -774,30 +770,33 @@ Add test sections here when each **new** milestone ships.
 
 ## §19 — Customer order status + shipping (M11)
 
-**Status:** Implemented in repo — deploy backend (`fulfillmentStatus`, `updateOrderFulfillment` mutation) + frontend; then run checklist.
+**Status:** **Signed off** 2026-06-23 — deployed; regression when touching fulfillment, checkout, or order UI.
 
 ### Data & admin
 
-- [ ] Paid order gets `fulfillmentStatus = paid` (webhook + mock path)
-- [ ] Admin can advance: paid → received → processing → shipped (forward only)
-- [ ] **Shipped** requires carrier + tracking number; `shippedAt` set
-- [ ] Payment `status` separate from fulfillment (`pending` / `paid` / `failed` / `cancelled` / `refunded`)
+- [x] Paid order gets `fulfillmentStatus = paid` (webhook + mock path)
+- [x] Admin can advance: paid → received → processing → shipped (forward only)
+- [x] **Shipped** requires carrier + tracking number; `shippedAt` set
+- [x] Payment `status` separate from fulfillment (`pending` / `paid` / `failed` / `cancelled` / `refunded`)
+- [x] Admin orders list shows **fulfillment** status (not payment-only)
 
 ### Customer UI
 
-- [ ] `/account/orders/:orderId` — timeline (4 stages), line items, ship-to, tracking when shipped
-- [ ] Order history list shows fulfillment label + links to detail
-- [ ] Notifications (`kind: order`) on each transition; shipped includes tracking link
+- [x] `/account/orders/:orderId` — timeline (4 stages), line items, ship-to, tracking when shipped
+- [x] Order history list shows fulfillment label + links to detail
+- [x] Notifications (`kind: order`) on each transition; shipped includes tracking link
+- [x] Line items show variant labels; product links resolve shop vs vault
 
 ### Email (when SES production ready)
 
-- [ ] Customer receives confirmation email on **paid** (optional but recommended)
+- [ ] Customer receives confirmation email on **paid** (optional — SES production pending)
 - [ ] Customer receives **shipped** email with carrier + tracking to `Order.email`
 
 ### Regression
 
-- [ ] Thank-you promo (M6) still fires separately (`kind: marketing`)
-- [ ] Support new-order email (admin) unaffected
+- [x] Thank-you promo (M6) still fires separately (`kind: marketing`)
+- [x] Support new-order email (admin) unaffected
+- [x] Checkout does not leave orphan `pending_*` orders on retry
 
 ---
 
@@ -833,6 +832,7 @@ Add test sections here when each **new** milestone ships.
 
 | Date | Tester | Environment | Scope | Pass/Fail | Notes |
 |------|--------|-------------|-------|-----------|-------|
+| 2026-06-23 | Patrick | prod | M11 §19 | Sign-off | Fulfillment timeline, notifications, order line items, checkout hardening |
 | 2026-06-11 | Patrick | prod | §18 order email | Pass | Live Stripe order → SES email to support inbox |
 | 2026-06-11 | Patrick | prod | M6b, M6c, M17, §18 | Sign-off | Deployed; monitor for bugs |
 
