@@ -24,18 +24,18 @@ Cursor should treat this file as the **source of truth** for:
 
 | Item | State |
 |------|--------|
-| **Phase** | **Post-M11** — **M16 returns, refunds & exchanges** is next |
-| **Next** | **M16** — admin Stripe refunds (M16a), then return requests (M16b); policy page exists, ops email-only today |
+| **Phase** | **Post-M16** — **M21 Printing as a Service** is next |
+| **Next** | **M21** — policy + print configurator, STL upload, standard cart/checkout |
 | **Blocked** | _(none)_ — **SES production access** stalled (AWS support); **customer transactional email** optional — in-app order notifications work; third-party email (Resend/Postmark/etc.) or **M20** `EmailProvider` port are fallbacks |
-| **Recently verified** | **M11** customer order status + shipping (2026-06-23) · **M6 new-account promo** (2026-06-20) · **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
-| **Recently shipped (repo)** | **M11 polish** (2026-06-23): checkout orphan-order fix, order line variant labels, product links (shop/vault/admin), admin orders fulfillment column · **M15** `us_free_international_flat` (2026-06-14) · **M9a** UX polish (2026-06-16) |
+| **Recently verified** | **M16** returns/refunds (2026-06-22) · **M11** customer order status + shipping (2026-06-23) · **M6 new-account promo** (2026-06-20) · **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
+| **Recently shipped (repo)** | **M16** admin Stripe refunds, return requests, `/admin/returns` (2026-06-22) · **M11 polish** (2026-06-23): checkout orphan-order fix, order line variant labels, product links (shop/vault/admin), admin orders fulfillment column · **M15** `us_free_international_flat` (2026-06-14) · **M9a** UX polish (2026-06-16) |
 | **In progress** | _(none)_ |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
-M8 (done) → M3b (done) → M15 (done) → M6 + **M6b/c** (done) → **M17** (done) → **M9a** (done) → **M11** (done) → **M16** (returns/refunds) → **M21** (printing as a service) → **M19** (catalog sales & bundles) → **M18** → **M8a.3** (inbox vs campaigns) → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
+M8 (done) → … → **M11** (done) → **M16** (done) → **M21** (printing as a service) → **M19** (catalog sales & bundles) → **M18** → **M8a.3** (inbox vs campaigns) → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -177,6 +177,17 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M9a** — Initial UX polish (toasts, cart badge bump, PDP/cart/favorites/checkout/account feedback) — **shipped** (2026-06-16; deploy frontend)
 - **M6 new-account promo** — `useForNewAccount` template flag + `new_account` grant via `issueNewAccountWelcomeGrant` after verify/sign-in — **production verified** (2026-06-20)
 - **M11** — Customer order status + shipping (`fulfillmentStatus`, 4-stage timeline, admin fulfillment stepper, in-app `order` notifications, tracking on ship, order detail with line items/variants/product links) — **production verified** (2026-06-23); checkout orphan-order fix; admin orders list fulfillment column; cart/admin product link routing (shop vs vault vs admin edit)
+- **M16** — Returns, refunds & exchanges (`createStripeRefund`, partial/full refunds, `ReturnRequest`, customer `/account/orders/:id/return`, admin `/admin/returns`) — **shipped** (2026-06-22; deploy backend + frontend)
+
+### 3.4 M16 — returns, refunds & exchanges (2026-06-22)
+
+| Area | What shipped |
+|------|----------------|
+| **M16a** | `createStripeRefund` Lambda; `Order.refundedCents`, `refunds` ledger, `refundNotes`; admin refund panel on order detail; webhook syncs partial + full refunds |
+| **M16b** | `ReturnRequest` model; `submitReturnRequest` / `updateReturnRequest`; customer return form; admin queue on order detail + `/admin/returns` |
+| **M16c** | Exchange reason + admin case-by-case copy on return detail |
+
+**Deploy:** Backend (schema, 3 Lambdas) + frontend.
 
 ### 3.3 M11 — customer order status + shipping (2026-06-23)
 
@@ -247,11 +258,10 @@ _(none — monitor production; fix bugs ad hoc)_
 
 **Next**
 
-- **M16** — Returns, refunds & exchanges (admin Stripe refunds **M16a** first; return requests **M16b**)
+- **M21** — **Printing as a Service** — home-page entry, policy + print configurator, STL upload, standard cart/checkout (see §4)
 
 **Then**
 
-- **M21** — **Printing as a Service** — home-page entry, policy + print configurator, STL upload, standard cart/checkout (see §4)
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
 
 **Core + polish (after M19)**
@@ -616,7 +626,7 @@ Prefer **one sync code path** in Lambda with shared line-item normalization (`ca
 
 ### M16 — Returns, refunds & exchanges
 
-**Status:** **Next** — policy page exists (`/shipping-returns`); operations are email-only today. **M11** shipped — return window can use `deliveredAt`.
+**Status:** **Shipped** (2026-06-22) — admin Stripe refunds (**M16a**), customer return requests (**M16b**), exchange workflow notes (**M16c**). Policy at `/shipping-returns`.
 
 **Goal:** Support your published policy (30-day returns on new products, buyer pays return shipping, refund within ~2 days of receipt) with admin tools and optional customer self-service — without building a full RMA/ERP.
 
@@ -633,14 +643,14 @@ Prefer **one sync code path** in Lambda with shared line-item normalization (`ca
 #### Prerequisites (gap today)
 
 - `Order.stripePaymentIntentId` is set on paid checkout (2026-06-11) — refunds correlate via PaymentIntent metadata + stored id.
-- Order `status` includes `cancelled` and `refunded`; **webhook + cancel redirect sync** shipped (2026-06-14). Admin-initiated partial refunds and `createStripeRefund` mutation still **M16a**.
-- No customer “request return” flow on **Account → Orders** (page exists, read-only).
+- Order `status` includes `cancelled` and `refunded`; **webhook + cancel redirect sync** shipped (2026-06-14).
+- **M16a–c shipped** (2026-06-22): `createStripeRefund`, return requests, admin + customer UI.
 
-#### Phase A — Admin Stripe refunds (M16a)
+#### Phase A — Admin Stripe refunds (M16a) — **shipped**
 
 **Backend:**
-- Webhook: **`charge.refunded`** sync for **full** refunds — **done** (2026-06-11). Partial refunds still leave order **Paid**.
-- Admin-only mutation `createStripeRefund` Lambda — **remaining M16a**:
+- Webhook: **`charge.refunded`** sync — **done** (partial + full via `refundedCents`).
+- Admin-only mutation `createStripeRefund` Lambda — **shipped**.
   - Full or partial refund (amount in cents, optional reason).
   - Calls `stripe.refunds.create({ payment_intent, amount?, reason })`.
 - Extend `Order`:
@@ -656,7 +666,7 @@ Prefer **one sync code path** in Lambda with shared line-item normalization (`ca
 
 **Acceptance:** Admin partial-refunds shipping on a paid order; Stripe Dashboard and order record match.
 
-#### Phase B — Return requests (M16b)
+#### Phase B — Return requests (M16b) — **shipped**
 
 **Data — `ReturnRequest` model:**
 - `orderId`, `userId?`, `email`
@@ -672,7 +682,7 @@ Prefer **one sync code path** in Lambda with shared line-item normalization (`ca
 
 Align copy with `ShippingReturnsPage` — contact-before-shipping is the default path; self-service **requests** replace unstructured email for tracking.
 
-#### Phase C — Exchanges (M16c, light)
+#### Phase C — Exchanges (M16c, light) — **shipped**
 
 - Return reason **`exchange`** + admin workflow checklist (no automated inventory swap).
 - Admin: create manual **replacement order** (future) or send **one-time discount code** (M6) for difference.

@@ -15,6 +15,9 @@ import { getStorefrontStats } from "./functions/get-storefront-stats/resource";
 import { updateOrderFulfillment } from "./functions/update-order-fulfillment/resource";
 import { cancelStripeCheckout } from "./functions/cancel-stripe-checkout/resource";
 import { issueNewAccountGrant } from "./functions/issue-new-account-grant/resource";
+import { createStripeRefund } from "./functions/create-stripe-refund/resource";
+import { submitReturnRequest } from "./functions/submit-return-request/resource";
+import { updateReturnRequest } from "./functions/update-return-request/resource";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
@@ -33,6 +36,9 @@ const backend = defineBackend({
   updateOrderFulfillment,
   cancelStripeCheckout,
   issueNewAccountGrant,
+  createStripeRefund,
+  submitReturnRequest,
+  updateReturnRequest,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -96,6 +102,11 @@ backend.notifyOrderPlaced.addEnvironment(
   "ORDER_NOTIFICATION_FROM_EMAIL",
   process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
     "melissa@emperiumforgeworks.com",
+);
+
+backend.createStripeRefund.addEnvironment(
+  "STRIPE_SECRET_KEY",
+  process.env.STRIPE_SECRET_KEY ?? "",
 );
 
 backend.updateOrderFulfillment.addEnvironment("SITE_URL", siteUrl);

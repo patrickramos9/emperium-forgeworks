@@ -4,6 +4,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { OrderFulfillmentTimeline } from "@/components/OrderFulfillmentTimeline";
 import { OrderLineItemRow } from "@/components/OrderLineItemRow";
 import { formatPrice } from "@/data/seedProducts";
+import { RETURN_SHIP_INSTRUCTIONS } from "@/lib/config";
 import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import { getCustomerUserId } from "@/lib/customerAuth";
 import {
@@ -12,20 +13,26 @@ import {
   fulfillmentStatusLabel,
 } from "@/lib/orderFulfillment";
 import {
+  canCustomerRequestReturn,
+  paymentStatusDetail,
+  RETURN_STATUS_LABELS,
+} from "@/lib/orderRefunds";
+import {
   formatOrderDate,
   formatShippingAddress,
   getOrderById,
   isOrphanedPendingCheckout,
-  orderStatusLabel,
   parseOrderLineItems,
   parseShippingAddress,
   type OrderRecord,
 } from "@/services/orderService";
+import { listReturnRequestsForOrder, type ReturnRequestRecord } from "@/services/returnRequestService";
 
 export function AccountOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<OrderRecord | null>(null);
+  const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { products: catalogProducts, loading: catalogLoading } = useProducts("all");
@@ -51,6 +58,8 @@ export function AccountOrderDetailPage() {
           return;
         }
         setOrder(row);
+        const returns = await listReturnRequestsForOrder(client, orderId);
+        setReturnRequests(returns);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load order");
       } finally {
@@ -90,6 +99,10 @@ export function AccountOrderDetailPage() {
     order.trackingNumber,
     order.trackingUrl,
   );
+  const openReturn = returnRequests.find((row) =>
+    ["requested", "approved", "received"].includes(row.status ?? ""),
+  );
+  const canRequestReturn = canCustomerRequestReturn(order) && !openReturn;
 
   return (
     <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-container-max">
@@ -106,9 +119,39 @@ export function AccountOrderDetailPage() {
       </div>
 
       <p className="text-on-surface-variant">
-        {formatOrderDate(order.createdAt)} · {orderStatusLabel(order.status)}
+        {formatOrderDate(order.createdAt)} · {paymentStatusDetail(order)}
         {fulfillment ? ` · ${fulfillmentStatusLabel(fulfillment)}` : ""}
       </p>
+
+      {openReturn && (
+        <section className="mt-stack-lg border border-primary/30 bg-surface-container-low p-4 iron-bevel">
+          <h2 className="font-headline-md text-headline-md uppercase text-primary">
+            Return request
+          </h2>
+          <p className="mt-2 text-body-sm text-on-surface">
+            Status:{" "}
+            <strong>
+              {RETURN_STATUS_LABELS[openReturn.status ?? "requested"]}
+            </strong>
+          </p>
+          {openReturn.status === "approved" && (
+            <p className="mt-2 text-body-sm text-on-surface-variant">
+              {RETURN_SHIP_INSTRUCTIONS}
+            </p>
+          )}
+          {openReturn.adminNotes && (
+            <p className="mt-2 text-body-sm text-on-surface">
+              {openReturn.adminNotes}
+            </p>
+          )}
+          <Link
+            to={`/account/orders/${order.id}/return`}
+            className="mt-3 inline-block font-label-sm uppercase text-primary hover:underline"
+          >
+            View return details
+          </Link>
+        </section>
+      )}
 
       <section className="mt-stack-lg">
         <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
@@ -199,12 +242,22 @@ export function AccountOrderDetailPage() {
       </section>
 
       {order.status === "paid" && (
-        <Link
-          to={`/account/orders/${order.id}/review`}
-          className="mt-6 inline-block font-label-sm uppercase text-primary hover:underline"
-        >
-          Leave a review
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-4">
+          <Link
+            to={`/account/orders/${order.id}/review`}
+            className="font-label-sm uppercase text-primary hover:underline"
+          >
+            Leave a review
+          </Link>
+          {(canRequestReturn || openReturn) && (
+            <Link
+              to={`/account/orders/${order.id}/return`}
+              className="font-label-sm uppercase text-primary hover:underline"
+            >
+              {openReturn ? "Return details" : "Request a return"}
+            </Link>
+          )}
+        </div>
       )}
     </main>
   );

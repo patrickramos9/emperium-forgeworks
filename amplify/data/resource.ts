@@ -11,6 +11,9 @@ import { getStorefrontStats as getStorefrontStatsFn } from "../functions/get-sto
 import { updateOrderFulfillment as updateOrderFulfillmentFn } from "../functions/update-order-fulfillment/resource";
 import { cancelStripeCheckout as cancelStripeCheckoutFn } from "../functions/cancel-stripe-checkout/resource";
 import { issueNewAccountGrant as issueNewAccountGrantFn } from "../functions/issue-new-account-grant/resource";
+import { createStripeRefund as createStripeRefundFn } from "../functions/create-stripe-refund/resource";
+import { submitReturnRequest as submitReturnRequestFn } from "../functions/submit-return-request/resource";
+import { updateReturnRequest as updateReturnRequestFn } from "../functions/update-return-request/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -122,6 +125,31 @@ const schema = a.schema({
     status: a.string(),
   }),
 
+  CreateStripeRefundResult: a.customType({
+    success: a.boolean().required(),
+    refundId: a.string(),
+    refundedCents: a.integer().required(),
+    orderStatus: a.string().required(),
+  }),
+
+  SubmitReturnRequestResult: a.customType({
+    success: a.boolean().required(),
+    returnRequestId: a.id().required(),
+  }),
+
+  UpdateReturnRequestResult: a.customType({
+    success: a.boolean().required(),
+    status: a.string().required(),
+  }),
+
+  ReturnRequestLineItem: a.customType({
+    productId: a.string().required(),
+    slug: a.string().required(),
+    title: a.string().required(),
+    quantity: a.integer().required(),
+    variantLabel: a.string(),
+  }),
+
   listCustomers: a
     .query()
     .arguments({
@@ -221,6 +249,54 @@ const schema = a.schema({
     .returns(a.ref("UpdateOrderFulfillmentResult"))
     .authorization((allow) => [allow.group("admin")])
     .handler(a.handler.function(updateOrderFulfillmentFn)),
+
+  createStripeRefund: a
+    .mutation()
+    .arguments({
+      orderId: a.id().required(),
+      /** Omit for full remaining refundable balance. */
+      amountCents: a.integer(),
+      reason: a.enum(["requested_by_customer", "duplicate", "fraudulent"]),
+      refundNotes: a.string(),
+    })
+    .returns(a.ref("CreateStripeRefundResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(createStripeRefundFn)),
+
+  submitReturnRequest: a
+    .mutation()
+    .arguments({
+      orderId: a.id().required(),
+      reason: a.enum([
+        "defective",
+        "not_as_described",
+        "changed_mind",
+        "exchange",
+        "other",
+      ]),
+      customerNotes: a.string(),
+      lineItems: a.ref("ReturnRequestLineItem").array().required(),
+    })
+    .returns(a.ref("SubmitReturnRequestResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(submitReturnRequestFn)),
+
+  updateReturnRequest: a
+    .mutation()
+    .arguments({
+      returnRequestId: a.id().required(),
+      status: a.enum([
+        "requested",
+        "approved",
+        "denied",
+        "received",
+        "closed",
+      ]),
+      adminNotes: a.string(),
+    })
+    .returns(a.ref("UpdateReturnRequestResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(updateReturnRequestFn)),
 
   VaultAccess: a
     .model({
@@ -373,12 +449,49 @@ const schema = a.schema({
       trackingUrl: a.string(),
       shippedAt: a.datetime(),
       deliveredAt: a.datetime(),
+      /** Cumulative amount refunded via Stripe (M16). */
+      refundedCents: a.integer().default(0),
+      /** Admin notes on refunds / returns handling. */
+      refundNotes: a.string(),
+      /** Stripe refund ledger mirrored on the order (M16). */
+      refunds: a.json(),
     })
     .authorization((allow) => [
       allow.guest().to(["create"]),
       allow.authenticated().to(["create"]),
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
       allow.group("admin").to(["read", "update"]),
+    ]),
+
+  /** Customer return workflow (M16). */
+  ReturnRequest: a
+    .model({
+      orderId: a.id().required(),
+      userId: a.string().required(),
+      email: a.email(),
+      status: a.enum([
+        "requested",
+        "approved",
+        "denied",
+        "received",
+        "closed",
+      ]),
+      reason: a.enum([
+        "defective",
+        "not_as_described",
+        "changed_mind",
+        "exchange",
+        "other",
+      ]),
+      customerNotes: a.string(),
+      adminNotes: a.string(),
+      lineItems: a.json(),
+      requestedAt: a.datetime().required(),
+      resolvedAt: a.datetime(),
+    })
+    .authorization((allow) => [
+      allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
+      allow.group("admin").to(["read", "update", "create"]),
     ]),
 
   /** Admin-defined promo rules; grants are issued per user. */
@@ -566,6 +679,9 @@ const schema = a.schema({
   allow.resource(updateOrderFulfillmentFn),
   allow.resource(cancelStripeCheckoutFn),
   allow.resource(issueNewAccountGrantFn),
+  allow.resource(createStripeRefundFn),
+  allow.resource(submitReturnRequestFn),
+  allow.resource(updateReturnRequestFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

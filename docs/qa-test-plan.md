@@ -32,12 +32,13 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 | Go-live polish | Order email, catalog, scroll | §18a |
 | **M9a** | UX polish (toasts, feedback) | §20 |
 | **M11** | Order status + shipping | §19 |
+| **M16** | Returns, refunds & exchanges | §21 |
 
 ---
 
 ## Testing now
 
-**Next milestone:** **M16** — returns, refunds & exchanges (admin Stripe refunds first).
+**Next milestone:** **M21** — Printing as a Service.
 
 Pre-launch sign-off closed 2026-06-11. **M11** signed off 2026-06-23 (§19). Run smoke after deploys; full §6–§20 checklists for regression when touching related code.
 
@@ -51,7 +52,7 @@ Pre-launch sign-off closed 2026-06-11. **M11** signed off 2026-06-23 (§19). Run
 
 **Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, **M11** (§19), go-live polish §18a, order notification email, **M9a** (§20).
 
-**Do not test yet:** M19, M18, M21, M6d marketing email, M10, M12, M13, M16, **M9** (SEO/gallery — not M9a).
+**Do not test yet:** M21, M19, M18, M6d marketing email, M10, M12, M13, **M9** (SEO/gallery — not M9a).
 
 ### Deploy prerequisites (M6b/c + M17 + new-account) — signed off 2026-06-11; new-account signed off 2026-06-20
 
@@ -694,12 +695,38 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 ---
 
+## §21 — Returns, refunds & exchanges (M16)
+
+**Status:** **Shipped** 2026-06-22 — deploy backend (schema + Lambdas) + frontend before testing.
+
+### Admin refunds (M16a)
+
+- [ ] Paid Stripe order → **Admin → Orders → detail** → Refunds panel shows PaymentIntent, refundable balance
+- [ ] Partial refund (e.g. shipping only) → order stays **Paid**, `refundedCents` updates, ledger entry appears
+- [ ] Full refund → order **Refunded**; refundable balance $0
+- [ ] Mock checkout order → refund panel shows manual-status message (no Stripe button)
+
+### Customer return requests (M16b)
+
+- [ ] Paid + shipped order within 30-day window → **Request a return** on order detail
+- [ ] Submit return with reason + line items → status **Requested** on order detail
+- [ ] Second request blocked while one is open
+- [ ] Ineligible order (pending / outside window) → no self-service link; contact copy only
+
+### Admin returns (M16b/c)
+
+- [ ] **Admin → Returns** lists open requests; links to order detail
+- [ ] Approve return → customer sees approved status + ship instructions on `/account/orders/:id/return`
+- [ ] Mark **Received** → **Closed**; exchange reason shows case-by-case note on admin panel
+- [ ] After return received, issue refund from order detail Refunds panel
+
+---
+
 ## Not yet built — skip until milestone ships
 
 | Milestone | Feature | Notes |
 |-----------|---------|--------|
-| **M16** | Returns, refunds & exchanges | **Next** |
-| **M21** | Printing as a Service (`/print`, STL upload, cart/checkout) | After M16 |
+| **M21** | Printing as a Service (`/print`, STL upload, cart/checkout) | **Next** |
 | **M19** | Catalog sales & bundles (list/compare pricing) | After M21 |
 | **M18** | Cart price-change in-system notifications | After M19 + M6c |
 | **M9** | Polish & growth (gallery, SEO, structured data) | **Not M9a** — UX polish shipped §20 |

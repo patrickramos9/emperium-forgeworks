@@ -21,6 +21,7 @@ import { AdminProductsPage } from "@/pages/admin/AdminProductsPage";
 import { AdminProductEditPage } from "@/pages/admin/AdminProductEditPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { AdminOrderDetailPage } from "@/pages/admin/AdminOrderDetailPage";
+import { AdminReturnsPage } from "@/pages/admin/AdminReturnsPage";
 import { AdminComingSoonPage } from "@/pages/admin/AdminComingSoonPage";
 import { AdminPromoTemplatesPage } from "@/pages/admin/AdminPromoTemplatesPage";
 import { AdminPromoTemplateEditPage } from "@/pages/admin/AdminPromoTemplateEditPage";
@@ -31,6 +32,7 @@ import { AccountRegisterVerifyPage } from "@/pages/account/AccountRegisterVerify
 import { AccountPage } from "@/pages/account/AccountPage";
 import { AccountOrdersPage } from "@/pages/account/AccountOrdersPage";
 import { AccountOrderDetailPage } from "@/pages/account/AccountOrderDetailPage";
+import { AccountReturnRequestPage } from "@/pages/account/AccountReturnRequestPage";
 import { AccountNotificationsPage } from "@/pages/account/AccountNotificationsPage";
 import { AccountFavoritesPage } from "@/pages/account/AccountFavoritesPage";
 import { VaultPage } from "@/pages/VaultPage";
@@ -107,6 +109,10 @@ export default function App() {
               element={<AccountOrderDetailPage />}
             />
             <Route
+              path="/account/orders/:orderId/return"
+              element={<AccountReturnRequestPage />}
+            />
+            <Route
               path="/account/orders/:orderId/review"
               element={<AccountReviewPage />}
             />
@@ -132,6 +138,7 @@ export default function App() {
             <Route path="products/:slug" element={<AdminProductEditPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="orders/:id" element={<AdminOrderDetailPage />} />
+            <Route path="returns" element={<AdminReturnsPage />} />
             <Route path="shipping" element={<AdminShippingProfilesPage />} />
             <Route
               path="shipping/:id"

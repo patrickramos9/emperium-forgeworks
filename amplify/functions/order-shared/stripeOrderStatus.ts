@@ -1,6 +1,7 @@
 import type { generateClient } from "aws-amplify/data";
 import type Stripe from "stripe";
 import type { Schema } from "../../data/resource";
+import { applyRefundToOrder } from "./refunds.js";
 
 type DataClient = ReturnType<typeof generateClient<Schema>>;
 type OrderRecord = Schema["Order"]["type"];
@@ -102,23 +103,29 @@ export function paymentIntentIdFromCharge(
   return typeof ref === "string" ? ref : ref.id;
 }
 
-/** Full refund in Stripe → order refunded. Partial refunds leave status paid (M16a UI later). */
+/** Sync cumulative Stripe refunds onto the order (full or partial). */
 export async function markOrderRefundedFromCharge(
   client: DataClient,
   orderId: string,
   charge: Stripe.Charge,
 ): Promise<boolean> {
   const order = await getOrderById(client, orderId);
-  if (!order || order.status !== "paid") return false;
-
-  const refundedCents = charge.amount_refunded ?? 0;
-  if (refundedCents < order.totalCents) {
-    console.info(
-      `Partial refund on order ${orderId}: ${refundedCents} of ${order.totalCents} cents`,
-    );
+  if (!order || (order.status !== "paid" && order.status !== "refunded")) {
     return false;
   }
 
-  await updateOrderStatus(client, orderId, "refunded");
+  const refundedCents = charge.amount_refunded ?? 0;
+  if (refundedCents <= 0) return false;
+
+  await applyRefundToOrder(client, orderId, {
+    refundedCents,
+    entry: {
+      refundId: `charge_${charge.id}_${refundedCents}`,
+      amountCents: refundedCents,
+      createdAt: new Date((charge.created ?? Date.now() / 1000) * 1000).toISOString(),
+      source: "webhook",
+    },
+  });
+
   return true;
 }

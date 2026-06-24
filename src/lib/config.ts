@@ -11,6 +11,9 @@ export const SITE_DOMAIN =
 
 export const CONTACT_EMAIL = "melissa@emperiumforgeworks.com";
 
+/** Shown to customers when a return is approved (M16). */
+export const RETURN_SHIP_INSTRUCTIONS = `Contact ${CONTACT_EMAIL} for the forge return address. Include your order number on the package. Buyer pays return shipping per our returns policy.`;
+
 export const ETSY_SHOP_REVIEWS_URL =
   "https://www.etsy.com/shop/EmperiumForgeworks?ref=shop_sugg_market#reviews";
 

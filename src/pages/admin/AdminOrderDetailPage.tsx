@@ -2,8 +2,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { OrderFulfillmentTimeline } from "@/components/OrderFulfillmentTimeline";
 import { OrderLineItemRow } from "@/components/OrderLineItemRow";
+import { AdminOrderRefundPanel } from "@/components/admin/AdminOrderRefundPanel";
+import { AdminOrderReturnPanel } from "@/components/admin/AdminOrderReturnPanel";
 import { formatPrice } from "@/data/seedProducts";
 import { useProducts } from "@/hooks/useProducts";
+import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import {
   buildOrderCustomerDisplay,
@@ -39,6 +42,7 @@ export function AdminOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [order, setOrder] = useState<OrderRecord | null>(null);
+  const [dataClient, setDataClient] = useState<AmplifyDataClient | null>(null);
   const [customerLabel, setCustomerLabel] = useState<CustomerLabel | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<OrderStatus>("paid");
   const [carrier, setCarrier] = useState("USPS");
@@ -71,6 +75,7 @@ export function AdminOrderDetailPage() {
 
       const client = await requireAdminSession(navigate);
       if (!client) return;
+      setDataClient(client);
 
       try {
         const row = await getOrderById(client, id);
@@ -459,6 +464,20 @@ export function AdminOrderDetailPage() {
           ))}
         </ul>
       </section>
+
+      {dataClient && order && (
+        <>
+          <AdminOrderRefundPanel
+            client={dataClient}
+            order={order}
+            onOrderUpdated={(updated) => {
+              setOrder(updated);
+              if (updated.status) setPaymentStatus(updated.status);
+            }}
+          />
+          <AdminOrderReturnPanel client={dataClient} orderId={order.id} />
+        </>
+      )}
 
       <form
         onSubmit={(e) => void handleSavePayment(e)}
