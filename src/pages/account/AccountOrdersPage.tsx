@@ -9,7 +9,6 @@ import {
   formatOrderDate,
   listCustomerOrders,
   orderLineItemsSummary,
-  orderStatusLabel,
   parseOrderLineItems,
   type OrderRecord,
 } from "@/services/orderService";
@@ -17,6 +16,10 @@ import {
   displayFulfillmentStatus,
   fulfillmentStatusLabel,
 } from "@/lib/orderFulfillment";
+import {
+  paymentStatusDetail,
+  showFulfillmentProgress,
+} from "@/lib/orderRefunds";
 import { listMyReviews, type ReviewRecord } from "@/services/reviewService";
 
 export function AccountOrdersPage() {
@@ -113,8 +116,8 @@ export function AccountOrdersPage() {
                     </Link>
                   </p>
                   <p className="text-label-sm text-on-surface-variant">
-                    {orderStatusLabel(order.status)}
-                    {fulfillment
+                    {paymentStatusDetail(order)}
+                    {fulfillment && showFulfillmentProgress(order)
                       ? ` · ${fulfillmentStatusLabel(fulfillment)}`
                       : ""}{" "}
                     · {order.paymentProvider ?? "mock"}

@@ -8,7 +8,8 @@ import {
 } from "@/lib/adminOrderCustomer";
 import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
 import {
-  adminOrderQueueStatusLabel,
+  adminOrderFulfillmentLabel,
+  adminOrderPaymentLabel,
 } from "@/lib/orderFulfillment";
 import {
   formatOrderDate,
@@ -72,7 +73,7 @@ export function AdminOrdersPage() {
         Orders
       </h1>
       <p className="mt-1 text-body-sm text-on-surface-variant">
-        Fulfillment queue — all storefront orders
+        All storefront orders — payment and fulfillment status
       </p>
 
       {error && <p className="mt-4 text-error">{error}</p>}
@@ -90,6 +91,7 @@ export function AdminOrdersPage() {
               <tr>
                 <th className="p-3">Date</th>
                 <th className="p-3">Customer</th>
+                <th className="p-3">Payment</th>
                 <th className="p-3">Fulfillment</th>
                 <th className="p-3">Provider</th>
                 <th className="p-3">Total</th>
@@ -116,8 +118,11 @@ export function AdminOrdersPage() {
                         }
                       />
                     </td>
-                    <td className="p-3">
-                      {adminOrderQueueStatusLabel(order)}
+                    <td className="p-3 text-on-surface">
+                      {adminOrderPaymentLabel(order)}
+                    </td>
+                    <td className="p-3 text-on-surface-variant">
+                      {adminOrderFulfillmentLabel(order)}
                     </td>
                     <td className="p-3 text-on-surface-variant">
                       {order.paymentProvider ?? "—"}

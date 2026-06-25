@@ -1,5 +1,9 @@
 import type { Schema } from "../../amplify/data/resource";
-import { orderStatusLabel, type OrderStatus } from "@/services/orderService";
+import {
+  paymentStatusDetail,
+  showFulfillmentProgress,
+  type OrderRecord,
+} from "@/lib/orderRefunds";
 
 export type FulfillmentStatus = NonNullable<
   Schema["Order"]["type"]["fulfillmentStatus"]
@@ -48,16 +52,39 @@ export function fulfillmentStatusLabel(
   }
 }
 
-/** Admin order list — fulfillment progress for paid orders; payment status otherwise. */
-export function adminOrderQueueStatusLabel(order: {
-  status?: OrderStatus | null;
-  fulfillmentStatus?: FulfillmentStatus | null;
-}): string {
-  if (order.status === "paid" || order.fulfillmentStatus) {
-    const fulfillment = displayFulfillmentStatus(order);
-    if (fulfillment) return fulfillmentStatusLabel(fulfillment);
+/** Admin tables — payment column (refunded, cancelled, paid, etc.). */
+export function adminOrderPaymentLabel(
+  order: Pick<
+    OrderRecord,
+    "status" | "refundedCents" | "totalCents" | "refunds"
+  >,
+): string {
+  return paymentStatusDetail(order as OrderRecord);
+}
+
+/** Admin tables — fulfillment column; dash when payment is no longer active. */
+export function adminOrderFulfillmentLabel(
+  order: Pick<OrderRecord, "status" | "fulfillmentStatus" | "refundedCents">,
+): string {
+  if (!showFulfillmentProgress(order as OrderRecord)) return "—";
+  const fulfillment = displayFulfillmentStatus(order);
+  return fulfillment ? fulfillmentStatusLabel(fulfillment) : "—";
+}
+
+/** @deprecated Prefer adminOrderPaymentLabel + adminOrderFulfillmentLabel */
+export function adminOrderQueueStatusLabel(
+  order: Pick<
+    OrderRecord,
+    "status" | "fulfillmentStatus" | "refundedCents" | "totalCents" | "refunds"
+  >,
+): string {
+  const refunded = order.refundedCents ?? 0;
+  if (order.status !== "paid" || refunded > 0) {
+    return paymentStatusDetail(order as OrderRecord);
   }
-  return orderStatusLabel(order.status);
+  const fulfillment = displayFulfillmentStatus(order);
+  if (fulfillment) return fulfillmentStatusLabel(fulfillment);
+  return paymentStatusDetail(order as OrderRecord);
 }
 
 export function nextFulfillmentStatus(

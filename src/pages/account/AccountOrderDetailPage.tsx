@@ -17,8 +17,10 @@ import {
   canCustomerCancelOrder,
   canCustomerRequestReturn,
   isCustomerCancelledOrder,
+  isFullyRefunded,
   paymentStatusDetail,
   RETURN_STATUS_LABELS,
+  showFulfillmentProgress,
 } from "@/lib/orderRefunds";
 import { cancelCustomerOrder } from "@/services/cancelOrderService";
 import {
@@ -147,6 +149,7 @@ export function AccountOrderDetailPage() {
   const canRequestReturn = canCustomerRequestReturn(order) && !openReturn;
   const canCancel = canCustomerCancelOrder(order);
   const wasCancelled = isCustomerCancelledOrder(order);
+  const wasRefunded = isFullyRefunded(order);
 
   return (
     <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop mx-auto max-w-container-max">
@@ -164,17 +167,19 @@ export function AccountOrderDetailPage() {
 
       <p className="text-on-surface-variant">
         {formatOrderDate(order.createdAt)} · {paymentStatusDetail(order)}
-        {fulfillment && !wasCancelled
+        {fulfillment && showFulfillmentProgress(order)
           ? ` · ${fulfillmentStatusLabel(fulfillment)}`
           : ""}
       </p>
 
-      {wasCancelled && (
+      {wasRefunded && (
         <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
           <p className="text-body-sm text-on-surface">
-            This order was cancelled before shipment.{" "}
+            {wasCancelled
+              ? "This order was cancelled before shipment."
+              : "This order was refunded."}{" "}
             {order.refundedCents != null && order.refundedCents > 0
-              ? `Refund issued: ${formatPrice(order.refundedCents)}.`
+              ? `${formatPrice(order.refundedCents)} returned to your original payment method (timing depends on your bank or card issuer).`
               : ""}
           </p>
         </section>
@@ -324,7 +329,7 @@ export function AccountOrderDetailPage() {
         </ul>
       </section>
 
-      {order.status === "paid" && (
+      {order.status === "paid" && showFulfillmentProgress(order) && (
         <div className="mt-6 flex flex-wrap gap-4">
           <Link
             to={`/account/orders/${order.id}/review`}

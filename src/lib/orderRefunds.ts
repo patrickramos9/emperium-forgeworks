@@ -56,6 +56,47 @@ export function canCustomerCancelOrder(order: OrderRecord): boolean {
   return refundableCentsRemaining(order) > 0;
 }
 
+export function isFullyRefunded(order: OrderRecord): boolean {
+  const refunded = order.refundedCents ?? 0;
+  return (
+    order.status === "refunded" ||
+    isCustomerCancelledOrder(order) ||
+    refunded >= order.totalCents
+  );
+}
+
+export function isFullyRefundedOrder(
+  order: {
+    status?: string | null;
+    refundedCents?: number | null;
+    totalCents?: number;
+    refunds?: unknown;
+  },
+): boolean {
+  const refunded = order.refundedCents ?? 0;
+  const total = order.totalCents ?? 0;
+  const cancelled =
+    typeof order.refunds === "string"
+      ? order.refunds.includes("customer_cancel")
+      : Array.isArray(order.refunds) &&
+        order.refunds.some(
+          (entry) =>
+            entry &&
+            typeof entry === "object" &&
+            "source" in entry &&
+            (entry as { source?: string }).source === "customer_cancel",
+        );
+  return (
+    order.status === "refunded" ||
+    cancelled ||
+    (total > 0 && refunded >= total)
+  );
+}
+
+export function showFulfillmentProgress(order: OrderRecord): boolean {
+  return order.status === "paid" && (order.refundedCents ?? 0) === 0;
+}
+
 export function paymentStatusDetail(order: OrderRecord): string {
   if (isCustomerCancelledOrder(order)) {
     return "Cancelled";

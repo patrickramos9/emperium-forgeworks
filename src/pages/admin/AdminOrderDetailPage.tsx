@@ -23,6 +23,7 @@ import {
   nextFulfillmentStatus,
   type FulfillmentStatus,
 } from "@/lib/orderFulfillment";
+import { paymentStatusDetail } from "@/lib/orderRefunds";
 import {
   acknowledgeOrder,
   formatOrderDate,
@@ -244,7 +245,13 @@ export function AdminOrderDetailPage() {
 
       <dl className="mt-stack-lg space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
         <DetailRow label="Date" value={formatOrderDate(order.createdAt)} />
-        <DetailRow label="Payment" value={orderStatusLabel(order.status)} />
+        <DetailRow label="Payment" value={paymentStatusDetail(order)} />
+        {(order.refundedCents ?? 0) > 0 && (
+          <DetailRow
+            label="Refunded"
+            value={formatPrice(order.refundedCents ?? 0)}
+          />
+        )}
         <DetailRow
           label="Fulfillment"
           value={fulfillment ? fulfillmentStatusLabel(fulfillment) : "—"}

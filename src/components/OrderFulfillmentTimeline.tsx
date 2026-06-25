@@ -4,16 +4,29 @@ import {
   FULFILLMENT_STAGES,
   type FulfillmentStatus,
 } from "@/lib/orderFulfillment";
+import { isFullyRefundedOrder } from "@/lib/orderRefunds";
 
 type Props = {
   order: {
     fulfillmentStatus?: FulfillmentStatus | null;
     status?: string | null;
+    refundedCents?: number | null;
+    totalCents?: number;
+    refunds?: unknown;
   };
   compact?: boolean;
 };
 
 export function OrderFulfillmentTimeline({ order, compact = false }: Props) {
+  if (isFullyRefundedOrder(order)) {
+    return (
+      <p className="text-body-sm text-on-surface-variant">
+        Fulfillment timeline reflects progress before this order was refunded or
+        cancelled.
+      </p>
+    );
+  }
+
   const current = displayFulfillmentStatus(order);
   const currentIndex = current
     ? FULFILLMENT_STAGES.indexOf(current)

@@ -9,7 +9,10 @@ import {
 import { PLAUSIBLE_DOMAIN } from "@/lib/config";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { listAllProducts } from "@/lib/listAllProducts";
-import { adminOrderQueueStatusLabel } from "@/lib/orderFulfillment";
+import {
+  adminOrderFulfillmentLabel,
+  adminOrderPaymentLabel,
+} from "@/lib/orderFulfillment";
 import {
   acknowledgeOrders,
   formatOrderDate,
@@ -290,6 +293,7 @@ export function AdminDashboardPage() {
                 <thead className="bg-surface-container-high font-label-sm uppercase text-on-surface-variant">
                   <tr>
                     <th className="p-3">Date</th>
+                    <th className="p-3">Payment</th>
                     <th className="p-3">Fulfillment</th>
                     <th className="p-3">Total</th>
                     <th className="p-3">Items</th>
@@ -307,8 +311,11 @@ export function AdminDashboardPage() {
                         <td className="p-3 text-on-surface">
                           {formatOrderDate(order.createdAt)}
                         </td>
+                        <td className="p-3 text-on-surface">
+                          {adminOrderPaymentLabel(order)}
+                        </td>
                         <td className="p-3 text-on-surface-variant">
-                          {adminOrderQueueStatusLabel(order)}
+                          {adminOrderFulfillmentLabel(order)}
                         </td>
                         <td className="p-3 text-primary">
                           {formatPrice(order.totalCents)}
