@@ -72,8 +72,9 @@ export function paymentStatusDetail(order: OrderRecord): string {
 
 export function returnWindowStartIso(order: OrderRecord): string | null {
   if (order.deliveredAt) return order.deliveredAt;
-  if (order.fulfillmentStatus === "shipped" && order.shippedAt) {
-    return order.shippedAt;
+  if (order.shippedAt) return order.shippedAt;
+  if (order.fulfillmentStatus === "shipped" && order.fulfillmentUpdatedAt) {
+    return order.fulfillmentUpdatedAt;
   }
   return null;
 }
@@ -93,6 +94,19 @@ export function canCustomerRequestReturn(order: OrderRecord): boolean {
   if (order.status !== "paid") return false;
   if (!orderHasShipped(order)) return false;
   return isWithinReturnWindow(order);
+}
+
+export function returnIneligibilityReason(order: OrderRecord): string | null {
+  if (order.status !== "paid") {
+    return "Only paid orders are eligible for returns.";
+  }
+  if (!orderHasShipped(order)) {
+    return "This order has not shipped yet. Cancel it from order details for a full refund before shipment.";
+  }
+  if (!isWithinReturnWindow(order)) {
+    return "The 30-day return window from delivery has expired for this order.";
+  }
+  return null;
 }
 
 export const RETURN_REASON_OPTIONS = [

@@ -1,6 +1,6 @@
 import type { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../data/resource";
-import { canCustomerRequestReturn } from "./refunds.js";
+import { canCustomerRequestReturn, returnIneligibilityReason } from "./refunds.js";
 
 type DataClient = ReturnType<typeof generateClient<Schema>>;
 type OrderRecord = Schema["Order"]["type"];
@@ -47,7 +47,8 @@ export function assertReturnEligible(
   }
   if (!canCustomerRequestReturn(order)) {
     throw new Error(
-      "This order is not eligible for a return request. Returns are accepted within 30 days of delivery for paid orders that have shipped.",
+      returnIneligibilityReason(order) ??
+        "This order is not eligible for a return request.",
     );
   }
 }

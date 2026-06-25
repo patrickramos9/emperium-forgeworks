@@ -7,6 +7,7 @@ import {
   RETURN_REASON_OPTIONS,
   RETURN_STATUS_LABELS,
   canCustomerRequestReturn,
+  returnIneligibilityReason,
   type ReturnReason,
 } from "@/lib/orderRefunds";
 import {
@@ -226,8 +227,9 @@ export function AccountReturnRequestPage() {
 
       {!eligible && !openRequest && (
         <p className="mt-stack-lg text-on-surface-variant">
-          This order is not eligible for a self-service return request. If you
-          believe this is an error, contact{" "}
+          {returnIneligibilityReason(order) ??
+            "This order is not eligible for a self-service return request."}{" "}
+          If you believe this is an error, contact{" "}
           <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary underline">
             {CONTACT_EMAIL}
           </a>
