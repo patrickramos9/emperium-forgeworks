@@ -374,7 +374,7 @@ export function CartPage() {
                 {formatPrice(discountCents)}
               </p>
               <p className="font-label-md text-xl text-primary">
-                Total before shipping: {formatPrice(totalAfterPromo)}
+                Total before shipping &amp; tax: {formatPrice(totalAfterPromo)}
               </p>
             </>
           ) : (
@@ -383,7 +383,8 @@ export function CartPage() {
                 Subtotal: {formatPrice(purchasableSubtotalCents)}
               </p>
               <p className="font-label-md text-xl text-primary">
-                Total before shipping: {formatPrice(purchasableSubtotalCents)}
+                Total before shipping &amp; tax:{" "}
+                {formatPrice(purchasableSubtotalCents)}
               </p>
             </>
           )}
@@ -399,7 +400,7 @@ export function CartPage() {
         <p className="mt-1 text-right text-label-sm text-on-surface-variant">
           {IS_LOCAL
             ? "Mock checkout locally — no charge."
-            : "Secure checkout via Stripe (cards, Apple Pay, Google Pay). Shipping at checkout."}
+            : "Secure checkout via Stripe (cards, Apple Pay, Google Pay). Shipping and sales tax calculated at checkout from your address."}
         </p>
         {checkingOut && (
           <PageFeedback tone="info" className="mt-4 text-left">

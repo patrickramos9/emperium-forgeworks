@@ -11,6 +11,7 @@ export type OrderEmailPayload = {
   subtotalCents?: number | null;
   shippingCents?: number | null;
   shippingLabel?: string | null;
+  taxCents?: number | null;
   lineItems?: unknown;
   createdAt?: string | null;
 };
@@ -75,6 +76,11 @@ export function buildOrderNotificationBody(
     `Shipping: ${
       order.shippingCents != null
         ? `${formatMoney(order.shippingCents)}${order.shippingLabel ? ` (${order.shippingLabel})` : ""}`
+        : "—"
+    }`,
+    `Tax: ${
+      order.taxCents != null && order.taxCents > 0
+        ? formatMoney(order.taxCents)
         : "—"
     }`,
     `Total: ${formatMoney(order.totalCents)}`,

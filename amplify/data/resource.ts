@@ -436,6 +436,8 @@ const schema = a.schema({
       subtotalCents: a.integer(),
       shippingCents: a.integer(),
       shippingLabel: a.string(),
+      /** Sales tax from Stripe Tax (`total_details.amount_tax`). */
+      taxCents: a.integer(),
       lineItems: a.json(),
       totalCents: a.integer().required(),
       /** Merchandise discount (before shipping). */

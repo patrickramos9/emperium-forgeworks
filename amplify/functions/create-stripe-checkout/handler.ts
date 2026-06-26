@@ -26,6 +26,9 @@ Amplify.configure(resourceConfig, libraryOptions);
 
 const dataClient = generateClient<Schema>();
 
+/** Stripe Tax — general tangible goods (3D-printed physical products). */
+const STRIPE_TANGIBLE_GOODS_TAX_CODE = "txcd_20030000";
+
 type ShippingProfileRecord = Schema["ShippingProfile"]["type"];
 type ProductRecord = Schema["Product"]["type"];
 
@@ -186,6 +189,7 @@ async function createStripeCheckoutSession(
           unit_amount: item.priceCents,
           product_data: {
             name: checkoutDisplayTitle(item),
+            tax_code: STRIPE_TANGIBLE_GOODS_TAX_CODE,
             ...(description ? { description } : {}),
             ...(item.imageUrl?.startsWith("http")
               ? { images: [item.imageUrl] }
@@ -204,6 +208,7 @@ async function createStripeCheckoutSession(
           },
         }
       : {}),
+    automatic_tax: { enabled: true },
     billing_address_collection: "required",
     shipping_address_collection: {
       allowed_countries:

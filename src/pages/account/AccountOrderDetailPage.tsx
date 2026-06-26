@@ -297,6 +297,9 @@ export function AccountOrderDetailPage() {
           {order.shippingCents != null && (
             <Row label="Shipping" value={formatPrice(order.shippingCents)} />
           )}
+          {order.taxCents != null && order.taxCents > 0 && (
+            <Row label="Sales tax" value={formatPrice(order.taxCents)} />
+          )}
           <Row label="Total" value={formatPrice(order.totalCents)} />
         </dl>
       </section>

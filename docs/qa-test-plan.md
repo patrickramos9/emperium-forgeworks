@@ -4,7 +4,7 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
-**Roadmap last synced:** 2026-06-22
+**Roadmap last synced:** 2026-06-24
 
 ---
 
@@ -50,7 +50,7 @@ Pre-launch sign-off closed 2026-06-11. **M11** signed off 2026-06-23 (§19). Run
 | **Catalog/admin product change** | §2 PDP, §17b, §9, §18a admin catalog |
 | **New milestone** | Matching section below + remove from **Not yet built** |
 
-**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, **M11** (§19), go-live polish §18a, order notification email, **M9a** (§20).
+**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, **M11** (§19), go-live polish §18a, order notification email, **M9a** (§20), **M16** (§21).
 
 **Do not test yet:** M21, M19, M18, M6d marketing email, M10, M12, M13, **M9** (SEO/gallery — not M9a).
 
@@ -697,7 +697,7 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 ## §21 — Returns, refunds & exchanges (M16)
 
-**Status:** **Shipped** 2026-06-22 — deploy backend (schema + Lambdas) + frontend before testing.
+**Status:** **Signed off** 2026-06-24 — production verified (returns, admin refunds, pre-ship cancel, refund status UI).
 
 ### Customer pre-ship cancellation (M16d)
 
@@ -729,6 +729,23 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 ---
 
+## §22 — Stripe Tax (M22)
+
+**Status:** **Shipped** 2026-06-24 — deploy backend (schema + Lambdas) + frontend; confirm Stripe Tax registrations in Dashboard before prod test.
+
+### Checkout & orders
+
+- [ ] Cart shows “before shipping & tax” and checkout copy mentions tax at checkout
+- [ ] Stripe **test** Checkout with ship-to in a **registered** state (e.g. MA) → tax line on Stripe Checkout
+- [ ] Completed order: customer + admin order detail show **Sales tax** row and total includes tax
+- [ ] Support order notification email includes tax when `taxCents > 0`
+- [ ] Ship-to in **unregistered** state → no tax on Checkout (until registration added in Stripe)
+- [ ] Full refund (M16) still refunds full PaymentIntent amount (tax included)
+
+**Stripe test addresses:** [docs.stripe.com/tax/testing](https://docs.stripe.com/tax/testing)
+
+---
+
 ## Not yet built — skip until milestone ships
 
 | Milestone | Feature | Notes |
@@ -746,7 +763,7 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M13** | Marketing pixels / UTM on orders | — |
 | **M6e** | Guest cart server sync + identity merge | — |
 
-**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a).
+**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**.
 
 Add test sections here when each **new** milestone ships.
 
@@ -866,6 +883,7 @@ Add test sections here when each **new** milestone ships.
 
 | Date | Tester | Environment | Scope | Pass/Fail | Notes |
 |------|--------|-------------|-------|-----------|-------|
+| 2026-06-24 | Patrick | prod | M16 §21 | Sign-off | Returns, admin refunds, pre-ship cancel, Payment/Fulfillment columns |
 | 2026-06-23 | Patrick | prod | M11 §19 | Sign-off | Fulfillment timeline, notifications, order line items, checkout hardening |
 | 2026-06-11 | Patrick | prod | §18 order email | Pass | Live Stripe order → SES email to support inbox |
 | 2026-06-11 | Patrick | prod | M6b, M6c, M17, §18 | Sign-off | Deployed; monitor for bugs |

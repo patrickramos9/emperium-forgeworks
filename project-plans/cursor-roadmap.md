@@ -20,15 +20,15 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-22
+**Last updated:** 2026-06-24
 
 | Item | State |
 |------|--------|
 | **Phase** | **Post-M16** — **M21 Printing as a Service** is next |
 | **Next** | **M21** — policy + print configurator, STL upload, standard cart/checkout |
-| **Blocked** | _(none)_ — **SES production access** stalled (AWS support); **customer transactional email** optional — in-app order notifications work; third-party email (Resend/Postmark/etc.) or **M20** `EmailProvider` port are fallbacks |
-| **Recently verified** | **M16** returns/refunds (2026-06-22) · **M11** customer order status + shipping (2026-06-23) · **M6 new-account promo** (2026-06-20) · **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
-| **Recently shipped (repo)** | **M16** admin Stripe refunds, return requests, `/admin/returns` (2026-06-22) · **M11 polish** (2026-06-23): checkout orphan-order fix, order line variant labels, product links (shop/vault/admin), admin orders fulfillment column · **M15** `us_free_international_flat` (2026-06-14) · **M9a** UX polish (2026-06-16) |
+| **Blocked** | _(none)_ |
+| **Recently verified** | **M16** returns/refunds + pre-ship cancel (2026-06-24) · **M11** customer order status + shipping (2026-06-23) · **M6 new-account promo** (2026-06-20) · **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
+| **Recently shipped (repo)** | **M22** Stripe Tax — `automatic_tax`, `taxCents`, order + cart copy (2026-06-24) · **M16** polish (2026-06-24) · **M16** core (2026-06-22) · **M11 polish** (2026-06-23) · **M15** · **M9a** |
 | **In progress** | _(none)_ |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
@@ -177,17 +177,35 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M9a** — Initial UX polish (toasts, cart badge bump, PDP/cart/favorites/checkout/account feedback) — **shipped** (2026-06-16; deploy frontend)
 - **M6 new-account promo** — `useForNewAccount` template flag + `new_account` grant via `issueNewAccountWelcomeGrant` after verify/sign-in — **production verified** (2026-06-20)
 - **M11** — Customer order status + shipping (`fulfillmentStatus`, 4-stage timeline, admin fulfillment stepper, in-app `order` notifications, tracking on ship, order detail with line items/variants/product links) — **production verified** (2026-06-23); checkout orphan-order fix; admin orders list fulfillment column; cart/admin product link routing (shop vs vault vs admin edit)
-- **M16** — Returns, refunds & exchanges (`createStripeRefund`, partial/full refunds, `ReturnRequest`, customer `/account/orders/:id/return`, admin `/admin/returns`) — **shipped** (2026-06-22; deploy backend + frontend)
+- **M16** — Returns, refunds & exchanges — **production verified** (2026-06-24): admin refunds, return requests, pre-ship cancel, Payment/Fulfillment columns, refund status on customer + admin
+- **M22** — Stripe Tax — **shipped** (2026-06-24): `automatic_tax` on Checkout, tangible-goods tax code, `Order.taxCents`, webhook + order UI
 
-### 3.4 M16 — returns, refunds & exchanges (2026-06-22)
+### 3.5 M22 — Stripe Tax (2026-06-24)
 
 | Area | What shipped |
 |------|----------------|
-| **M16a** | `createStripeRefund` Lambda; `Order.refundedCents`, `refunds` ledger, `refundNotes`; admin refund panel on order detail; webhook syncs partial + full refunds |
-| **M16b** | `ReturnRequest` model; `submitReturnRequest` / `updateReturnRequest`; customer return form; admin queue on order detail + `/admin/returns` |
-| **M16c** | Exchange reason + admin case-by-case copy on return detail |
+| **Checkout** | `automatic_tax: { enabled: true }`; line items use Stripe tax code `txcd_20030000` (tangible goods) |
+| **Webhook** | `taxCents` from `session.total_details.amount_tax`; `totalCents` includes tax |
+| **Schema** | `Order.taxCents` |
+| **UI** | Cart “before shipping & tax”; customer + admin order summary tax row; support order email |
 
-**Deploy:** Backend (schema, 3 Lambdas) + frontend.
+**Deploy:** Backend (schema + `create-stripe-checkout` + `stripe-webhook`) + frontend. **Stripe Dashboard:** tax registrations + origin address must be configured per jurisdiction.
+
+**Verify:** Stripe test mode — ship-to in a registered state (e.g. MA) shows tax on Checkout; order detail shows `taxCents`. Unregistered state → $0 tax until registration added.
+
+### 3.4 M16 — returns, refunds & exchanges (2026-06-24)
+
+**Signed off** 2026-06-24 — regression checklist [docs/qa-test-plan.md](../docs/qa-test-plan.md) §21.
+
+| Area | What shipped |
+|------|----------------|
+| **M16a** | `createStripeRefund` Lambda; `Order.refundedCents`, `refunds` ledger; admin refund panel; webhook partial + full sync |
+| **M16b** | `ReturnRequest`; `submitReturnRequest` / `adminUpdateReturnRequest`; customer + admin return UI |
+| **M16c** | Exchange reason + admin case-by-case copy |
+| **M16d** | `cancelCustomerOrder` — customer cancel before ship, full Stripe refund |
+| **UI polish** | Admin **Payment** + **Fulfillment** columns; `paymentStatusDetail` on customer order list/detail |
+
+**Deploy:** Backend (schema, Lambdas) + frontend.
 
 ### 3.3 M11 — customer order status + shipping (2026-06-23)
 
@@ -626,7 +644,7 @@ Prefer **one sync code path** in Lambda with shared line-item normalization (`ca
 
 ### M16 — Returns, refunds & exchanges
 
-**Status:** **Shipped** (2026-06-22) — admin Stripe refunds (**M16a**), customer return requests (**M16b**), exchange workflow notes (**M16c**). Policy at `/shipping-returns`.
+**Status:** **Production verified** (2026-06-24) — admin refunds (**M16a**), return requests (**M16b**), exchange notes (**M16c**), pre-ship cancel (**M16d**). Policy at `/shipping-returns`.
 
 **Goal:** Support your published policy (30-day returns on new products, buyer pays return shipping, refund within ~2 days of receipt) with admin tools and optional customer self-service — without building a full RMA/ERP.
 

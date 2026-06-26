@@ -289,6 +289,9 @@ export function AdminOrderDetailPage() {
             value={formatPrice(order.shippingCents)}
           />
         )}
+        {order.taxCents != null && order.taxCents > 0 && (
+          <DetailRow label="Sales tax" value={formatPrice(order.taxCents)} />
+        )}
         <DetailRow label="Total charged" value={formatPrice(order.totalCents)} />
         <DetailRow
           label="Session ref"

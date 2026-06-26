@@ -68,6 +68,7 @@ async function fulfillmentFromSession(
     session.total_details?.amount_shipping ??
     session.shipping_cost?.amount_total ??
     0;
+  const taxCents = session.total_details?.amount_tax ?? 0;
 
   let shippingLabel: string | undefined;
   const rateRef = session.shipping_cost?.shipping_rate;
@@ -93,6 +94,7 @@ async function fulfillmentFromSession(
     subtotalCents: session.amount_subtotal ?? undefined,
     shippingCents,
     shippingLabel,
+    taxCents,
     totalCents: session.amount_total ?? undefined,
     ...(paymentIntentId ? { stripePaymentIntentId: paymentIntentId } : {}),
     ...(shippingAddress
