@@ -184,7 +184,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 
 | Area | What shipped |
 |------|----------------|
-| **Checkout** | `automatic_tax: { enabled: true }`; line items use Stripe tax code `txcd_20030000` (tangible goods) |
+| **Checkout** | `automatic_tax: { enabled: true }`; line items use `txcd_99999999` (tangible goods); shipping uses `txcd_92010001` |
 | **Webhook** | `taxCents` from `session.total_details.amount_tax`; `totalCents` includes tax |
 | **Schema** | `Order.taxCents` |
 | **UI** | Cart “before shipping & tax”; customer + admin order summary tax row; support order email |

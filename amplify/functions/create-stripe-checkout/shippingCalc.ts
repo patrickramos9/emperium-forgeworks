@@ -1,6 +1,9 @@
 import type Stripe from "stripe";
 import type { Schema } from "../../data/resource";
 
+/** Stripe Tax — shipping fees (`shipping_rate_data`). */
+const STRIPE_SHIPPING_TAX_CODE = "txcd_92010001";
+
 export type CheckoutLineItem = {
   productId: string;
   slug: string;
@@ -534,6 +537,8 @@ export function buildStripeShippingOptions(
   return resolved.shippingOptions.map((option) => ({
     shipping_rate_data: {
       type: "fixed_amount",
+      tax_behavior: "exclusive",
+      tax_code: STRIPE_SHIPPING_TAX_CODE,
       fixed_amount: {
         amount: option.amountCents,
         currency: "usd",

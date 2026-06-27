@@ -733,6 +733,14 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 **Status:** **Shipped** 2026-06-24 — deploy backend (schema + Lambdas) + frontend; confirm Stripe Tax registrations in Dashboard before prod test.
 
+**Troubleshooting $0 tax on Checkout**
+
+1. **Standalone Tax API is not required** — Checkout with `automatic_tax` calculates tax internally. The [Tax Calculations API](https://docs.stripe.com/tax/standalone-tax-api) is for custom PaymentIntents / off-Stripe flows only.
+2. Tax stays **$0 until the customer enters a complete shipping address** — the “determined by shipping information” tooltip is normal until then.
+3. **Live registration** must exist for the ship-to state (Stripe → Tax → Registrations, live mode).
+4. Product tax code must be **tangible goods** (`txcd_99999999`), not services — misclassified products can show $0 tax.
+5. After payment, open the transaction → **Tax calculation** for Stripe’s reason code (`not_collecting`, `standard_rated`, etc.).
+
 ### Checkout & orders
 
 - [ ] Cart shows “before shipping & tax” and checkout copy mentions tax at checkout
