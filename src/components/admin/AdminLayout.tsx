@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Orders", to: "/admin/orders" },
   { label: "Returns", to: "/admin/returns" },
   { label: "Shipping", to: "/admin/shipping" },
+  { label: "Print service", to: "/admin/print-service" },
   { label: "Announcements", to: "/admin/announcements" },
   { label: "Notifications", to: "/admin/notifications" },
   { label: "Reviews", to: "/admin/reviews" },

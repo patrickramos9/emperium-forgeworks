@@ -1,12 +1,13 @@
 /**
- * Delete orders and notifications for a test customer account.
+ * Delete orders, promo grants, and notifications for test customer account(s).
  *
  * Usage:
  *   npx tsx scripts/cleanup-test-account.ts pramos074@hotmail.com
+ *   npx tsx scripts/cleanup-test-account.ts a@example.com b@example.com
  *   npx tsx scripts/cleanup-test-account.ts pramos074@hotmail.com --purge-cancelled-failed
  *
  * Requires admin Cognito sign-in (ADMIN_PASSWORD or default from reset-promo-data).
- * Orders use GraphQL delete when allowed; otherwise AWS CLI DynamoDB delete.
+ * Orders / return requests use GraphQL delete when allowed; otherwise AWS CLI DynamoDB delete.
  */
 import { execSync } from "node:child_process";
 import { writeFileSync, unlinkSync } from "node:fs";
@@ -23,7 +24,10 @@ Amplify.configure(outputs);
 const ADMIN_EMAIL = "admin@emperiumforgeworks.com";
 const args = process.argv.slice(2);
 const PURGE_CANCELLED_FAILED = args.includes("--purge-cancelled-failed");
-const TARGET_EMAIL = args.find((arg) => !arg.startsWith("--"))?.trim().toLowerCase() ?? "";
+const TARGET_EMAILS = args
+  .filter((arg) => !arg.startsWith("--"))
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 async function listAll<T extends { id: string }>(
   listFn: (args: {
@@ -161,31 +165,91 @@ async function deleteOrder(
   return orderTable;
 }
 
-async function main() {
-  if (!TARGET_EMAIL) {
-    console.error(
-      "Usage: npx tsx scripts/cleanup-test-account.ts <customer-email> [--purge-cancelled-failed]",
-    );
-    process.exit(1);
+async function deleteReturnRequest(
+  client: ReturnType<typeof generateClient<Schema>>,
+  returnRequest: Schema["ReturnRequest"]["type"],
+  table: string | undefined,
+  region: string,
+): Promise<string | undefined> {
+  if (client.models.ReturnRequest) {
+    const { errors } = await client.models.ReturnRequest.delete({
+      id: returnRequest.id,
+    });
+    if (!errors?.length) {
+      console.log(`  Deleted return request ${returnRequest.id}`);
+      return table;
+    }
+    const msg = errors.map((e) => e.message).join("; ");
+    if (
+      !msg.toLowerCase().includes("not authorized") &&
+      !msg.toLowerCase().includes("unauthorized")
+    ) {
+      throw new Error(`Failed to delete return request ${returnRequest.id}: ${msg}`);
+    }
   }
 
-  const password = process.env.ADMIN_PASSWORD ?? "EmperiumForge2026!";
-  const region =
-    process.env.AWS_REGION ??
-    outputs.data?.aws_region ??
-    outputs.auth?.aws_region ??
-    "us-east-1";
+  const resolvedTable = table ?? findTableName("ReturnRequest", region);
+  deleteViaDynamoCli(
+    resolvedTable,
+    { id: { S: returnRequest.id } },
+    region,
+    `return-${returnRequest.id}`,
+  );
+  console.log(`  Deleted return request ${returnRequest.id} (DynamoDB)`);
+  return resolvedTable;
+}
 
-  console.log(`Signing in as ${ADMIN_EMAIL}...`);
-  await signIn({ username: ADMIN_EMAIL, password });
+async function deletePromoGrant(
+  client: ReturnType<typeof generateClient<Schema>>,
+  grant: Schema["PromoGrant"]["type"],
+  table: string | undefined,
+  region: string,
+): Promise<string | undefined> {
+  if (client.models.PromoGrant) {
+    const { errors } = await client.models.PromoGrant.delete({ id: grant.id });
+    if (!errors?.length) {
+      console.log(
+        `  Deleted promo grant ${grant.id} (${grant.source ?? "unknown source"})`,
+      );
+      return table;
+    }
+    const msg = errors.map((e) => e.message).join("; ");
+    if (
+      !msg.toLowerCase().includes("not authorized") &&
+      !msg.toLowerCase().includes("unauthorized")
+    ) {
+      throw new Error(`Failed to delete promo grant ${grant.id}: ${msg}`);
+    }
+  }
 
-  const client = generateClient<Schema>({ authMode: "userPool" });
+  const resolvedTable = table ?? findTableName("PromoGrant", region);
+  deleteViaDynamoCli(
+    resolvedTable,
+    { id: { S: grant.id } },
+    region,
+    `grant-${grant.id}`,
+  );
+  console.log(
+    `  Deleted promo grant ${grant.id} (${grant.source ?? "unknown source"}, DynamoDB)`,
+  );
+  return resolvedTable;
+}
+
+async function cleanupEmail(
+  client: ReturnType<typeof generateClient<Schema>>,
+  allOrders: Schema["Order"]["type"][],
+  allReturnRequests: Schema["ReturnRequest"]["type"][],
+  allPromoGrants: Schema["PromoGrant"]["type"][],
+  targetEmail: string,
+  region: string,
+): Promise<void> {
+  console.log(`\n=== ${targetEmail} ===`);
 
   let userId: string | undefined;
   if (client.queries.lookupCustomerByEmail) {
     try {
       const { data, errors } = await client.queries.lookupCustomerByEmail({
-        email: TARGET_EMAIL,
+        email: targetEmail,
       });
       if (errors?.length) {
         throw new Error(errors.map((e) => e.message).join("; "));
@@ -198,38 +262,54 @@ async function main() {
     }
   }
 
-  userId ??= resolveUserIdViaCognito(TARGET_EMAIL, region);
+  userId ??= resolveUserIdViaCognito(targetEmail, region);
   if (userId) {
-    console.log(`Resolved ${TARGET_EMAIL} → userId ${userId}`);
+    console.log(`Resolved ${targetEmail} → userId ${userId}`);
   } else {
-    console.warn(`No Cognito user found for ${TARGET_EMAIL}; matching orders by email only.`);
+    console.warn(`No Cognito user found for ${targetEmail}; matching by email only.`);
   }
 
-  const orders = await listAll((args) => client.models.Order.list(args));
-  const targetOrders = orders.filter((order) => {
+  const targetOrders = allOrders.filter((order) => {
     const email = order.email?.trim().toLowerCase();
-    if (email === TARGET_EMAIL) return true;
+    if (email === targetEmail) return true;
     if (userId && order.userId === userId) return true;
     return false;
   });
 
-  console.log(`Found ${targetOrders.length} order(s) for ${TARGET_EMAIL}.`);
+  const targetOrderIds = new Set(targetOrders.map((order) => order.id));
+  const targetReturnRequests = allReturnRequests.filter((row) => {
+    if (targetOrderIds.has(row.orderId)) return true;
+    if (userId && row.userId === userId) return true;
+    const email = row.email?.trim().toLowerCase();
+    return email === targetEmail;
+  });
+
+  const targetPromoGrants = userId
+    ? allPromoGrants.filter((grant) => grant.userId === userId)
+    : [];
+
+  console.log(
+    `Found ${targetOrders.length} order(s), ${targetReturnRequests.length} return request(s), ${targetPromoGrants.length} promo grant(s).`,
+  );
+
+  let returnTable: string | undefined;
+  for (const returnRequest of targetReturnRequests) {
+    returnTable = await deleteReturnRequest(
+      client,
+      returnRequest,
+      returnTable,
+      region,
+    );
+  }
 
   let orderTable: string | undefined;
   for (const order of targetOrders) {
     orderTable = await deleteOrder(client, order, orderTable, region);
   }
 
-  if (PURGE_CANCELLED_FAILED) {
-    const terminalOrders = orders.filter(
-      (order) => order.status === "cancelled" || order.status === "failed",
-    );
-    console.log(
-      `Found ${terminalOrders.length} cancelled/failed order(s) to purge.`,
-    );
-    for (const order of terminalOrders) {
-      orderTable = await deleteOrder(client, order, orderTable, region);
-    }
+  let promoTable: string | undefined;
+  for (const grant of targetPromoGrants) {
+    promoTable = await deletePromoGrant(client, grant, promoTable, region);
   }
 
   if (userId) {
@@ -281,7 +361,63 @@ async function main() {
     }
   }
 
-  console.log(`Cleanup complete for ${TARGET_EMAIL}.`);
+  console.log(`Cleanup complete for ${targetEmail}.`);
+}
+
+async function main() {
+  if (!TARGET_EMAILS.length) {
+    console.error(
+      "Usage: npx tsx scripts/cleanup-test-account.ts <customer-email> [more-emails...] [--purge-cancelled-failed]",
+    );
+    process.exit(1);
+  }
+
+  const password = process.env.ADMIN_PASSWORD ?? "EmperiumForge2026!";
+  const region =
+    process.env.AWS_REGION ??
+    outputs.data?.aws_region ??
+    outputs.auth?.aws_region ??
+    "us-east-1";
+
+  console.log(`Signing in as ${ADMIN_EMAIL}...`);
+  await signIn({ username: ADMIN_EMAIL, password });
+
+  const client = generateClient<Schema>({ authMode: "userPool" });
+
+  const orders = await listAll((args) => client.models.Order.list(args));
+  const returnRequests = client.models.ReturnRequest
+    ? await listAll((args) => client.models.ReturnRequest.list(args))
+    : [];
+  const promoGrants = client.models.PromoGrant
+    ? await listAll((args) => client.models.PromoGrant.list(args))
+    : [];
+
+  for (const email of TARGET_EMAILS) {
+    await cleanupEmail(
+      client,
+      orders,
+      returnRequests,
+      promoGrants,
+      email,
+      region,
+    );
+  }
+
+  if (PURGE_CANCELLED_FAILED) {
+    console.log("\n=== Purging all cancelled/failed orders ===");
+    let orderTable: string | undefined;
+    const terminalOrders = orders.filter(
+      (order) => order.status === "cancelled" || order.status === "failed",
+    );
+    console.log(
+      `Found ${terminalOrders.length} cancelled/failed order(s) to purge.`,
+    );
+    for (const order of terminalOrders) {
+      orderTable = await deleteOrder(client, order, orderTable, region);
+    }
+  }
+
+  console.log(`\nAll cleanup complete (${TARGET_EMAILS.join(", ")}).`);
 }
 
 main().catch((err) => {

@@ -18,6 +18,14 @@ import {
   paymentIntentIdFromSession,
 } from "../order-shared/stripeOrderStatus.js";
 import { resolveVariantLabelFromProductJson } from "../order-shared/resolveVariantLabel.js";
+import {
+  isPrintServiceLine,
+  normalizePrintServiceConfigRow,
+  parsePrintServiceJson,
+  PRINT_SERVICE_CONFIG_KEY,
+  resolvePrintServicePriceCents,
+  formatPrintServiceVariantLabel,
+} from "../order-shared/printService.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -31,6 +39,17 @@ const STRIPE_TANGIBLE_GOODS_TAX_CODE = "txcd_99999999";
 
 type ShippingProfileRecord = Schema["ShippingProfile"]["type"];
 type ProductRecord = Schema["Product"]["type"];
+type PrintServiceConfigRecord = Schema["PrintServiceConfig"]["type"];
+
+async function loadPrintServiceConfig(): Promise<PrintServiceConfigRecord | null> {
+  const { data, errors } = await dataClient.models.PrintServiceConfig.get({
+    configKey: PRINT_SERVICE_CONFIG_KEY,
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  return data ?? null;
+}
 
 async function loadShippingProfiles(): Promise<ShippingProfileRecord[]> {
   const rows: ShippingProfileRecord[] = [];
@@ -296,9 +315,12 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
 
     function snapshotForLineItem(item: CheckoutLineItem) {
       const product = productById.get(item.productId);
+      const printService = parsePrintServiceJson(item.printServiceJson);
       const variantLabel =
-        item.variantLabel?.trim() ||
-        resolveVariantLabelFromProductJson(product?.variants, item.variantId);
+        printService
+          ? formatPrintServiceVariantLabel(printService)
+          : item.variantLabel?.trim() ||
+            resolveVariantLabelFromProductJson(product?.variants, item.variantId);
       return {
         productId: item.productId,
         slug: product?.slug?.trim() || item.slug,
@@ -308,6 +330,12 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
         title: product?.title?.trim() || item.title,
         quantity: item.quantity,
         priceCents: item.priceCents,
+        ...(printService
+          ? {
+              printService,
+              printServiceJson: item.printServiceJson,
+            }
+          : {}),
       };
     }
 
@@ -359,7 +387,50 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     );
     const defaultProfile = sortedActiveProfiles[0] ?? null;
 
+    const printConfigRow = await loadPrintServiceConfig();
+    const printConfig = normalizePrintServiceConfigRow(printConfigRow);
+    const hasPrintLines = lineItems.some((item) => isPrintServiceLine(item));
+
+    if (hasPrintLines) {
+      if (!userId) {
+        throw new Error("Sign in to order a custom print.");
+      }
+      if (!printConfig?.active) {
+        throw new Error("Printing as a Service is not available right now.");
+      }
+    }
+
     for (const item of lineItems) {
+      const printService = parsePrintServiceJson(item.printServiceJson);
+      if (printService) {
+        if (!printConfig?.active) {
+          throw new Error("Printing as a Service is not available right now.");
+        }
+        if (item.quantity !== 1) {
+          throw new Error("Each print upload must be ordered one at a time.");
+        }
+        const expected = resolvePrintServicePriceCents(
+          printConfig,
+          printService.sizeTierId,
+          printService.resinTypeId,
+        );
+        if (expected == null) {
+          throw new Error("Selected print options are no longer available.");
+        }
+        if (item.priceCents !== expected) {
+          throw new Error(
+            "Print pricing changed. Refresh the page and add your print again.",
+          );
+        }
+        const product = productById.get(item.productId);
+        if (!product) {
+          throw new Error(
+            "Print service catalog product is missing. Contact support.",
+          );
+        }
+        continue;
+      }
+
       const product = productById.get(item.productId);
       if (!product) {
         throw new Error(

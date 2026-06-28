@@ -14,6 +14,7 @@ import { configureAmplify, isAmplifyConfigured } from "@/lib/amplify";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { getCustomerUserId } from "@/lib/customerAuth";
 import { toOrderLineItemSnapshots } from "@/lib/orderLineItems";
+import { serializePrintServicePayload } from "@/lib/printService";
 
 function toLineItems(items: CartLine[]): CheckoutLineItem[] {
   return items.map((item) => ({
@@ -93,6 +94,11 @@ async function startStripeCheckout(
     title: item.title,
     priceCents: item.priceCents,
     imageUrl: item.imageUrl,
+    ...(item.printService
+      ? {
+          printServiceJson: serializePrintServicePayload(item.printService),
+        }
+      : {}),
   }));
 
   const { data, errors } = await client.mutations.createStripeCheckoutSession({

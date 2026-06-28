@@ -28,5 +28,9 @@ export const storage = defineStorage({
       allow.groups(["customer"]).to(["read"]),
       allow.groups(["admin"]).to(["read", "write", "delete"]),
     ],
+    "print-jobs/{entity_id}/*": [
+      allow.entity("identity").to(["read", "write", "delete"]),
+      allow.groups(["admin"]).to(["read", "write", "delete"]),
+    ],
   }),
 });

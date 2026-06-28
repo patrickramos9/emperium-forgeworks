@@ -75,6 +75,8 @@ const schema = a.schema({
     title: a.string().required(),
     priceCents: a.integer().required(),
     imageUrl: a.string(),
+    /** JSON-encoded PrintServiceLinePayload (M21). */
+    printServiceJson: a.string(),
   }),
 
   CheckoutSessionResult: a.customType({
@@ -650,6 +652,26 @@ const schema = a.schema({
       productDescriptionTemplate: a.string(),
     })
     .identifier(["settingsKey"])
+    .authorization((allow) => [
+      allow.guest().to(["read"]),
+      allow.authenticated().to(["read"]),
+      allow.group("admin"),
+    ]),
+
+  /** M21 — Printing as a Service pricing + policy (singleton row). */
+  PrintServiceConfig: a
+    .model({
+      configKey: a.string().required(),
+      active: a.boolean().default(false),
+      /** Hidden catalog product slug for shipping profile + checkout title. */
+      catalogProductSlug: a.string(),
+      policyMarkdown: a.string(),
+      maxFileBytes: a.integer(),
+      sizeTiers: a.json(),
+      resinTypes: a.json(),
+      resinColors: a.json(),
+    })
+    .identifier(["configKey"])
     .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.authenticated().to(["read"]),

@@ -14,6 +14,11 @@ import {
   MAX_LINE_QTY,
 } from "@/lib/cartConstants";
 import { productPrimaryImageRef } from "@/lib/productImageUrls";
+import {
+  isPrintServiceCartLine,
+  printServiceLineKey,
+  type PrintServiceLinePayload,
+} from "@/lib/printService";
 import { useCartSnapshotSync } from "@/hooks/useCartSnapshotSync";
 
 export interface CartLine {
@@ -27,6 +32,7 @@ export interface CartLine {
   variantId?: string;
   variantLabel?: string;
   vaultOnly?: boolean;
+  printService?: PrintServiceLinePayload;
 }
 
 interface CartContextValue {
@@ -39,6 +45,14 @@ interface CartContextValue {
     product: Product,
     options?: { variant?: ProductVariant; quantity?: number },
   ) => boolean;
+  addPrintServiceLine: (input: {
+    productId: string;
+    slug: string;
+    title: string;
+    priceCents: number;
+    printService: PrintServiceLinePayload;
+    imageUrl?: string;
+  }) => boolean;
   removeItem: (key: string) => void;
   updateQuantity: (key: string, quantity: number) => void;
   clearCart: () => void;
@@ -80,7 +94,7 @@ function loadStoredItems(): CartLine[] {
       )
       .map((item) => ({
         ...item,
-        quantity: clampQuantity(item.quantity),
+        quantity: isPrintServiceCartLine(item) ? 1 : clampQuantity(item.quantity),
         slug: item.slug?.trim() || item.productId,
       }));
   } catch {
@@ -161,6 +175,43 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const addPrintServiceLine = useCallback(
+    (input: {
+      productId: string;
+      slug: string;
+      title: string;
+      priceCents: number;
+      printService: PrintServiceLinePayload;
+      imageUrl?: string;
+    }) => {
+      const key = printServiceLineKey(input.productId, input.printService.uploadId);
+      setItems((prev) => {
+        if (prev.some((line) => line.key === key)) {
+          return prev;
+        }
+        const next: CartLine[] = [
+          ...prev,
+          {
+            key,
+            productId: input.productId,
+            slug: input.slug,
+            title: input.title,
+            priceCents: input.priceCents,
+            quantity: 1,
+            printService: input.printService,
+            variantLabel: undefined,
+            imageUrl: input.imageUrl,
+          },
+        ];
+        persistItems(next);
+        return next;
+      });
+      setCartBadgeBumpToken((token) => token + 1);
+      return true;
+    },
+    [],
+  );
+
   const removeItem = useCallback((key: string) => {
     setItems((prev) => {
       const next = prev.filter((i) => i.key !== key);
@@ -199,6 +250,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       let changed = false;
       const next = prev.map((item) => {
+        if (isPrintServiceCartLine(item)) return item;
         const product =
           byId.get(item.productId) ?? bySlug.get(item.slug);
         if (!product) return item;
@@ -249,6 +301,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       cartBadgeBumpToken,
       maxLineQty: MAX_LINE_QTY,
       addItem,
+      addPrintServiceLine,
       removeItem,
       updateQuantity,
       clearCart,
@@ -257,6 +310,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [
     items,
     addItem,
+    addPrintServiceLine,
     removeItem,
     updateQuantity,
     clearCart,

@@ -13,6 +13,7 @@ export type CheckoutLineItem = {
   title: string;
   priceCents: number;
   imageUrl?: string;
+  printServiceJson?: string;
 };
 
 export function lineItemsFromArgs(
@@ -29,6 +30,7 @@ export function lineItemsFromArgs(
       title: item.title,
       priceCents: item.priceCents,
       imageUrl: item.imageUrl ?? undefined,
+      printServiceJson: item.printServiceJson ?? undefined,
     }));
 }
 

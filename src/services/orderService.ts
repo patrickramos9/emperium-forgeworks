@@ -61,7 +61,15 @@ export function parseOrderLineItems(
     const parsed =
       typeof lineItems === "string" ? JSON.parse(lineItems) : lineItems;
     if (!Array.isArray(parsed)) return [];
-    return parsed as OrderLineItemSnapshot[];
+    return (parsed as OrderLineItemSnapshot[]).map((item) => {
+      if (item.printService || !item.printServiceJson) return item;
+      try {
+        const printService = JSON.parse(item.printServiceJson) as OrderLineItemSnapshot["printService"];
+        return printService ? { ...item, printService } : item;
+      } catch {
+        return item;
+      }
+    });
   } catch {
     return [];
   }

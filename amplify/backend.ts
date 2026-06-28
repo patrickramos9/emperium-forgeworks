@@ -122,6 +122,18 @@ backend.updateOrderFulfillment.addEnvironment(
   process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
     "melissa@emperiumforgeworks.com",
 );
+backend.updateOrderFulfillment.addEnvironment(
+  "STORAGE_BUCKET_NAME",
+  backend.storage.resources.bucket.bucketName,
+);
+
+const storageBucketArn = backend.storage.resources.bucket.bucketArn;
+backend.updateOrderFulfillment.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["s3:DeleteObject"],
+    resources: [`${storageBucketArn}/print-jobs/*`],
+  }),
+);
 
 const sesSendPolicy = new PolicyStatement({
   actions: ["ses:SendEmail", "ses:SendRawEmail"],

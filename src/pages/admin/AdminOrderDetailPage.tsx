@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { OrderFulfillmentTimeline } from "@/components/OrderFulfillmentTimeline";
 import { OrderLineItemRow } from "@/components/OrderLineItemRow";
+import { AdminPrintLineActions } from "@/components/admin/AdminPrintLineActions";
 import { AdminOrderRefundPanel } from "@/components/admin/AdminOrderRefundPanel";
 import { AdminOrderReturnPanel } from "@/components/admin/AdminOrderReturnPanel";
 import { formatPrice } from "@/data/seedProducts";
@@ -469,7 +470,9 @@ export function AdminOrderDetailPage() {
                 products={catalogProducts}
                 catalogLoaded={!catalogLoading}
                 linkContext="admin"
+                linkToProduct={!item.printService}
               />
+              <AdminPrintLineActions item={item} />
             </li>
           ))}
         </ul>

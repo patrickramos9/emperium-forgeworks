@@ -1,5 +1,6 @@
 import type { Schema } from "../../data/resource";
 import { sendCustomerFulfillmentEmail } from "./notifyCustomer.js";
+import { purgePrintJobFilesForOrder } from "./purgePrintJobs.js";
 
 export type FulfillmentStatus = "paid" | "received" | "processing" | "shipped";
 
@@ -23,6 +24,7 @@ type FulfillmentDataClient = {
         trackingNumber?: string | null;
         trackingUrl?: string | null;
         shippedAt?: string | null;
+        lineItems?: string | null;
       }) => Promise<{
         data?: OrderRow | null;
         errors?: { message: string }[] | null;
@@ -225,11 +227,39 @@ export async function applyFulfillmentStatus(
     throw new Error("Order fulfillment update failed.");
   }
 
+  let orderForNotify = updated;
+  if (targetStatus === "shipped") {
+    try {
+      const purge = await purgePrintJobFilesForOrder(updated);
+      if (purge.updatedLineItemsJson) {
+        const purgeUpdate = await client.models.Order.update({
+          id: updated.id,
+          lineItems: purge.updatedLineItemsJson,
+        });
+        if (purgeUpdate.errors?.length) {
+          console.error(
+            "Print job purge lineItems update failed",
+            purgeUpdate.errors,
+          );
+        } else if (purgeUpdate.data) {
+          orderForNotify = purgeUpdate.data;
+        }
+      }
+      if (purge.purgedPaths.length) {
+        console.log(
+          `Purged ${purge.purgedPaths.length} print job file(s) for order ${updated.id}`,
+        );
+      }
+    } catch (err) {
+      console.error("Print job purge failed", err);
+    }
+  }
+
   let notificationSent = false;
   try {
     notificationSent = await createFulfillmentNotification(
       client,
-      updated,
+      orderForNotify,
       targetStatus,
     );
   } catch (err) {
@@ -239,11 +269,11 @@ export async function applyFulfillmentStatus(
   let emailSent = false;
   if (targetStatus === "paid" || targetStatus === "shipped") {
     try {
-      emailSent = await sendCustomerFulfillmentEmail(updated, targetStatus);
+      emailSent = await sendCustomerFulfillmentEmail(orderForNotify, targetStatus);
     } catch (err) {
       console.error("Customer fulfillment email failed", err);
     }
   }
 
-  return { order: updated, notificationSent, emailSent };
+  return { order: orderForNotify, notificationSent, emailSent };
 }

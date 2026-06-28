@@ -1,5 +1,6 @@
 import type { CartLine } from "@/context/CartContext";
 import type { Product } from "@/data/seedProducts";
+import { formatPrintServiceVariantLabel, type PrintServiceLinePayload } from "@/lib/printService";
 
 /** Minimal line-item snapshot stored on Order (no PII beyond product refs). */
 export interface OrderLineItemSnapshot {
@@ -13,12 +14,21 @@ export interface OrderLineItemSnapshot {
   title: string;
   quantity: number;
   priceCents: number;
+  printService?: PrintServiceLinePayload;
+  printServiceJson?: string;
 }
 
 export function orderLineItemDisplay(item: OrderLineItemSnapshot): {
   productTitle: string;
   variantLabel: string | undefined;
 } {
+  if (item.printService) {
+    return {
+      productTitle: item.title,
+      variantLabel: formatPrintServiceVariantLabel(item.printService),
+    };
+  }
+
   const explicit = item.variantLabel?.trim();
   if (explicit) {
     return { productTitle: item.title, variantLabel: explicit };
@@ -63,6 +73,10 @@ export function resolveOrderLineItemHref(
   catalogLoaded = false,
   linkContext: OrderLineItemLinkContext = "storefront",
 ): string | null {
+  if (item.printService && linkContext === "storefront") {
+    return null;
+  }
+
   const product =
     products.find((row) => row.id === item.productId) ??
     products.find((row) => row.slug === item.slug);
@@ -93,15 +107,25 @@ export function toOrderLineItemSnapshots(
   return items.map((item) => {
     const product =
       byId.get(item.productId) ?? bySlug.get(item.slug);
+    const variantLabel =
+      item.printService
+        ? formatPrintServiceVariantLabel(item.printService)
+        : item.variantLabel?.trim() || undefined;
     return {
       productId: product?.id ?? item.productId,
       slug: product?.slug ?? item.slug,
       variantId: item.variantId,
-      variantLabel: item.variantLabel?.trim() || undefined,
+      variantLabel,
       ...(product?.vaultOnly ? { vaultOnly: true } : {}),
       title: item.title,
       quantity: item.quantity,
       priceCents: item.priceCents,
+      ...(item.printService
+        ? {
+            printService: item.printService,
+            printServiceJson: JSON.stringify(item.printService),
+          }
+        : {}),
     };
   });
 }

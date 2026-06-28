@@ -12,6 +12,7 @@ import { AboutPage } from "@/pages/AboutPage";
 import { ShippingReturnsPage } from "@/pages/ShippingReturnsPage";
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { ForgeTermsPage } from "@/pages/ForgeTermsPage";
+import { PrintServicePage } from "@/pages/PrintServicePage";
 import { CartPage } from "@/pages/CartPage";
 import { CheckoutSuccessPage } from "@/pages/CheckoutSuccessPage";
 import { CheckoutCancelPage } from "@/pages/CheckoutCancelPage";
@@ -50,6 +51,7 @@ import { AdminShippingProfilesPage } from "@/pages/admin/AdminShippingProfilesPa
 import { AdminShippingProfileEditPage } from "@/pages/admin/AdminShippingProfileEditPage";
 import { AdminSculptorsPage } from "@/pages/admin/AdminSculptorsPage";
 import { AdminSculptorEditPage } from "@/pages/admin/AdminSculptorEditPage";
+import { AdminPrintServicePage } from "@/pages/admin/AdminPrintServicePage";
 import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayout";
 import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage";
 import { TrustedSiteScript } from "@/components/TrustedSiteScript";
@@ -101,6 +103,7 @@ export default function App() {
             <Route path="/forge-terms" element={<ForgeTermsPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/sculptors/:slug" element={<SculptorDetailPage />} />
+            <Route path="/print" element={<PrintServicePage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/account" element={<AccountPage />} />
             <Route path="/account/orders" element={<AccountOrdersPage />} />
@@ -140,10 +143,8 @@ export default function App() {
             <Route path="orders/:id" element={<AdminOrderDetailPage />} />
             <Route path="returns" element={<AdminReturnsPage />} />
             <Route path="shipping" element={<AdminShippingProfilesPage />} />
-            <Route
-              path="shipping/:id"
-              element={<AdminShippingProfileEditPage />}
-            />
+            <Route path="shipping/:id" element={<AdminShippingProfileEditPage />} />
+            <Route path="print-service" element={<AdminPrintServicePage />} />
             <Route path="announcements" element={<AdminAnnouncementsPage />} />
             <Route
               path="announcements/:id"

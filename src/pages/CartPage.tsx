@@ -6,6 +6,7 @@ import { formatPrice } from "@/data/seedProducts";
 import { CartLineThumbnail } from "@/components/CartLineThumbnail";
 import { findCatalogProduct } from "@/lib/cartLineImage";
 import { productDetailPath } from "@/lib/orderLineItems";
+import { isPrintServiceCartLine, formatPrintServiceVariantLabel } from "@/lib/printService";
 import { useProducts } from "@/hooks/useProducts";
 import { IS_LOCAL } from "@/lib/config";
 import {
@@ -255,8 +256,12 @@ export function CartPage() {
           const lineTotalCents = item.priceCents * item.quantity;
           const issue = issueByKey.get(item.key);
           const catalogProduct = findCatalogProduct(item, products);
+          const isPrintLine = isPrintServiceCartLine(item);
           const isRemoved = issue?.kind === "removed";
           const lineBlocked = issue?.blocksCheckout ?? false;
+          const printLabel = item.printService
+            ? formatPrintServiceVariantLabel(item.printService)
+            : undefined;
 
           return (
             <li
@@ -274,7 +279,7 @@ export function CartPage() {
                   catalogLoading={catalogLoading}
                 />
                 <div className="min-w-0 flex-1">
-                {isRemoved ? (
+                {isRemoved || isPrintLine ? (
                   <p className="font-headline-md text-on-surface">{item.title}</p>
                 ) : (
                   <Link
@@ -291,9 +296,9 @@ export function CartPage() {
                     {item.title}
                   </Link>
                 )}
-                {item.variantLabel && (
+                {(printLabel || item.variantLabel) && (
                   <p className="text-label-sm text-on-surface-variant">
-                    {item.variantLabel}
+                    {printLabel ?? item.variantLabel}
                   </p>
                 )}
                 {!isRemoved && (
@@ -306,7 +311,7 @@ export function CartPage() {
                 )}
                 </div>
               </div>
-              {!lineBlocked ? (
+              {!lineBlocked && !isPrintLine ? (
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -328,6 +333,10 @@ export function CartPage() {
                   >
                     +
                   </button>
+                </div>
+              ) : !lineBlocked && isPrintLine ? (
+                <div className="font-label-md text-on-surface-variant sm:min-w-[6rem]">
+                  Qty 1
                 </div>
               ) : (
                 <div className="sm:min-w-[6rem]" />

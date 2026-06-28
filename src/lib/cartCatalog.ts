@@ -3,6 +3,7 @@ import type { Product } from "@/data/seedProducts";
 import { formatPrice } from "@/data/seedProducts";
 import { MAX_LINE_QTY } from "@/lib/cartConstants";
 import { findCatalogProduct } from "@/lib/cartLineImage";
+import { isPrintServiceCartLine } from "@/lib/printService";
 
 export type CartLineIssueKind =
   | "removed"
@@ -41,7 +42,10 @@ export function isCartCatalogVerified(
   catalogLoading: boolean,
 ): boolean {
   if (catalogLoading || !items.length || !products.length) return false;
-  return items.every((item) => Boolean(findCatalogProduct(item, products)));
+  return items.every((item) => {
+    if (isPrintServiceCartLine(item)) return true;
+    return Boolean(findCatalogProduct(item, products));
+  });
 }
 
 /** Checks cart lines against live catalog before checkout. */
@@ -55,6 +59,10 @@ export function getCartLineIssues(
   if (!catalogLoaded) return issues;
 
   for (const item of items) {
+    if (isPrintServiceCartLine(item)) {
+      continue;
+    }
+
     const product = findCatalogProduct(item, products);
 
     if (!product) {

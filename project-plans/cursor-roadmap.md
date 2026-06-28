@@ -24,11 +24,11 @@ Cursor should treat this file as the **source of truth** for:
 
 | Item | State |
 |------|--------|
-| **Phase** | **Post-M16** — **M21 Printing as a Service** is next |
-| **Next** | **M21** — policy + print configurator, STL upload, standard cart/checkout |
+| **Phase** | **Post-M21** — **M19 Catalog sales & bundles** is next |
+| **Next** | **M19** — list/compare pricing, sale fields on products |
 | **Blocked** | _(none)_ |
-| **Recently verified** | **M16** returns/refunds + pre-ship cancel (2026-06-24) · **M11** customer order status + shipping (2026-06-23) · **M6 new-account promo** (2026-06-20) · **M6b** · **M6c** · **M17** (B1) · **Go-live polish** · **Order notification email** to support (2026-06-11) · **M3b cancel/refund sync** (2026-06-14) |
-| **Recently shipped (repo)** | **M22** Stripe Tax — `automatic_tax`, `taxCents`, order + cart copy (2026-06-24) · **M16** polish (2026-06-24) · **M16** core (2026-06-22) · **M11 polish** (2026-06-23) · **M15** · **M9a** |
+| **Recently verified** | **M22** Stripe Tax (2026-06-24) · **M16** returns/refunds + pre-ship cancel (2026-06-24) · **M11** (2026-06-23) · **M6 new-account promo** (2026-06-20) |
+| **Recently shipped (repo)** | **M21** Printing as a Service (2026-06-24) · **M22** Stripe Tax (2026-06-24) · **M16** (2026-06-22) |
 | **In progress** | _(none)_ |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
@@ -178,9 +178,25 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M6 new-account promo** — `useForNewAccount` template flag + `new_account` grant via `issueNewAccountWelcomeGrant` after verify/sign-in — **production verified** (2026-06-20)
 - **M11** — Customer order status + shipping (`fulfillmentStatus`, 4-stage timeline, admin fulfillment stepper, in-app `order` notifications, tracking on ship, order detail with line items/variants/product links) — **production verified** (2026-06-23); checkout orphan-order fix; admin orders list fulfillment column; cart/admin product link routing (shop vs vault vs admin edit)
 - **M16** — Returns, refunds & exchanges — **production verified** (2026-06-24): admin refunds, return requests, pre-ship cancel, Payment/Fulfillment columns, refund status on customer + admin
-- **M22** — Stripe Tax — **shipped** (2026-06-24): `automatic_tax` on Checkout, tangible-goods tax code, `Order.taxCents`, webhook + order UI
+- **M21** — Printing as a Service — **shipped** (2026-06-24): `/print`, STL upload, cart/checkout, admin config, STL purge on ship
+- **M22** — Stripe Tax — **production verified** (2026-06-24)
+
+### 3.6 M21 — Printing as a Service (2026-06-24)
+
+| Area | What shipped |
+|------|----------------|
+| **Customer** | `/print` policy + configurator; home card when active; cart + Stripe checkout |
+| **Schema** | `PrintServiceConfig`; `CheckoutCartLine.printServiceJson`; order snapshots with `printService` |
+| **Storage** | `print-jobs/{entity_id}/*` prefix; purge on **Shipped** |
+| **Admin** | `/admin/print-service` pricing/policy; order detail STL download + purge status |
+
+**Ops before go-live:** Create catalog product slug `printing-as-a-service` (shipping profile + weight). Admin → Print service → **Active**.
+
+**Deploy:** Backend (schema, storage, checkout + fulfillment Lambdas) + frontend.
 
 ### 3.5 M22 — Stripe Tax (2026-06-24)
+
+**Signed off** 2026-06-24 — regression checklist [docs/qa-test-plan.md](../docs/qa-test-plan.md) §22.
 
 | Area | What shipped |
 |------|----------------|
@@ -1313,7 +1329,7 @@ On each fulfillment transition (when `userId` is set):
 
 ### M21 — Printing as a Service
 
-**Status:** Planned — **after M16**, **before M19**. **M11** + **M15** + checkout are sufficient foundations.
+**Status:** Planned — **after M16**, **before M19**. **Shipped** 2026-06-24.
 
 **Goal:** Let customers order **prints of their own STL files** through the normal storefront: policy acknowledgment → configure print → add to cart → Stripe checkout → standard **M11** fulfillment. Entry from the existing home-page card (today disabled **Custom Forge**).
 

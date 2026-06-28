@@ -21,6 +21,7 @@ import {
   listAllSculptors,
   type SculptorRecord,
 } from "@/services/sculptorService";
+import { fetchPrintServiceConfig } from "@/services/printServiceConfigService";
 
 const TECH_SPECS = [
   {
@@ -51,6 +52,13 @@ export function HomePage() {
   );
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
   const [sculptors, setSculptors] = useState<SculptorWithLogo[]>([]);
+  const [printServiceActive, setPrintServiceActive] = useState(false);
+
+  useEffect(() => {
+    void fetchPrintServiceConfig()
+      .then((config) => setPrintServiceActive(config.active))
+      .catch(() => setPrintServiceActive(false));
+  }, []);
 
   useEffect(() => {
     async function loadReviews() {
@@ -157,18 +165,23 @@ export function HomePage() {
           <div className="flex min-h-[220px] flex-col items-center justify-center border border-secondary/20 bg-void-purple/30 p-stack-lg text-center iron-bevel backdrop-blur-sm">
             <Icon name="architecture" className="mb-4 text-5xl text-secondary" />
             <h3 className="font-display-lg text-headline-md uppercase text-on-surface">
-              Custom Forge
+              Printing as a Service
             </h3>
             <p className="mt-2 font-body-md text-on-surface-variant">
-              Commission bespoke sculpts and print runs.
+              Upload your STL, choose size and resin, and checkout like any other order.
             </p>
-            <button
-              type="button"
-              disabled
-              className="mt-4 cursor-not-allowed font-label-md uppercase tracking-widest text-on-surface-variant opacity-50"
-            >
-              Start Commission
-            </button>
+            {printServiceActive ? (
+              <Link
+                to="/print"
+                className="mt-4 font-label-md uppercase tracking-widest text-primary hover:text-plasma-glow"
+              >
+                Start a print
+              </Link>
+            ) : (
+              <span className="mt-4 font-label-md uppercase tracking-widest text-on-surface-variant opacity-50">
+                Coming soon
+              </span>
+            )}
           </div>
         </div>
       </section>
