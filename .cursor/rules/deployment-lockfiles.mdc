@@ -1,0 +1,33 @@
+---
+description: Regenerate package-lock.json before deploy when dependencies change
+alwaysApply: true
+---
+
+# Deployment lockfiles (npm ci)
+
+Amplify CI runs **`npm ci`** (not `npm install`) on these lockfiles — see `amplify.yml`:
+
+- Repo root: `package-lock.json`
+- `amplify/package-lock.json`
+- Each Lambda with its own `package.json` under `amplify/functions/*/`
+
+If `package.json` and `package-lock.json` are out of sync, **backend build fails**.
+
+## When shipping a feature for deployment
+
+After any change to **`package.json`** (root, `amplify/`, or any `amplify/functions/*/`):
+
+1. Run **`npm install`** in **every** directory whose `package.json` you changed (updates that folder's lockfile).
+2. Commit the updated **`package-lock.json`** files together with the dependency change.
+3. Before finishing, verify sync: `npm ci` in each touched directory (must exit 0).
+
+## New Lambda dependency
+
+If you add a new function folder with its own `package.json`:
+
+- Add a matching **`npm ci --prefix amplify/functions/<name>`** line to **`amplify.yml`** backend build (and cache paths if needed).
+
+## Do not
+
+- Commit `package.json` dependency changes without updating the matching lockfile.
+- Rely on `npm install` on CI — it is not used in production builds.
