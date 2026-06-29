@@ -3,6 +3,7 @@ import { Amplify } from "aws-amplify";
 import { signIn } from "aws-amplify/auth";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../amplify/data/resource";
+import { findProductBySlug } from "../src/lib/listAllProducts";
 import { PRINT_SERVICE_CATALOG_SLUG } from "../src/lib/printService";
 
 Amplify.configure(outputs);
@@ -39,20 +40,14 @@ async function main() {
     process.exit(1);
   }
 
-  const existing = await Product.list({
-    filter: { slug: { eq: PRINT_SERVICE_CATALOG_SLUG } },
-    limit: 1,
-  });
-  if (existing.errors?.length) {
-    throw new Error(existing.errors.map((e) => e.message).join("; "));
-  }
-  if (existing.data?.[0]) {
+  const existing = await findProductBySlug(client, PRINT_SERVICE_CATALOG_SLUG);
+  if (existing) {
     console.log("Print service catalog product already exists:", {
-      id: existing.data[0].id,
-      slug: existing.data[0].slug,
-      title: existing.data[0].title,
-      shippingProfileId: existing.data[0].shippingProfileId,
-      weightOz: existing.data[0].weightOz,
+      id: existing.id,
+      slug: existing.slug,
+      title: existing.title,
+      shippingProfileId: existing.shippingProfileId,
+      weightOz: existing.weightOz,
     });
     return;
   }

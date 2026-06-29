@@ -4,6 +4,7 @@ import {
   getGuestDataClient,
   type AmplifyDataClient,
 } from "@/lib/amplifyDataClient";
+import { findProductBySlug } from "@/lib/listAllProducts";
 import { toJsonField } from "@/lib/productPayload";
 import {
   defaultPrintServiceConfig,
@@ -104,13 +105,5 @@ export async function resolvePrintCatalogProduct(
   const client = await getGuestDataClient();
   if (!client) return null;
 
-  const slug = config.catalogProductSlug.trim();
-  const response = await client.models.Product.list({
-    filter: { slug: { eq: slug } },
-    limit: 1,
-  });
-  if (response.errors?.length) {
-    throw new Error(response.errors.map((e) => e.message).join("; "));
-  }
-  return response.data?.[0] ?? null;
+  return findProductBySlug(client, config.catalogProductSlug);
 }

@@ -33,3 +33,14 @@ export async function listAllProducts(
       a.title.localeCompare(b.title),
   );
 }
+
+/** AppSync slug filters are unreliable on Product — scan pages and match locally. */
+export async function findProductBySlug(
+  client: AmplifyDataClient,
+  slug: string,
+): Promise<ProductRecord | null> {
+  const normalized = slug.trim();
+  if (!normalized) return null;
+  const rows = await listAllProducts(client);
+  return rows.find((row) => row.slug === normalized) ?? null;
+}
