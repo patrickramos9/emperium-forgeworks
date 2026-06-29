@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageFeedback } from "@/components/PageFeedback";
+import { ResinColorSwatches } from "@/components/ResinColorSwatches";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
 import { hasCustomerSession } from "@/lib/customerAuth";
@@ -310,22 +311,34 @@ export function PrintServicePage() {
             </select>
           </label>
 
-          <label className="mt-4 block">
+          <div className="mt-4">
             <span className="font-label-sm uppercase text-on-surface-variant">
               Resin color
             </span>
-            <select
-              value={resinColorId}
-              onChange={(e) => setResinColorId(e.target.value)}
-              className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
-            >
-              {availableColors.map((color) => (
-                <option key={color.id} value={color.id}>
-                  {color.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            {availableColors.length === 0 ? (
+              <p className="mt-2 text-body-sm text-on-surface-variant">
+                No colors available for this resin type.
+              </p>
+            ) : availableColors.some((color) => color.hexColor) ? (
+              <ResinColorSwatches
+                colors={availableColors}
+                value={resinColorId}
+                onChange={setResinColorId}
+              />
+            ) : (
+              <select
+                value={resinColorId}
+                onChange={(e) => setResinColorId(e.target.value)}
+                className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
+              >
+                {availableColors.map((color) => (
+                  <option key={color.id} value={color.id}>
+                    {color.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
 
           <label className="mt-4 block">
             <span className="font-label-sm uppercase text-on-surface-variant">

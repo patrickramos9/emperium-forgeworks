@@ -26,6 +26,8 @@ export type PrintServiceResinType = {
 export type PrintServiceResinColor = {
   id: string;
   label: string;
+  /** Optional swatch color, e.g. `#36454F` — set via admin color picker. */
+  hexColor?: string;
   resinTypeIds?: string[];
   sortOrder?: number;
 };
@@ -92,6 +94,26 @@ function sorted<T extends { sortOrder?: number }>(rows: T[]): T[] {
   );
 }
 
+/** Normalize admin-entered hex to `#RRGGBB`, or undefined when invalid. */
+export function normalizeHexColor(
+  value: string | null | undefined,
+): string | undefined {
+  if (!value?.trim()) return undefined;
+  let hex = value.trim();
+  if (!hex.startsWith("#")) hex = `#${hex}`;
+  if (/^#[0-9A-Fa-f]{6}$/.test(hex)) return hex.toUpperCase();
+  if (/^#[0-9A-Fa-f]{3}$/.test(hex)) {
+    const [, r, g, b] = hex;
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
+  }
+  return undefined;
+}
+
+function normalizeResinColor(row: PrintServiceResinColor): PrintServiceResinColor {
+  const hexColor = normalizeHexColor(row.hexColor);
+  return hexColor ? { ...row, hexColor } : { ...row, hexColor: undefined };
+}
+
 export function normalizePrintServiceConfig(
   row: {
     configKey?: string | null;
@@ -128,7 +150,9 @@ export function normalizePrintServiceConfig(
     maxFileBytes: row.maxFileBytes ?? DEFAULT_MAX_STL_BYTES,
     sizeTiers: sorted(parseArray<PrintServiceSizeTier>(row.sizeTiers)),
     resinTypes: sorted(parseArray<PrintServiceResinType>(row.resinTypes)),
-    resinColors: sorted(parseArray<PrintServiceResinColor>(row.resinColors)),
+    resinColors: sorted(
+      parseArray<PrintServiceResinColor>(row.resinColors).map(normalizeResinColor),
+    ),
   };
 }
 
@@ -185,14 +209,16 @@ export function defaultPrintServiceConfig(): PrintServiceConfigData {
     ],
     resinColors: [
       {
-        id: "charcoal",
-        label: "Charcoal",
+        id: "space-grey",
+        label: "Space Grey",
+        hexColor: "#848688",
         resinTypeIds: ["standard", "tough"],
         sortOrder: 0,
       },
       {
-        id: "bone",
-        label: "Bone",
+        id: "white",
+        label: "White",
+        hexColor: "#FFFFFF",
         resinTypeIds: ["standard", "tough"],
         sortOrder: 1,
       },

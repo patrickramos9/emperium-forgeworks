@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageFeedback } from "@/components/PageFeedback";
+import { AdminResinColorsEditor } from "@/components/admin/AdminResinColorsEditor";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import {
   defaultPrintServiceConfig,
@@ -183,26 +184,28 @@ export function AdminPrintServicePage() {
           />
         </label>
 
-        <label className="block">
+        <div className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
-            Resin colors (JSON)
+            Resin colors
           </span>
-          <textarea
-            rows={5}
-            value={JSON.stringify(config.resinColors, null, 2)}
-            onChange={(e) => {
-              try {
-                const parsed = JSON.parse(e.target.value);
-                if (Array.isArray(parsed)) {
-                  setConfig((prev) => ({ ...prev, resinColors: parsed }));
-                }
-              } catch {
-                /* ignore */
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            Pick a swatch color for each resin — stored as{" "}
+            <code className="text-on-surface">hexColor</code> in config (shown on{" "}
+            <Link to="/print" className="text-primary hover:underline">
+              /print
+            </Link>
+            ).
+          </p>
+          <div className="mt-3">
+            <AdminResinColorsEditor
+              colors={config.resinColors}
+              resinTypes={config.resinTypes}
+              onChange={(resinColors) =>
+                setConfig((prev) => ({ ...prev, resinColors }))
               }
-            }}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 font-mono text-sm"
-          />
-        </label>
+            />
+          </div>
+        </div>
 
         {error && <PageFeedback tone="error">{error}</PageFeedback>}
         {saved && (
