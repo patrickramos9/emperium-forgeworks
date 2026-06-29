@@ -19,6 +19,11 @@
         "admin": {
           "precedence": 0
         }
+      },
+      {
+        "customer": {
+          "precedence": 1
+        }
       }
     ],
     "mfa_configuration": "NONE",
@@ -41,6 +46,113 @@
     "model_introspection": {
       "version": 1,
       "models": {
+        "VaultAccess": {
+          "name": "VaultAccess",
+          "fields": {
+            "accessKey": {
+              "name": "accessKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userEmail": {
+              "name": "userEmail",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": true,
+              "attributes": []
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "VaultAccesses",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "accessKey"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "accessKey",
+            "sortKeyFieldNames": []
+          }
+        },
         "Product": {
           "name": "Product",
           "fields": {
@@ -108,6 +220,13 @@
               "attributes": [],
               "isArrayNullable": true
             },
+            "displayRating": {
+              "name": "displayRating",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
             "images": {
               "name": "images",
               "isArray": true,
@@ -158,6 +277,48 @@
               "isRequired": false,
               "attributes": []
             },
+            "vaultOnly": {
+              "name": "vaultOnly",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingProfileId": {
+              "name": "shippingProfileId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "weightOz": {
+              "name": "weightOz",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingDisplay": {
+              "name": "shippingDisplay",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "activeCartCount": {
+              "name": "activeCartCount",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "favoriteCount": {
+              "name": "favoriteCount",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -189,6 +350,335 @@
                   {
                     "allow": "public",
                     "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Announcement": {
+          "name": "Announcement",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "kind": {
+              "name": "kind",
+              "isArray": false,
+              "type": {
+                "enum": "AnnouncementKind"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "pinned": {
+              "name": "pinned",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "startsAt": {
+              "name": "startsAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "endsAt": {
+              "name": "endsAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Announcements",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "ShippingProfile": {
+          "name": "ShippingProfile",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "description": {
+              "name": "description",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "kind": {
+              "name": "kind",
+              "isArray": false,
+              "type": {
+                "enum": "ShippingProfileKind"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "amountCents": {
+              "name": "amountCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "additionalItemCents": {
+              "name": "additionalItemCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "freeThresholdCents": {
+              "name": "freeThresholdCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "weightTiers": {
+              "name": "weightTiers",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "internationalRates": {
+              "name": "internationalRates",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "allowedCountries": {
+              "name": "allowedCountries",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "isDefault": {
+              "name": "isDefault",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "minReadyToShipDays": {
+              "name": "minReadyToShipDays",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "maxReadyToShipDays": {
+              "name": "maxReadyToShipDays",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "minDeliveryDays": {
+              "name": "minDeliveryDays",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "maxDeliveryDays": {
+              "name": "maxDeliveryDays",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "ShippingProfiles",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
                     "operations": [
                       "read"
                     ]
@@ -252,10 +742,66 @@
               "isRequired": false,
               "attributes": []
             },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "email": {
               "name": "email",
               "isArray": false,
               "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "customerName": {
+              "name": "customerName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "customerPhone": {
+              "name": "customerPhone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingAddress": {
+              "name": "shippingAddress",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "subtotalCents": {
+              "name": "subtotalCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingCents": {
+              "name": "shippingCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingLabel": {
+              "name": "shippingLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "taxCents": {
+              "name": "taxCents",
+              "isArray": false,
+              "type": "Int",
               "isRequired": false,
               "attributes": []
             },
@@ -271,6 +817,136 @@
               "isArray": false,
               "type": "Int",
               "isRequired": true,
+              "attributes": []
+            },
+            "discountCents": {
+              "name": "discountCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "promoGrantId": {
+              "name": "promoGrantId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "promoSource": {
+              "name": "promoSource",
+              "isArray": false,
+              "type": {
+                "enum": "OrderPromoSource"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "promoLabel": {
+              "name": "promoLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "promoExpiresAt": {
+              "name": "promoExpiresAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "supportNotifiedAt": {
+              "name": "supportNotifiedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "stripePaymentIntentId": {
+              "name": "stripePaymentIntentId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "adminAcknowledgedAt": {
+              "name": "adminAcknowledgedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "fulfillmentStatus": {
+              "name": "fulfillmentStatus",
+              "isArray": false,
+              "type": {
+                "enum": "OrderFulfillmentStatus"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "fulfillmentUpdatedAt": {
+              "name": "fulfillmentUpdatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "carrier": {
+              "name": "carrier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "trackingNumber": {
+              "name": "trackingNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "trackingUrl": {
+              "name": "trackingUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippedAt": {
+              "name": "shippedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "deliveredAt": {
+              "name": "deliveredAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "refundedCents": {
+              "name": "refundedCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "refundNotes": {
+              "name": "refundNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "refunds": {
+              "name": "refunds",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
               "attributes": []
             },
             "createdAt": {
@@ -302,20 +978,327 @@
               "properties": {
                 "rules": [
                   {
-                    "groupClaim": "cognito:groups",
-                    "provider": "userPools",
-                    "allow": "groups",
+                    "allow": "public",
+                    "provider": "identityPool",
                     "operations": [
-                      "read"
-                    ],
-                    "groups": [
-                      "admin"
+                      "create"
                     ]
                   },
                   {
                     "allow": "private",
                     "operations": [
+                      "create"
+                    ]
+                  },
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read",
+                      "update"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "ReturnRequest": {
+          "name": "ReturnRequest",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "ReturnRequestStatus"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "reason": {
+              "name": "reason",
+              "isArray": false,
+              "type": {
+                "enum": "ReturnRequestReason"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "customerNotes": {
+              "name": "customerNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "adminNotes": {
+              "name": "adminNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "requestedAt": {
+              "name": "requestedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resolvedAt": {
+              "name": "resolvedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "ReturnRequests",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read",
+                      "update",
+                      "create"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "PromoTemplate": {
+          "name": "PromoTemplate",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "kind": {
+              "name": "kind",
+              "isArray": false,
+              "type": {
+                "enum": "PromoTemplateKind"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "percent": {
+              "name": "percent",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "amountCents": {
+              "name": "amountCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "defaultExpiresInDays": {
+              "name": "defaultExpiresInDays",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "useForThankYou": {
+              "name": "useForThankYou",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "useForFavorite": {
+              "name": "useForFavorite",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "useForAbandonedCart": {
+              "name": "useForAbandonedCart",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "useForNewAccount": {
+              "name": "useForNewAccount",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "abandonAfterHours": {
+              "name": "abandonAfterHours",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "PromoTemplates",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
                       "create",
+                      "update",
+                      "delete",
                       "read"
                     ]
                   }
@@ -328,9 +1311,1164 @@
             "primaryKeyFieldName": "id",
             "sortKeyFieldNames": []
           }
+        },
+        "PromoGrant": {
+          "name": "PromoGrant",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "templateId": {
+              "name": "templateId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "source": {
+              "name": "source",
+              "isArray": false,
+              "type": {
+                "enum": "PromoGrantSource"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "cartSnapshotId": {
+              "name": "cartSnapshotId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "expiresAt": {
+              "name": "expiresAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "revokedAt": {
+              "name": "revokedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "redeemedAt": {
+              "name": "redeemedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "PromoGrants",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Favorite": {
+          "name": "Favorite",
+          "fields": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "productSlug": {
+              "name": "productSlug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Favorites",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "userId",
+                  "productId"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read",
+                      "create",
+                      "delete"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "userId",
+            "sortKeyFieldNames": [
+              "productId"
+            ]
+          }
+        },
+        "CartSnapshot": {
+          "name": "CartSnapshot",
+          "fields": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": true,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "abandonedAt": {
+              "name": "abandonedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "CartSnapshots",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "userId"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "userId",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Notification": {
+          "name": "Notification",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "kind": {
+              "name": "kind",
+              "isArray": false,
+              "type": {
+                "enum": "NotificationKind"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "startsAt": {
+              "name": "startsAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "endsAt": {
+              "name": "endsAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Notifications",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "NotificationRead": {
+          "name": "NotificationRead",
+          "fields": {
+            "notificationId": {
+              "name": "notificationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "readAt": {
+              "name": "readAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "NotificationReads",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "notificationId",
+                  "userId"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read",
+                      "create",
+                      "update"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "notificationId",
+            "sortKeyFieldNames": [
+              "userId"
+            ]
+          }
+        },
+        "Review": {
+          "name": "Review",
+          "fields": {
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "rating": {
+              "name": "rating",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "text": {
+              "name": "text",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "displayName": {
+              "name": "displayName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "approved": {
+              "name": "approved",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "source": {
+              "name": "source",
+              "isArray": false,
+              "type": {
+                "enum": "ReviewSource"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "productSlug": {
+              "name": "productSlug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "images": {
+              "name": "images",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Reviews",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "orderId"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read",
+                      "create"
+                    ]
+                  },
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read",
+                      "create"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "orderId",
+            "sortKeyFieldNames": []
+          }
+        },
+        "CatalogSettings": {
+          "name": "CatalogSettings",
+          "fields": {
+            "settingsKey": {
+              "name": "settingsKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "categoryFilters": {
+              "name": "categoryFilters",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "productDescriptionTemplate": {
+              "name": "productDescriptionTemplate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "CatalogSettings",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "settingsKey"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "settingsKey",
+            "sortKeyFieldNames": []
+          }
+        },
+        "PrintServiceConfig": {
+          "name": "PrintServiceConfig",
+          "fields": {
+            "configKey": {
+              "name": "configKey",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "catalogProductSlug": {
+              "name": "catalogProductSlug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "policyMarkdown": {
+              "name": "policyMarkdown",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "maxFileBytes": {
+              "name": "maxFileBytes",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sizeTiers": {
+              "name": "sizeTiers",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "resinTypes": {
+              "name": "resinTypes",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "resinColors": {
+              "name": "resinColors",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "PrintServiceConfigs",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "configKey"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "configKey",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Sculptor": {
+          "name": "Sculptor",
+          "fields": {
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "logo": {
+              "name": "logo",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "galleryImages": {
+              "name": "galleryImages",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "description": {
+              "name": "description",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "myMiniFactoryUrl": {
+              "name": "myMiniFactoryUrl",
+              "isArray": false,
+              "type": "AWSURL",
+              "isRequired": false,
+              "attributes": []
+            },
+            "patreonUrl": {
+              "name": "patreonUrl",
+              "isArray": false,
+              "type": "AWSURL",
+              "isRequired": false,
+              "attributes": []
+            },
+            "instagramUrl": {
+              "name": "instagramUrl",
+              "isArray": false,
+              "type": "AWSURL",
+              "isRequired": false,
+              "attributes": []
+            },
+            "facebookUrl": {
+              "name": "facebookUrl",
+              "isArray": false,
+              "type": "AWSURL",
+              "isRequired": false,
+              "attributes": []
+            },
+            "xUrl": {
+              "name": "xUrl",
+              "isArray": false,
+              "type": "AWSURL",
+              "isRequired": false,
+              "attributes": []
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "editorUserId": {
+              "name": "editorUserId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Sculptors",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "slug"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "provider": "userPools",
+                    "ownerField": "editorUserId",
+                    "allow": "owner",
+                    "operations": [
+                      "read",
+                      "update"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "slug",
+            "sortKeyFieldNames": []
+          }
         }
       },
       "enums": {
+        "UpdateOrderFulfillmentFulfillmentStatus": {
+          "name": "UpdateOrderFulfillmentFulfillmentStatus",
+          "values": [
+            "paid",
+            "received",
+            "processing",
+            "shipped"
+          ]
+        },
+        "CreateStripeRefundReason": {
+          "name": "CreateStripeRefundReason",
+          "values": [
+            "requested_by_customer",
+            "duplicate",
+            "fraudulent"
+          ]
+        },
+        "SubmitReturnRequestReason": {
+          "name": "SubmitReturnRequestReason",
+          "values": [
+            "defective",
+            "not_as_described",
+            "changed_mind",
+            "exchange",
+            "other"
+          ]
+        },
+        "AdminUpdateReturnRequestStatus": {
+          "name": "AdminUpdateReturnRequestStatus",
+          "values": [
+            "requested",
+            "approved",
+            "denied",
+            "received",
+            "closed"
+          ]
+        },
+        "AnnouncementKind": {
+          "name": "AnnouncementKind",
+          "values": [
+            "promo",
+            "system"
+          ]
+        },
+        "ShippingProfileKind": {
+          "name": "ShippingProfileKind",
+          "values": [
+            "flat",
+            "free_over_threshold",
+            "weight_tier",
+            "free_shipping"
+          ]
+        },
         "OrderPaymentProvider": {
           "name": "OrderPaymentProvider",
           "values": [
@@ -343,11 +2481,1243 @@
           "values": [
             "pending",
             "paid",
-            "failed"
+            "failed",
+            "cancelled",
+            "refunded"
+          ]
+        },
+        "OrderPromoSource": {
+          "name": "OrderPromoSource",
+          "values": [
+            "admin",
+            "thank_you",
+            "favorite",
+            "abandoned_cart",
+            "new_account"
+          ]
+        },
+        "OrderFulfillmentStatus": {
+          "name": "OrderFulfillmentStatus",
+          "values": [
+            "paid",
+            "received",
+            "processing",
+            "shipped"
+          ]
+        },
+        "ReturnRequestStatus": {
+          "name": "ReturnRequestStatus",
+          "values": [
+            "requested",
+            "approved",
+            "denied",
+            "received",
+            "closed"
+          ]
+        },
+        "ReturnRequestReason": {
+          "name": "ReturnRequestReason",
+          "values": [
+            "defective",
+            "not_as_described",
+            "changed_mind",
+            "exchange",
+            "other"
+          ]
+        },
+        "PromoTemplateKind": {
+          "name": "PromoTemplateKind",
+          "values": [
+            "percent",
+            "fixed"
+          ]
+        },
+        "PromoGrantSource": {
+          "name": "PromoGrantSource",
+          "values": [
+            "admin",
+            "thank_you",
+            "favorite",
+            "abandoned_cart",
+            "new_account"
+          ]
+        },
+        "NotificationKind": {
+          "name": "NotificationKind",
+          "values": [
+            "system",
+            "order",
+            "marketing"
+          ]
+        },
+        "ReviewSource": {
+          "name": "ReviewSource",
+          "values": [
+            "site",
+            "etsy"
           ]
         }
       },
-      "nonModels": {}
+      "nonModels": {
+        "CustomerListItem": {
+          "name": "CustomerListItem",
+          "fields": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "CustomerListResult": {
+          "name": "CustomerListResult",
+          "fields": {
+            "items": {
+              "name": "items",
+              "isArray": true,
+              "type": {
+                "nonModel": "CustomerListItem"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "nextToken": {
+              "name": "nextToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "CustomerLookupResult": {
+          "name": "CustomerLookupResult",
+          "fields": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "Ga4DashboardMetric": {
+          "name": "Ga4DashboardMetric",
+          "fields": {
+            "key": {
+              "name": "key",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "label": {
+              "name": "label",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "value": {
+              "name": "value",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "Ga4DashboardDimensionRow": {
+          "name": "Ga4DashboardDimensionRow",
+          "fields": {
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "value": {
+              "name": "value",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "Ga4DashboardTrendPoint": {
+          "name": "Ga4DashboardTrendPoint",
+          "fields": {
+            "date": {
+              "name": "date",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "sessions": {
+              "name": "sessions",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "users": {
+              "name": "users",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "pageViews": {
+              "name": "pageViews",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "Ga4DashboardResult": {
+          "name": "Ga4DashboardResult",
+          "fields": {
+            "startDate": {
+              "name": "startDate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "endDate": {
+              "name": "endDate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "metrics": {
+              "name": "metrics",
+              "isArray": true,
+              "type": {
+                "nonModel": "Ga4DashboardMetric"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "trend": {
+              "name": "trend",
+              "isArray": true,
+              "type": {
+                "nonModel": "Ga4DashboardTrendPoint"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "topProducts": {
+              "name": "topProducts",
+              "isArray": true,
+              "type": {
+                "nonModel": "Ga4DashboardDimensionRow"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "lowProducts": {
+              "name": "lowProducts",
+              "isArray": true,
+              "type": {
+                "nonModel": "Ga4DashboardDimensionRow"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "topPages": {
+              "name": "topPages",
+              "isArray": true,
+              "type": {
+                "nonModel": "Ga4DashboardDimensionRow"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "topSources": {
+              "name": "topSources",
+              "isArray": true,
+              "type": {
+                "nonModel": "Ga4DashboardDimensionRow"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "topDevices": {
+              "name": "topDevices",
+              "isArray": true,
+              "type": {
+                "nonModel": "Ga4DashboardDimensionRow"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "topCountries": {
+              "name": "topCountries",
+              "isArray": true,
+              "type": {
+                "nonModel": "Ga4DashboardDimensionRow"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "fetchedAt": {
+              "name": "fetchedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "CheckoutCartLine": {
+          "name": "CheckoutCartLine",
+          "fields": {
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "variantId": {
+              "name": "variantId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "variantLabel": {
+              "name": "variantLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "priceCents": {
+              "name": "priceCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "imageUrl": {
+              "name": "imageUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "printServiceJson": {
+              "name": "printServiceJson",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "CheckoutSessionResult": {
+          "name": "CheckoutSessionResult",
+          "fields": {
+            "sessionId": {
+              "name": "sessionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "redirectUrl": {
+              "name": "redirectUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "paymentProvider": {
+              "name": "paymentProvider",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "CartSnapshotLine": {
+          "name": "CartSnapshotLine",
+          "fields": {
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "priceCents": {
+              "name": "priceCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "ToggleFavoriteResult": {
+          "name": "ToggleFavoriteResult",
+          "fields": {
+            "favorited": {
+              "name": "favorited",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "grantIssued": {
+              "name": "grantIssued",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "IssueNewAccountGrantResult": {
+          "name": "IssueNewAccountGrantResult",
+          "fields": {
+            "issued": {
+              "name": "issued",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "SyncCartSnapshotResult": {
+          "name": "SyncCartSnapshotResult",
+          "fields": {
+            "synced": {
+              "name": "synced",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "grantIssued": {
+              "name": "grantIssued",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "grantsRevoked": {
+              "name": "grantsRevoked",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "NotifyOrderPlacedResult": {
+          "name": "NotifyOrderPlacedResult",
+          "fields": {
+            "notified": {
+              "name": "notified",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "StorefrontStatsResult": {
+          "name": "StorefrontStatsResult",
+          "fields": {
+            "paidSalesCount": {
+              "name": "paidSalesCount",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "UpdateOrderFulfillmentResult": {
+          "name": "UpdateOrderFulfillmentResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "fulfillmentStatus": {
+              "name": "fulfillmentStatus",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "notificationSent": {
+              "name": "notificationSent",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "emailSent": {
+              "name": "emailSent",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "CancelStripeCheckoutResult": {
+          "name": "CancelStripeCheckoutResult",
+          "fields": {
+            "cancelled": {
+              "name": "cancelled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "CreateStripeRefundResult": {
+          "name": "CreateStripeRefundResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "refundId": {
+              "name": "refundId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "refundedCents": {
+              "name": "refundedCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "orderStatus": {
+              "name": "orderStatus",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "CancelCustomerOrderResult": {
+          "name": "CancelCustomerOrderResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "refundId": {
+              "name": "refundId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "refundedCents": {
+              "name": "refundedCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "orderStatus": {
+              "name": "orderStatus",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "SubmitReturnRequestResult": {
+          "name": "SubmitReturnRequestResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "returnRequestId": {
+              "name": "returnRequestId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "UpdateReturnRequestResult": {
+          "name": "UpdateReturnRequestResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "ReturnRequestLineItem": {
+          "name": "ReturnRequestLineItem",
+          "fields": {
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "variantLabel": {
+              "name": "variantLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        }
+      },
+      "queries": {
+        "listCustomers": {
+          "name": "listCustomers",
+          "isArray": false,
+          "type": {
+            "nonModel": "CustomerListResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "emailFilter": {
+              "name": "emailFilter",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "nextToken": {
+              "name": "nextToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "limit": {
+              "name": "limit",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false
+            }
+          }
+        },
+        "lookupCustomerByEmail": {
+          "name": "lookupCustomerByEmail",
+          "isArray": false,
+          "type": {
+            "nonModel": "CustomerLookupResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": true
+            }
+          }
+        },
+        "getGa4Dashboard": {
+          "name": "getGa4Dashboard",
+          "isArray": false,
+          "type": {
+            "nonModel": "Ga4DashboardResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "startDate": {
+              "name": "startDate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "endDate": {
+              "name": "endDate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "getStorefrontStats": {
+          "name": "getStorefrontStats",
+          "isArray": false,
+          "type": {
+            "nonModel": "StorefrontStatsResult"
+          },
+          "isRequired": false
+        }
+      },
+      "mutations": {
+        "createStripeCheckoutSession": {
+          "name": "createStripeCheckoutSession",
+          "isArray": false,
+          "type": {
+            "nonModel": "CheckoutSessionResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": true,
+              "type": {
+                "input": "CheckoutCartLineInput"
+              },
+              "isRequired": false,
+              "isArrayNullable": false
+            },
+            "promoGrantId": {
+              "name": "promoGrantId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false
+            },
+            "successUrl": {
+              "name": "successUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "cancelUrl": {
+              "name": "cancelUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "cancelStripeCheckoutSession": {
+          "name": "cancelStripeCheckoutSession",
+          "isArray": false,
+          "type": {
+            "nonModel": "CancelStripeCheckoutResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "checkoutSessionId": {
+              "name": "checkoutSessionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "toggleProductFavorite": {
+          "name": "toggleProductFavorite",
+          "isArray": false,
+          "type": {
+            "nonModel": "ToggleFavoriteResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "productSlug": {
+              "name": "productSlug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "favorited": {
+              "name": "favorited",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true
+            }
+          }
+        },
+        "issueNewAccountWelcomeGrant": {
+          "name": "issueNewAccountWelcomeGrant",
+          "isArray": false,
+          "type": {
+            "nonModel": "IssueNewAccountGrantResult"
+          },
+          "isRequired": false
+        },
+        "syncCartSnapshot": {
+          "name": "syncCartSnapshot",
+          "isArray": false,
+          "type": {
+            "nonModel": "SyncCartSnapshotResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": true,
+              "type": {
+                "input": "CartSnapshotLineInput"
+              },
+              "isRequired": false,
+              "isArrayNullable": false
+            }
+          }
+        },
+        "notifyOrderPlaced": {
+          "name": "notifyOrderPlaced",
+          "isArray": false,
+          "type": {
+            "nonModel": "NotifyOrderPlacedResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            }
+          }
+        },
+        "updateOrderFulfillment": {
+          "name": "updateOrderFulfillment",
+          "isArray": false,
+          "type": {
+            "nonModel": "UpdateOrderFulfillmentResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "fulfillmentStatus": {
+              "name": "fulfillmentStatus",
+              "isArray": false,
+              "type": {
+                "enum": "UpdateOrderFulfillmentFulfillmentStatus"
+              },
+              "isRequired": false
+            },
+            "carrier": {
+              "name": "carrier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "trackingNumber": {
+              "name": "trackingNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "trackingUrl": {
+              "name": "trackingUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "createStripeRefund": {
+          "name": "createStripeRefund",
+          "isArray": false,
+          "type": {
+            "nonModel": "CreateStripeRefundResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "amountCents": {
+              "name": "amountCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false
+            },
+            "reason": {
+              "name": "reason",
+              "isArray": false,
+              "type": {
+                "enum": "CreateStripeRefundReason"
+              },
+              "isRequired": false
+            },
+            "refundNotes": {
+              "name": "refundNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "cancelCustomerOrder": {
+          "name": "cancelCustomerOrder",
+          "isArray": false,
+          "type": {
+            "nonModel": "CancelCustomerOrderResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            }
+          }
+        },
+        "submitReturnRequest": {
+          "name": "submitReturnRequest",
+          "isArray": false,
+          "type": {
+            "nonModel": "SubmitReturnRequestResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "reason": {
+              "name": "reason",
+              "isArray": false,
+              "type": {
+                "enum": "SubmitReturnRequestReason"
+              },
+              "isRequired": false
+            },
+            "customerNotes": {
+              "name": "customerNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": true,
+              "type": {
+                "input": "ReturnRequestLineItemInput"
+              },
+              "isRequired": false,
+              "isArrayNullable": false
+            }
+          }
+        },
+        "adminUpdateReturnRequest": {
+          "name": "adminUpdateReturnRequest",
+          "isArray": false,
+          "type": {
+            "nonModel": "UpdateReturnRequestResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "returnRequestId": {
+              "name": "returnRequestId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "AdminUpdateReturnRequestStatus"
+              },
+              "isRequired": false
+            },
+            "adminNotes": {
+              "name": "adminNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        }
+      },
+      "inputs": {
+        "CheckoutCartLineInput": {
+          "name": "CheckoutCartLineInput",
+          "attributes": {
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "variantId": {
+              "name": "variantId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "variantLabel": {
+              "name": "variantLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "priceCents": {
+              "name": "priceCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true
+            },
+            "imageUrl": {
+              "name": "imageUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "printServiceJson": {
+              "name": "printServiceJson",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "CartSnapshotLineInput": {
+          "name": "CartSnapshotLineInput",
+          "attributes": {
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true
+            },
+            "priceCents": {
+              "name": "priceCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "ReturnRequestLineItemInput": {
+          "name": "ReturnRequestLineItemInput",
+          "attributes": {
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true
+            },
+            "variantLabel": {
+              "name": "variantLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        }
+      }
     }
   },
   "storage": {
@@ -364,11 +3734,49 @@
               "get",
               "list"
             ],
+            "authenticated": [
+              "get",
+              "list"
+            ],
+            "groupscustomer": [
+              "get",
+              "list"
+            ],
             "groupsadmin": [
               "get",
               "list",
               "write",
               "delete"
+            ]
+          },
+          "sculptors/*": {
+            "guest": [
+              "get",
+              "list"
+            ],
+            "authenticated": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "groupscustomer": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "groupsadmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "reviews/*": {
+            "guest": [
+              "get",
+              "list"
             ],
             "authenticated": [
               "get",
@@ -377,11 +3785,36 @@
             "groupscustomer": [
               "get",
               "list"
+            ],
+            "groupsadmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "print-jobs/${cognito-identity.amazonaws.com:sub}/*": {
+            "entityidentity": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "print-jobs/*": {
+            "groupsadmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
             ]
           }
         }
       }
     ]
   },
-  "version": "1.4"
+  "version": "1.4",
+  "custom": {
+    "stripeWebhookUrl": "https://zspmlrhmwcqt2rpyqdmw7q72da0lszrp.lambda-url.us-east-1.on.aws/"
+  }
 }

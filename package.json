@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite",
     "check:storage": "tsx scripts/check-storage-outputs.ts",
-    "build": "npm run check:storage && tsc -b && vite build",
+    "check:print-service": "tsx scripts/check-print-service-outputs.ts",
+    "build": "npm run check:storage && npm run check:print-service && tsc -b && vite build",
     "build:vite": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b",
