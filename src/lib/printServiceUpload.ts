@@ -1,6 +1,5 @@
 import { uploadData } from "aws-amplify/storage";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { fetchAuthSession } from "aws-amplify/auth";
 import {
   isPrintServiceUploadFile,
   printServiceUploadContentType,
