@@ -19,6 +19,7 @@ import { saveProductSortOrders } from "@/services/productSortService";
 import { backfillProductCartCountsIfNeeded } from "@/services/productCartCountService";
 import { backfillProductFavoriteCountsIfNeeded } from "@/services/productFavoriteCountService";
 import { listAllShippingProfiles } from "@/services/shippingProfileService";
+import { isPrintServiceCatalogSlug } from "@/lib/printService";
 
 interface AdminProductRow {
   id: string;
@@ -385,6 +386,14 @@ export function AdminProductsPage() {
                       title="Visible only in the Vault, not the public shop"
                     >
                       Vault only
+                    </div>
+                  )}
+                  {isPrintServiceCatalogSlug(product.slug) && (
+                    <div
+                      className="absolute bottom-2 right-2 z-10 bg-surface-container-highest/90 px-2 py-1 font-label-sm uppercase text-primary"
+                      title="Backing product for /print — hidden from the public shop"
+                    >
+                      Print service
                     </div>
                   )}
                   {product.image ? (

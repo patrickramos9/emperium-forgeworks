@@ -67,9 +67,13 @@ export function AdminPrintServicePage() {
             <Link to="/print" className="text-primary hover:underline">
               /print
             </Link>
-            . Requires a hidden catalog product with slug{" "}
-            <code className="text-on-surface">{PRINT_SERVICE_CATALOG_SLUG}</code>{" "}
-            and an assigned shipping profile.
+            . Uses a backing catalog product (slug{" "}
+            <code className="text-on-surface">{PRINT_SERVICE_CATALOG_SLUG}</code>
+            ) for shipping and order emails — find it in{" "}
+            <Link to="/admin/products" className="text-primary hover:underline">
+              Admin → Products
+            </Link>
+            ; it is hidden from the public shop.
           </p>
         </div>
       </div>

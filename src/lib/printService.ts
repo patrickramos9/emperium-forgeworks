@@ -4,6 +4,11 @@ export const PRINT_SERVICE_CONFIG_KEY = "default";
 export const PRINT_SERVICE_CATALOG_SLUG = "printing-as-a-service";
 export const DEFAULT_MAX_STL_BYTES = 52_428_800; // 50 MiB
 
+/** Backing catalog row for /print checkout — not shown on the public shop. */
+export function isPrintServiceCatalogSlug(slug: string | null | undefined): boolean {
+  return slug?.trim() === PRINT_SERVICE_CATALOG_SLUG;
+}
+
 export type PrintServiceSizeTier = {
   id: string;
   label: string;
