@@ -24,6 +24,8 @@ const outputs = JSON.parse(
 
 const productPaths =
   outputs.storage?.buckets?.[0]?.paths?.["products/*"] ?? {};
+const printJobPaths =
+  outputs.storage?.buckets?.[0]?.paths?.["print-jobs/{entity_id}/*"] ?? {};
 
 function hasRead(perms: string[] | undefined): boolean {
   if (!perms?.length) return false;
@@ -73,6 +75,16 @@ if (
   );
 }
 
+if (
+  storageSource.includes('print-jobs/{entity_id}/*') &&
+  storageSource.includes('allow.groups(["customer"]).to(["read", "write", "delete"])') &&
+  !hasWrite(printJobPaths.groupscustomer)
+) {
+  errors.push(
+    "print-jobs/{entity_id}/*: customer group write is in storage/resource.ts but missing in amplify_outputs.json — redeploy backend (required for /print uploads)",
+  );
+}
+
 if (errors.length > 0) {
   console.error("\n[check:storage] amplify_outputs.json is out of date:\n");
   for (const e of errors) console.error(`  • ${e}`);
@@ -80,4 +92,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log("[check:storage] products/* rules match storage/resource.ts");
+console.log("[check:storage] products/* and print-jobs/* rules match storage/resource.ts");

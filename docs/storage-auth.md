@@ -21,6 +21,8 @@ Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin gro
 
 Partner sculptor uploads use `uploadData()` under `sculptors/{slug}/…` — **`customer`** and **`authenticated`** roles need `write` on `sculptors/*` (see `amplify/storage/resource.ts`).
 
+Print service STL/ZIP uploads use `uploadData()` under `print-jobs/{identityId}/…` — the **`customer`** group role needs **`write`** on `print-jobs/{entity_id}/*`. `allow.entity("identity")` alone is **not** enough for signed-in shoppers (same group-role precedence as product images).
+
 ## Backend rules (`amplify/storage/resource.ts`)
 
 `products/*` must grant read to every role that might call Storage:
