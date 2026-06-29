@@ -24,8 +24,13 @@ const outputs = JSON.parse(
 
 const productPaths =
   outputs.storage?.buckets?.[0]?.paths?.["products/*"] ?? {};
-const printJobPaths =
-  outputs.storage?.buckets?.[0]?.paths?.["print-jobs/{entity_id}/*"] ?? {};
+/** Group/authenticated rules on `{entity_id}` paths appear under `print-jobs/*` in outputs. */
+const printJobGroupPaths =
+  outputs.storage?.buckets?.[0]?.paths?.["print-jobs/*"] ?? {};
+const printJobEntityPaths =
+  outputs.storage?.buckets?.[0]?.paths?.[
+    "print-jobs/${cognito-identity.amazonaws.com:sub}/*"
+  ] ?? {};
 
 function hasRead(perms: string[] | undefined): boolean {
   if (!perms?.length) return false;
@@ -78,10 +83,20 @@ if (
 if (
   storageSource.includes('print-jobs/{entity_id}/*') &&
   storageSource.includes('allow.groups(["customer"]).to(["read", "write", "delete"])') &&
-  !hasWrite(printJobPaths.groupscustomer)
+  !hasWrite(printJobGroupPaths.groupscustomer)
 ) {
   errors.push(
-    "print-jobs/{entity_id}/*: customer group write is in storage/resource.ts but missing in amplify_outputs.json — redeploy backend (required for /print uploads)",
+    "print-jobs/* (outputs): customer group write is in storage/resource.ts but missing in amplify_outputs.json — redeploy backend and run `npx ampx generate outputs` (required for /print uploads)",
+  );
+}
+
+if (
+  storageSource.includes('allow.entity("identity").to(["read", "write", "delete"])') &&
+  storageSource.includes("print-jobs/{entity_id}/*") &&
+  !hasWrite(printJobEntityPaths.entityidentity)
+) {
+  errors.push(
+    "print-jobs entity path: identity write is in storage/resource.ts but missing in amplify_outputs.json — redeploy backend and regenerate outputs",
   );
 }
 

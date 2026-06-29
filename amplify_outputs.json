@@ -3802,6 +3802,18 @@
             ]
           },
           "print-jobs/*": {
+            "authenticated": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "groupscustomer": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
             "groupsadmin": [
               "get",
               "list",
