@@ -30,6 +30,10 @@ export function AdminPrintLineActions({ item }: AdminPrintLineActionsProps) {
     }
   }
 
+  const downloadLabel = printService.originalFileName?.toLowerCase().endsWith(".zip")
+    ? "Download ZIP"
+    : "Download STL";
+
   return (
     <div className="mt-2 space-y-1 text-label-sm text-on-surface-variant">
       <p>
@@ -43,7 +47,7 @@ export function AdminPrintLineActions({ item }: AdminPrintLineActionsProps) {
             disabled={loading}
             className="ml-2 text-primary hover:underline disabled:opacity-50"
           >
-            {loading ? "Opening…" : "Download STL"}
+            {loading ? "Opening…" : downloadLabel}
           </button>
         )}
       </p>

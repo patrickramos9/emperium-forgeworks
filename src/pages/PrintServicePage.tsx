@@ -6,8 +6,11 @@ import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/data/seedProducts";
 import { hasCustomerSession } from "@/lib/customerAuth";
 import {
+  formatPrintServiceMaxFileSize,
   formatPrintServiceVariantLabel,
-  isStlFile,
+  isPrintServiceUploadFile,
+  PRINT_SERVICE_FILE_ACCEPT,
+  PRINT_SERVICE_FILE_HINT,
   resolvePrintServicePriceCents,
   type PrintServiceConfigData,
   type PrintServiceLinePayload,
@@ -114,16 +117,16 @@ export function PrintServicePage() {
       return;
     }
     if (!file) {
-      setError("Upload an .stl file.");
+      setError(`Upload a ${PRINT_SERVICE_FILE_HINT} file.`);
       return;
     }
-    if (!isStlFile(file)) {
-      setError("Only .stl files are accepted.");
+    if (!isPrintServiceUploadFile(file)) {
+      setError(`Only ${PRINT_SERVICE_FILE_HINT} files are accepted.`);
       return;
     }
     if (file.size > config.maxFileBytes) {
       setError(
-        `File is too large (max ${Math.round(config.maxFileBytes / 1024 / 1024)} MB).`,
+        `File is too large (max ${formatPrintServiceMaxFileSize(config.maxFileBytes)}).`,
       );
       return;
     }
@@ -223,7 +226,7 @@ export function PrintServicePage() {
         Printing as a Service
       </h1>
       <p className="mt-3 max-w-2xl font-body-md text-on-surface-variant">
-        Upload your own .stl file, choose size and resin, and checkout like any
+        Upload your own {PRINT_SERVICE_FILE_HINT} file, choose size and resin, and checkout like any
         other order. One file per cart line.
       </p>
 
@@ -342,16 +345,16 @@ export function PrintServicePage() {
 
           <label className="mt-4 block">
             <span className="font-label-sm uppercase text-on-surface-variant">
-              STL file
+              Model file
             </span>
             <input
               type="file"
-              accept=".stl,model/stl"
+              accept={PRINT_SERVICE_FILE_ACCEPT}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="mt-1 w-full text-body-sm"
             />
             <span className="mt-1 block text-label-sm text-on-surface-variant">
-              Max {Math.round(config.maxFileBytes / 1024 / 1024)} MB · .stl only
+              Max {formatPrintServiceMaxFileSize(config.maxFileBytes)} · {PRINT_SERVICE_FILE_HINT}
             </span>
           </label>
 

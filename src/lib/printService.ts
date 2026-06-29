@@ -2,7 +2,7 @@
 
 export const PRINT_SERVICE_CONFIG_KEY = "default";
 export const PRINT_SERVICE_CATALOG_SLUG = "printing-as-a-service";
-export const DEFAULT_MAX_STL_BYTES = 52_428_800; // 50 MiB
+export const DEFAULT_MAX_STL_BYTES = 1_073_741_824; // 1 GiB
 
 /** Backing catalog row for /print checkout — not shown on the public shop. */
 export function isPrintServiceCatalogSlug(slug: string | null | undefined): boolean {
@@ -185,10 +185,37 @@ export function formatPrintServiceVariantLabel(
   return config;
 }
 
+export function formatPrintServiceMaxFileSize(bytes: number): string {
+  if (bytes >= 1_073_741_824) {
+    const gb = bytes / 1_073_741_824;
+    return Number.isInteger(gb) ? `${gb} GB` : `${gb.toFixed(1)} GB`;
+  }
+  return `${Math.round(bytes / 1024 / 1024)} MB`;
+}
+
 export function isStlFile(file: File): boolean {
   const name = file.name.toLowerCase();
   return name.endsWith(".stl");
 }
+
+export function isPrintServiceZipFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return name.endsWith(".zip");
+}
+
+/** Accepted print uploads: raw STL or a ZIP containing the model. */
+export function isPrintServiceUploadFile(file: File): boolean {
+  return isStlFile(file) || isPrintServiceZipFile(file);
+}
+
+export function printServiceUploadContentType(filename: string): string {
+  const name = filename.toLowerCase();
+  if (name.endsWith(".zip")) return "application/zip";
+  return "model/stl";
+}
+
+export const PRINT_SERVICE_FILE_ACCEPT = ".stl,.zip,model/stl,application/zip";
+export const PRINT_SERVICE_FILE_HINT = ".stl or .zip";
 
 export function defaultPrintServiceConfig(): PrintServiceConfigData {
   return {
@@ -196,7 +223,7 @@ export function defaultPrintServiceConfig(): PrintServiceConfigData {
     active: false,
     catalogProductSlug: PRINT_SERVICE_CATALOG_SLUG,
     policyMarkdown:
-      "- You own or have rights to print the uploaded file.\n- We delete your STL after the print ships.\n- We do not re-sell your file or physical print.",
+      "- You own or have rights to print the uploaded file.\n- We delete your file after the print ships.\n- We do not re-sell your file or physical print.",
     maxFileBytes: DEFAULT_MAX_STL_BYTES,
     sizeTiers: [
       { id: "32mm", label: "32mm", priceCents: 2500, sortOrder: 0 },

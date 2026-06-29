@@ -96,7 +96,7 @@ export function normalizePrintServiceConfigRow(
     active: row.active === true,
     catalogProductSlug:
       row.catalogProductSlug?.trim() || PRINT_SERVICE_CATALOG_SLUG,
-    maxFileBytes: row.maxFileBytes ?? 52_428_800,
+    maxFileBytes: row.maxFileBytes ?? 1_073_741_824,
     sizeTiers: parseArray<PrintServiceSizeTier>(row.sizeTiers),
     resinTypes: parseArray<PrintServiceResinType>(row.resinTypes),
     resinColors: parseArray<PrintServiceResinColor>(row.resinColors),
