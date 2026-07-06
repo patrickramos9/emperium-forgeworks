@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageFeedback } from "@/components/PageFeedback";
 import { AdminResinColorsEditor } from "@/components/admin/AdminResinColorsEditor";
+import { AdminResinTypesEditor } from "@/components/admin/AdminResinTypesEditor";
+import { AdminSizeTiersEditor } from "@/components/admin/AdminSizeTiersEditor";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import {
   defaultPrintServiceConfig,
@@ -142,47 +144,39 @@ export function AdminPrintServicePage() {
           />
         </label>
 
-        <label className="block">
+        <div className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
-            Size tiers (JSON)
+            Size tiers
           </span>
-          <textarea
-            rows={6}
-            value={JSON.stringify(config.sizeTiers, null, 2)}
-            onChange={(e) => {
-              try {
-                const parsed = JSON.parse(e.target.value);
-                if (Array.isArray(parsed)) {
-                  setConfig((prev) => ({ ...prev, sizeTiers: parsed }));
-                }
-              } catch {
-                /* ignore while typing invalid JSON */
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            Each tier sets the base print price before resin adjustments.
+          </p>
+          <div className="mt-3">
+            <AdminSizeTiersEditor
+              tiers={config.sizeTiers}
+              onChange={(sizeTiers) =>
+                setConfig((prev) => ({ ...prev, sizeTiers }))
               }
-            }}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 font-mono text-sm"
-          />
-        </label>
+            />
+          </div>
+        </div>
 
-        <label className="block">
+        <div className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
-            Resin types (JSON)
+            Resin types
           </span>
-          <textarea
-            rows={5}
-            value={JSON.stringify(config.resinTypes, null, 2)}
-            onChange={(e) => {
-              try {
-                const parsed = JSON.parse(e.target.value);
-                if (Array.isArray(parsed)) {
-                  setConfig((prev) => ({ ...prev, resinTypes: parsed }));
-                }
-              } catch {
-                /* ignore */
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            Optional price add-on per resin type (added to the selected size tier).
+          </p>
+          <div className="mt-3">
+            <AdminResinTypesEditor
+              types={config.resinTypes}
+              onChange={(resinTypes) =>
+                setConfig((prev) => ({ ...prev, resinTypes }))
               }
-            }}
-            className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 font-mono text-sm"
-          />
-        </label>
+            />
+          </div>
+        </div>
 
         <div className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
