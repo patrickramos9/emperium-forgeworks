@@ -21,7 +21,6 @@ import { createStripeRefund } from "./functions/create-stripe-refund/resource";
 import { submitReturnRequest } from "./functions/submit-return-request/resource";
 import { updateReturnRequest } from "./functions/update-return-request/resource";
 import { cancelCustomerOrder } from "./functions/cancel-customer-order/resource";
-import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
   auth,
