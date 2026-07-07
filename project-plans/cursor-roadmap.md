@@ -20,13 +20,14 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-07-06
+**Last updated:** 2026-07-07
 
 | Item | State |
 |------|--------|
-| **Phase** | **M13 (in progress)** — public product images + Merchant feed |
-| **Next** | **M13a** — deploy public `products/*` S3 policy, export Merchant feed; then **M19** catalog sales |
+| **Phase** | **Post-M13a** — **M19 Catalog sales & bundles** is next |
+| **Next** | **M19** — list/compare pricing, sale fields on products |
 | **Blocked** | _(none)_ |
+| **Recently verified** | **M13a** public product images + Merchant feed (2026-07-07) · **M21** · **M22** · **M16** · **M11** |
 | **Recently verified** | **M22** Stripe Tax (2026-06-24) · **M16** returns/refunds + pre-ship cancel (2026-06-24) · **M11** (2026-06-23) · **M6 new-account promo** (2026-06-20) |
 | **Recently shipped (repo)** | **M21** Printing as a Service (2026-06-24) · **M22** Stripe Tax (2026-06-24) · **M16** (2026-06-22) |
 | **In progress** | _(none)_ |
@@ -35,7 +36,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
-M8 (done) → … → **M21** (done) → **M13a** (public images + Merchant feed — **in progress**) → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (Merchant API, pixels, email, M6d) → **M6e** → **M9** → **M11a** → M11b → M14
+M8 (done) → … → **M21** (done) → **M13a** (public images + Merchant feed — **done**) → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (Merchant API, pixels, email, M6d) → **M6e** → **M9** → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -180,6 +181,18 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M16** — Returns, refunds & exchanges — **production verified** (2026-06-24): admin refunds, return requests, pre-ship cancel, Payment/Fulfillment columns, refund status on customer + admin
 - **M21** — Printing as a Service — **shipped** (2026-06-24): `/print`, STL upload, cart/checkout, admin config, STL purge on ship
 - **M22** — Stripe Tax — **production verified** (2026-06-24)
+- **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
+
+### 3.7 M13a — Public catalog images + Merchant feed (2026-07-07)
+
+| Area | What shipped |
+|------|----------------|
+| **Backend** | Anonymous `s3:GetObject` on `products/*` only (`amplify/backend.ts`) |
+| **Frontend** | `buildPublicProductImageUrl()` — stable URLs, no presigning for catalog |
+| **Ops** | `npm run export:merchant-feed` → `docs/merchant-center-feed.csv` |
+| **Docs** | [docs/merchant-center-feed.md](../docs/merchant-center-feed.md) |
+
+**Remainder (M13b):** Merchant Product API sync, pixels, newsletter, M6d email.
 
 ### 3.6 M21 — Printing as a Service (2026-06-24)
 
@@ -1444,16 +1457,16 @@ Reuse existing cart/checkout — no separate payment path.
 
 ### M13 — Marketing & growth engine (new)
 
-**Status:** **In progress** (2026-07-06) — **M13a** public `products/*` image URLs + Merchant CSV feed shipped in repo; **backend deploy required**. Remainder (Merchant API sync, pixels, newsletter) after **M19**.
+**Status:** **M13a production verified** (2026-07-07). **M13b** (Merchant API sync, pixels, newsletter, M6d) — planned after **M19**.
 
 **Goal:** Turn the site into a growth-ready ecommerce platform.
 
-**M13a (shipped in repo — deploy backend to activate):**
+**M13a (shipped — production verified 2026-07-07):**
 
 1. **Public product image URLs** — S3 bucket policy on `products/*`; `buildPublicProductImageUrl()`; storefront uses stable URLs.
 2. **Merchant Center CSV** — `npm run export:merchant-feed` → `docs/merchant-center-feed.csv`. See [docs/merchant-center-feed.md](../docs/merchant-center-feed.md).
 
-**Scope (remainder):**
+**Scope (M13b — remainder):**
 
 1. **Google Merchant Center — product sync (preferred: API)**
    - **Long-term approach:** push catalog updates via **Google Merchant Center Product API** (successor to Content API for Shopping) — insert/update/delete products when admin publishes or changes a `Product` (price, availability, image, title, link).

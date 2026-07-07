@@ -1,4 +1,6 @@
-# Google Merchant Center feed (M13)
+# Google Merchant Center feed (M13a)
+
+**Status:** **Production verified** 2026-07-07 — public `products/*` URLs work in storefront and for feed export.
 
 Product images for **Google Ads / Merchant Center** must be **stable, anonymously readable URLs**. Presigned S3 links expire and will be rejected.
 

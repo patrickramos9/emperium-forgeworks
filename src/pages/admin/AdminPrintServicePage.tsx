@@ -132,10 +132,10 @@ export function AdminPrintServicePage() {
 
         <label className="block">
           <span className="font-label-sm uppercase text-on-surface-variant">
-            Policy (markdown bullets)
+            Policy (markdown: ## headings, - bullets, plain intro lines)
           </span>
           <textarea
-            rows={8}
+            rows={16}
             value={config.policyMarkdown}
             onChange={(e) =>
               setConfig((prev) => ({ ...prev, policyMarkdown: e.target.value }))

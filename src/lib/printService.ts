@@ -217,13 +217,54 @@ export function printServiceUploadContentType(filename: string): string {
 export const PRINT_SERVICE_FILE_ACCEPT = ".stl,.zip,model/stl,application/zip";
 export const PRINT_SERVICE_FILE_HINT = ".stl or .zip";
 
+export const DEFAULT_PRINT_POLICY_MARKDOWN = `## Rights & privacy
+- You own or have rights to print the uploaded file.
+- We delete your file after the print ships.
+- We do not re-sell your file or physical print.
+
+## File requirements checklist
+Before uploading your STL or ZIP, please make sure:
+- The model is complete (no missing limbs, floating geometry, or holes through the mesh).
+- The file is manifold / watertight — meaning it is a solid object, not broken surfaces.
+- The sculpt is not damaged or corrupted.
+- The model can be supported in Chitubox without requiring sculpting tools.
+- The scale you want is final (we can scale it, but the sculpt itself must be intact).
+- The file is not an AI-generated sculpt with unstable geometry.
+- The STL is one piece or clearly separated into intended parts.
+- The model is designed for resin printing (FDM-optimized files often fail).
+
+## Review & refunds
+- After checkout we review your upload before printing begins.
+- If your file meets these requirements, we can print it. If not, we issue a full refund before printing begins.`;
+
+export type PrintPolicyBlock =
+  | { type: "heading"; text: string }
+  | { type: "bullet"; text: string }
+  | { type: "paragraph"; text: string };
+
+/** Parses simple print-policy markdown: ## headings, - bullets, and plain paragraphs. */
+export function parsePrintPolicyMarkdown(markdown: string): PrintPolicyBlock[] {
+  const blocks: PrintPolicyBlock[] = [];
+  for (const raw of markdown.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith("## ")) {
+      blocks.push({ type: "heading", text: line.slice(3).trim() });
+    } else if (/^[-*]\s/.test(line)) {
+      blocks.push({ type: "bullet", text: line.replace(/^[-*]\s*/, "").trim() });
+    } else {
+      blocks.push({ type: "paragraph", text: line });
+    }
+  }
+  return blocks;
+}
+
 export function defaultPrintServiceConfig(): PrintServiceConfigData {
   return {
     configKey: PRINT_SERVICE_CONFIG_KEY,
     active: false,
     catalogProductSlug: PRINT_SERVICE_CATALOG_SLUG,
-    policyMarkdown:
-      "- You own or have rights to print the uploaded file.\n- We delete your file after the print ships.\n- We do not re-sell your file or physical print.",
+    policyMarkdown: DEFAULT_PRINT_POLICY_MARKDOWN,
     maxFileBytes: DEFAULT_MAX_STL_BYTES,
     sizeTiers: [
       { id: "32mm", label: "32mm", priceCents: 2500, sortOrder: 0 },

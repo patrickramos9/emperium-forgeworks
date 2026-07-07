@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageFeedback } from "@/components/PageFeedback";
 import { ResinColorSwatches } from "@/components/ResinColorSwatches";
@@ -9,6 +9,7 @@ import {
   formatPrintServiceMaxFileSize,
   formatPrintServiceVariantLabel,
   isPrintServiceUploadFile,
+  parsePrintPolicyMarkdown,
   PRINT_SERVICE_FILE_ACCEPT,
   PRINT_SERVICE_FILE_HINT,
   resolvePrintServicePriceCents,
@@ -25,11 +26,58 @@ import {
 } from "@/services/printServiceConfigService";
 import { useToast } from "@/context/ToastContext";
 
-function policyBullets(markdown: string): string[] {
-  return markdown
-    .split("\n")
-    .map((line) => line.replace(/^[-*]\s*/, "").trim())
-    .filter(Boolean);
+function PrintPolicyContent({ markdown }: { markdown: string }) {
+  const blocks = parsePrintPolicyMarkdown(markdown);
+  const nodes: ReactNode[] = [];
+  let bulletBuffer: string[] = [];
+
+  const flushBullets = () => {
+    if (!bulletBuffer.length) return;
+    nodes.push(
+      <ul
+        key={`bullets-${nodes.length}`}
+        className="list-disc space-y-2 pl-5 text-body-sm text-on-surface-variant"
+      >
+        {bulletBuffer.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>,
+    );
+    bulletBuffer = [];
+  };
+
+  for (const block of blocks) {
+    if (block.type === "bullet") {
+      bulletBuffer.push(block.text);
+      continue;
+    }
+
+    flushBullets();
+
+    if (block.type === "heading") {
+      nodes.push(
+        <h3
+          key={`heading-${nodes.length}`}
+          className={`font-label-sm uppercase text-on-surface ${nodes.length === 0 ? "" : "mt-5"}`}
+        >
+          {block.text}
+        </h3>,
+      );
+    } else {
+      nodes.push(
+        <p
+          key={`paragraph-${nodes.length}`}
+          className="mt-2 text-body-sm text-on-surface-variant"
+        >
+          {block.text}
+        </p>,
+      );
+    }
+  }
+
+  flushBullets();
+
+  return <div className="mt-4 space-y-2">{nodes}</div>;
 }
 
 export function PrintServicePage() {
@@ -218,8 +266,6 @@ export function PrintServicePage() {
     );
   }
 
-  const bullets = policyBullets(config.policyMarkdown);
-
   return (
     <div className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
       <h1 className="font-display-lg text-headline-lg uppercase text-on-surface">
@@ -247,11 +293,7 @@ export function PrintServicePage() {
           <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
             Print policy
           </h2>
-          <ul className="mt-4 list-disc space-y-2 pl-5 text-body-sm text-on-surface-variant">
-            {bullets.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+          <PrintPolicyContent markdown={config.policyMarkdown} />
           <p className="mt-4 text-body-sm text-on-surface-variant">
             Full terms:{" "}
             <Link to="/forge-terms" className="text-primary hover:underline">
@@ -267,7 +309,7 @@ export function PrintServicePage() {
               className="mt-1"
             />
             <span className="text-body-sm text-on-surface">
-              I have rights to print this file and accept the policy above.
+              I confirm my file meets the requirements above and accept the print policy.
             </span>
           </label>
         </section>

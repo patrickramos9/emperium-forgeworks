@@ -33,14 +33,15 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 | **M9a** | UX polish (toasts, feedback) | §20 |
 | **M11** | Order status + shipping | §19 |
 | **M16** | Returns, refunds & exchanges | §21 |
+| **M13a** | Public catalog images + Merchant feed | §24 |
 
 ---
 
 ## Testing now
 
-**Next milestone:** **M21** — Printing as a Service.
+**Next milestone:** **M19** — Catalog sales & bundles.
 
-Pre-launch sign-off closed 2026-06-11. **M11** signed off 2026-06-23 (§19). Run smoke after deploys; full §6–§20 checklists for regression when touching related code.
+Pre-launch sign-off closed 2026-06-11. **M11** signed off 2026-06-23 (§19). **M13a** signed off 2026-07-07 (§24). Run smoke after deploys; full §6–§20 checklists for regression when touching related code.
 
 | When | What to run |
 |------|-------------|
@@ -50,9 +51,9 @@ Pre-launch sign-off closed 2026-06-11. **M11** signed off 2026-06-23 (§19). Run
 | **Catalog/admin product change** | §2 PDP, §17b, §9, §18a admin catalog |
 | **New milestone** | Matching section below + remove from **Not yet built** |
 
-**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, **M11** (§19), go-live polish §18a, order notification email, **M9a** (§20), **M16** (§21), **M22** (§22).
+**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, **M11** (§19), go-live polish §18a, order notification email, **M9a** (§20), **M16** (§21), **M22** (§22), **M21** (§23), **M13a** (§24).
 
-**Do not test yet:** M21, M19, M18, M6d marketing email, M10, M12, M13, **M9** (SEO/gallery — not M9a).
+**Do not test yet:** M19, M18, M6d marketing email, M10, M12, **M13b**, **M9** (SEO/gallery — not M9a).
 
 ### Deploy prerequisites (M6b/c + M17 + new-account) — signed off 2026-06-11; new-account signed off 2026-06-20
 
@@ -776,6 +777,24 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 ---
 
+## §24 — Public catalog images + Merchant feed (M13a)
+
+**Status:** **Production verified** 2026-07-07 — backend deploy with public `products/*` policy; storefront images + feed export.
+
+### Storefront images
+
+- [ ] `/shop` — product cards load images (signed out, incognito)
+- [ ] PDP — gallery images load without login
+- [ ] Image URL is stable S3 path (`…/products/{slug}/…`), not presigned query string
+
+### Merchant feed
+
+- [ ] `npm run export:merchant-feed` → `docs/merchant-center-feed.csv` (35 public products)
+- [ ] Open an `image_link` from CSV in incognito — image loads
+- [ ] Upload CSV to Merchant Center (or use for Google Ads product images)
+
+---
+
 ## Not yet built — skip until milestone ships
 
 | Milestone | Feature | Notes |
@@ -789,10 +808,10 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M11a** / **M11b** / **M14** | Fabrication sub-stages, Pi bridge, ForgeLink | Deferred |
 | **M15b** | Cart shipping estimate preview; Stripe ETA UI | — |
 | **M12** | Notification preferences | Depends on M8a.3 |
-| **M13** | Marketing pixels / UTM on orders | — |
+| **M13b** | Merchant API sync, marketing pixels, UTM on orders | M13a done §24 |
 | **M6e** | Guest cart server sync + identity merge | — |
 
-**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**.
+**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**, **§23 (M21)**, **§24 (M13a)**.
 
 Add test sections here when each **new** milestone ships.
 
