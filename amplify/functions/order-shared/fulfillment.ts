@@ -1,6 +1,7 @@
 import type { Schema } from "../../data/resource";
 import { sendCustomerFulfillmentEmail } from "./notifyCustomer.js";
 import { purgePrintJobFilesForOrder } from "./purgePrintJobs.js";
+import { assertPrintReviewAllowsFulfillment } from "./printLineReview.js";
 
 export type FulfillmentStatus = "paid" | "received" | "processing" | "shipped";
 
@@ -196,6 +197,8 @@ export async function applyFulfillmentStatus(
       `Cannot advance fulfillment from ${current ?? "none"} to ${targetStatus}.`,
     );
   }
+
+  assertPrintReviewAllowsFulfillment(order, targetStatus);
 
   if (targetStatus === "shipped") {
     const carrier = input.carrier?.trim();

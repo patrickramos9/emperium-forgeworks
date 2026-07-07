@@ -100,8 +100,12 @@ export function canAdvanceFulfillment(
   current: FulfillmentStatus | null,
   target: FulfillmentStatus,
   paymentStatus: string | null | undefined,
+  lineItems?: unknown,
 ): boolean {
   if (paymentStatus !== "paid") return false;
+  if (target === "processing" && printReviewBlocksProcessingFromOrder(lineItems)) {
+    return false;
+  }
   if (target === "paid" && !current) return true;
 
   const from =
@@ -111,6 +115,32 @@ export function canAdvanceFulfillment(
   const currentIndex = FULFILLMENT_STAGES.indexOf(from);
   const targetIndex = FULFILLMENT_STAGES.indexOf(target);
   return targetIndex === currentIndex + 1;
+}
+
+function printReviewBlocksProcessingFromOrder(lineItems: unknown): boolean {
+  if (!lineItems) return false;
+  try {
+    const parsed =
+      typeof lineItems === "string" ? JSON.parse(lineItems) : lineItems;
+    if (!Array.isArray(parsed)) return false;
+    return parsed.some((line) => {
+      const payload =
+        line?.printService ??
+        (line?.printServiceJson
+          ? JSON.parse(String(line.printServiceJson))
+          : null);
+      if (!payload?.uploadId || !payload?.storagePath) return false;
+      return (payload.reviewStatus ?? "approved") === "pending_review";
+    });
+  } catch {
+    return false;
+  }
+}
+
+export function printReviewProcessingBlockReason(lineItems: unknown): string | null {
+  return printReviewBlocksProcessingFromOrder(lineItems)
+    ? "Approve all uploaded print files before marking this order as Processing."
+    : null;
 }
 
 export function buildTrackingUrl(

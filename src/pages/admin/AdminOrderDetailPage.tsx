@@ -22,6 +22,7 @@ import {
   effectiveFulfillmentStatus,
   fulfillmentStatusLabel,
   nextFulfillmentStatus,
+  printReviewProcessingBlockReason,
   type FulfillmentStatus,
 } from "@/lib/orderFulfillment";
 import { paymentStatusDetail } from "@/lib/orderRefunds";
@@ -117,6 +118,7 @@ export function AdminOrderDetailPage() {
                 effectiveFulfillmentStatus(row),
                 "received",
                 row.status,
+                row.lineItems,
               )
             ) {
               const result = await updateOrderFulfillment(client, {
@@ -223,12 +225,14 @@ export function AdminOrderDetailPage() {
   const shippingLines = formatShippingAddress(shipping).split("\n");
   const customer = buildOrderCustomerDisplay(order, customerLabel);
   const fulfillment = displayFulfillmentStatus(order);
+  const printReviewBlock = printReviewProcessingBlockReason(order.lineItems);
   const canAdvance =
     nextStage != null &&
     canAdvanceFulfillment(
       effectiveFulfillmentStatus(order),
       nextStage,
       order.status,
+      order.lineItems,
     );
 
   return (
@@ -378,9 +382,13 @@ export function AdminOrderDetailPage() {
                 <p className="mt-3 text-body-sm text-on-surface-variant">
                   Customer status is{" "}
                   <strong>{fulfillmentStatusLabel(fulfillment)}</strong>.
-                  {nextStage
-                    ? ` Deploy the latest backend to advance to ${fulfillmentStatusLabel(nextStage)}.`
-                    : ""}
+                  {printReviewBlock && nextStage === "processing" ? (
+                    <> {printReviewBlock}</>
+                  ) : nextStage ? (
+                    ` Deploy the latest backend to advance to ${fulfillmentStatusLabel(nextStage)}.`
+                  ) : (
+                    ""
+                  )}
                 </p>
               )}
               {!canAdvance && !fulfillment && order.status === "paid" && (
@@ -472,7 +480,17 @@ export function AdminOrderDetailPage() {
                 linkContext="admin"
                 linkToProduct={!item.printService}
               />
-              <AdminPrintLineActions item={item} />
+              {dataClient && (
+                <AdminPrintLineActions
+                  client={dataClient}
+                  order={order}
+                  item={item}
+                  onOrderUpdated={(updated) => {
+                    setOrder(updated);
+                    if (updated.status) setPaymentStatus(updated.status);
+                  }}
+                />
+              )}
             </li>
           ))}
         </ul>

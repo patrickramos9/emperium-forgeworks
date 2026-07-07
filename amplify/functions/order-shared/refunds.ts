@@ -10,7 +10,7 @@ export type RefundLedgerEntry = {
   amountCents: number;
   reason?: string | null;
   createdAt: string;
-  source: "admin" | "webhook" | "customer_cancel";
+  source: "admin" | "webhook" | "customer_cancel" | "print_reject";
 };
 
 const RETURN_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;

@@ -31,6 +31,8 @@ export type PrintServiceConfigData = {
   resinColors: PrintServiceResinColor[];
 };
 
+export type PrintReviewStatus = "pending_review" | "approved" | "rejected";
+
 export type PrintServiceLinePayload = {
   uploadId: string;
   storagePath: string;
@@ -42,6 +44,9 @@ export type PrintServiceLinePayload = {
   resinColorId: string;
   resinColorLabel: string;
   filePurgedAt?: string;
+  reviewStatus?: PrintReviewStatus;
+  reviewNotes?: string;
+  reviewedAt?: string;
 };
 
 export type CheckoutLineItemWithPrint = {
@@ -125,4 +130,16 @@ export function formatPrintServiceVariantLabel(
   return [payload.sizeLabel, payload.resinTypeLabel, payload.resinColorLabel]
     .filter(Boolean)
     .join(" · ");
+}
+
+export function effectivePrintReviewStatus(
+  payload: Pick<PrintServiceLinePayload, "reviewStatus">,
+): PrintReviewStatus {
+  return payload.reviewStatus ?? "approved";
+}
+
+export function withPendingPrintReview(
+  payload: PrintServiceLinePayload,
+): PrintServiceLinePayload {
+  return { ...payload, reviewStatus: "pending_review" };
 }

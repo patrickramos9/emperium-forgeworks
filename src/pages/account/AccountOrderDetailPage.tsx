@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useProducts } from "@/hooks/useProducts";
 import { OrderFulfillmentTimeline } from "@/components/OrderFulfillmentTimeline";
+import { PrintOrderReviewStatus } from "@/components/PrintOrderReviewStatus";
 import { OrderLineItemRow } from "@/components/OrderLineItemRow";
 import { formatPrice } from "@/data/seedProducts";
 import { RETURN_SHIP_INSTRUCTIONS } from "@/lib/config";
@@ -249,6 +250,8 @@ export function AccountOrderDetailPage() {
           <OrderFulfillmentTimeline order={order} />
         </div>
       </section>
+
+      <PrintOrderReviewStatus items={items} order={order} />
 
       {fulfillment === "shipped" && (order.trackingNumber || trackingUrl) && (
         <section className="mt-stack-lg border border-primary/30 bg-surface-container-low p-4 iron-bevel">

@@ -21,6 +21,7 @@ import { createStripeRefund } from "./functions/create-stripe-refund/resource";
 import { submitReturnRequest } from "./functions/submit-return-request/resource";
 import { updateReturnRequest } from "./functions/update-return-request/resource";
 import { cancelCustomerOrder } from "./functions/cancel-customer-order/resource";
+import { updatePrintLineReview } from "./functions/update-print-line-review/resource";
 
 const backend = defineBackend({
   auth,
@@ -42,6 +43,7 @@ const backend = defineBackend({
   submitReturnRequest,
   updateReturnRequest,
   cancelCustomerOrder,
+  updatePrintLineReview,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -116,6 +118,12 @@ backend.cancelCustomerOrder.addEnvironment(
   "STRIPE_SECRET_KEY",
   process.env.STRIPE_SECRET_KEY ?? "",
 );
+
+backend.updatePrintLineReview.addEnvironment(
+  "STRIPE_SECRET_KEY",
+  process.env.STRIPE_SECRET_KEY ?? "",
+);
+backend.updatePrintLineReview.addEnvironment("SITE_URL", siteUrl);
 
 backend.updateOrderFulfillment.addEnvironment("SITE_URL", siteUrl);
 backend.updateOrderFulfillment.addEnvironment(

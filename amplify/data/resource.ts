@@ -15,6 +15,7 @@ import { createStripeRefund as createStripeRefundFn } from "../functions/create-
 import { submitReturnRequest as submitReturnRequestFn } from "../functions/submit-return-request/resource";
 import { updateReturnRequest as updateReturnRequestFn } from "../functions/update-return-request/resource";
 import { cancelCustomerOrder as cancelCustomerOrderFn } from "../functions/cancel-customer-order/resource";
+import { updatePrintLineReview as updatePrintLineReviewFn } from "../functions/update-print-line-review/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -152,6 +153,14 @@ const schema = a.schema({
     status: a.string().required(),
   }),
 
+  UpdatePrintLineReviewResult: a.customType({
+    success: a.boolean().required(),
+    reviewStatus: a.string().required(),
+    notificationSent: a.boolean().required(),
+    refundedCents: a.integer().required(),
+    orderStatus: a.string().required(),
+  }),
+
   ReturnRequestLineItem: a.customType({
     productId: a.string().required(),
     slug: a.string().required(),
@@ -272,6 +281,18 @@ const schema = a.schema({
     .returns(a.ref("CreateStripeRefundResult"))
     .authorization((allow) => [allow.group("admin")])
     .handler(a.handler.function(createStripeRefundFn)),
+
+  updatePrintLineReview: a
+    .mutation()
+    .arguments({
+      orderId: a.id().required(),
+      uploadId: a.string().required(),
+      reviewStatus: a.enum(["approved", "rejected"]),
+      reviewNotes: a.string(),
+    })
+    .returns(a.ref("UpdatePrintLineReviewResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(updatePrintLineReviewFn)),
 
   cancelCustomerOrder: a
     .mutation()
@@ -722,6 +743,7 @@ const schema = a.schema({
   allow.resource(submitReturnRequestFn),
   allow.resource(updateReturnRequestFn),
   allow.resource(cancelCustomerOrderFn),
+  allow.resource(updatePrintLineReviewFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

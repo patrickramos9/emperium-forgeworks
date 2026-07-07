@@ -43,6 +43,8 @@ export type PrintServiceConfigData = {
   resinColors: PrintServiceResinColor[];
 };
 
+export type PrintReviewStatus = "pending_review" | "approved" | "rejected";
+
 /** Payload stored on cart lines and order snapshots. */
 export type PrintServiceLinePayload = {
   uploadId: string;
@@ -55,12 +57,78 @@ export type PrintServiceLinePayload = {
   resinColorId: string;
   resinColorLabel: string;
   filePurgedAt?: string;
+  reviewStatus?: PrintReviewStatus;
+  reviewNotes?: string;
+  reviewedAt?: string;
 };
 
 export function isPrintServiceCartLine(
   line: { printService?: PrintServiceLinePayload | null },
 ): boolean {
   return Boolean(line.printService?.uploadId && line.printService.storagePath);
+}
+
+/** Legacy orders without reviewStatus are treated as already approved. */
+export function effectivePrintReviewStatus(
+  payload: Pick<PrintServiceLinePayload, "reviewStatus">,
+): PrintReviewStatus {
+  return payload.reviewStatus ?? "approved";
+}
+
+export function printReviewStatusLabel(status: PrintReviewStatus): string {
+  switch (status) {
+    case "pending_review":
+      return "Pending review";
+    case "approved":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+  }
+}
+
+export function withPendingPrintReview(
+  payload: PrintServiceLinePayload,
+): PrintServiceLinePayload {
+  return { ...payload, reviewStatus: "pending_review" };
+}
+
+export function printPayloadFromOrderLine(line: {
+  printService?: PrintServiceLinePayload | null;
+  printServiceJson?: string | null;
+}): PrintServiceLinePayload | null {
+  if (line.printService?.storagePath) return line.printService;
+  return parsePrintServiceJson(line.printServiceJson);
+}
+
+export function orderLineHasPrintService(line: {
+  printService?: PrintServiceLinePayload | null;
+  printServiceJson?: string | null;
+}): boolean {
+  return Boolean(printPayloadFromOrderLine(line));
+}
+
+export function orderHasPendingPrintReview(
+  lines: { printService?: PrintServiceLinePayload | null; printServiceJson?: string | null }[],
+): boolean {
+  return lines.some((line) => {
+    const payload = printPayloadFromOrderLine(line);
+    return payload && effectivePrintReviewStatus(payload) === "pending_review";
+  });
+}
+
+export function orderHasRejectedPrintReview(
+  lines: { printService?: PrintServiceLinePayload | null; printServiceJson?: string | null }[],
+): boolean {
+  return lines.some((line) => {
+    const payload = printPayloadFromOrderLine(line);
+    return payload && effectivePrintReviewStatus(payload) === "rejected";
+  });
+}
+
+export function printReviewBlocksProcessing(
+  lines: { printService?: PrintServiceLinePayload | null; printServiceJson?: string | null }[],
+): boolean {
+  return orderHasPendingPrintReview(lines);
 }
 
 export function printServiceLineKey(productId: string, uploadId: string): string {

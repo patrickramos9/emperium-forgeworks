@@ -25,6 +25,7 @@ import {
   PRINT_SERVICE_CONFIG_KEY,
   resolvePrintServicePriceCents,
   formatPrintServiceVariantLabel,
+  withPendingPrintReview,
 } from "../order-shared/printService.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
@@ -316,9 +317,12 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     function snapshotForLineItem(item: CheckoutLineItem) {
       const product = productById.get(item.productId);
       const printService = parsePrintServiceJson(item.printServiceJson);
+      const printSnapshot = printService
+        ? withPendingPrintReview(printService)
+        : null;
       const variantLabel =
-        printService
-          ? formatPrintServiceVariantLabel(printService)
+        printSnapshot
+          ? formatPrintServiceVariantLabel(printSnapshot)
           : item.variantLabel?.trim() ||
             resolveVariantLabelFromProductJson(product?.variants, item.variantId);
       return {
@@ -330,10 +334,10 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
         title: product?.title?.trim() || item.title,
         quantity: item.quantity,
         priceCents: item.priceCents,
-        ...(printService
+        ...(printSnapshot
           ? {
-              printService,
-              printServiceJson: item.printServiceJson,
+              printService: printSnapshot,
+              printServiceJson: JSON.stringify(printSnapshot),
             }
           : {}),
       };
