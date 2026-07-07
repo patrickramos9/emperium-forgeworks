@@ -23,6 +23,20 @@ Partner sculptor uploads use `uploadData()` under `sculptors/{slug}/…` — **`
 
 Print service STL/ZIP uploads use `uploadData()` under `print-jobs/{identityId}/…` — the **`customer`** group role needs **`write`** on `print-jobs/{entity_id}/*`. `allow.entity("identity")` alone is **not** enough for signed-in shoppers (same group-role precedence as product images).
 
+## Public catalog images (M13 — Google Merchant / Ads)
+
+**`products/*`** objects are anonymously readable via S3 bucket policy (see `amplify/backend.ts`). Stable URL shape:
+
+```
+https://{bucket}.s3.{region}.amazonaws.com/products/{slug}/{file}.jpg
+```
+
+Built in `src/lib/publicProductImageUrl.ts`. Used by the storefront and `npm run export:merchant-feed`.
+
+**Not public:** `print-jobs/*`, `reviews/*` (still IAM/presigned as before).
+
+See [merchant-center-feed.md](./merchant-center-feed.md).
+
 ## Backend rules (`amplify/storage/resource.ts`)
 
 `products/*` must grant read to every role that might call Storage:

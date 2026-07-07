@@ -11,8 +11,11 @@ import type { Schema } from "../amplify/data/resource";
 
 Amplify.configure(outputs);
 
-const SITE_URL = "https://emperiumforgeworks.com";
-const PRINT_SERVICE_SLUG = "printing-as-a-service";
+import {
+  isMerchantListedProduct,
+  MERCHANT_SITE_URL,
+} from "../src/lib/merchantFeed";
+import { buildPublicProductImageUrl } from "../src/lib/publicProductImageUrl";
 
 function galleryRefs(row: Schema["Product"]["type"]): string[] {
   const gallery = (row.images ?? []).filter(Boolean) as string[];
@@ -51,20 +54,22 @@ async function main() {
     nextToken = response.nextToken ?? undefined;
   } while (nextToken);
 
-  const publicProducts = rows
-    .filter((p) => !p.vaultOnly && p.slug !== PRINT_SERVICE_SLUG)
-    .sort((a, b) => a.title.localeCompare(b.title));
+  const publicProducts = rows.filter(isMerchantListedProduct);
 
   const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
   const csv = [
-    "title,slug,product_url,primary_image_storage_path",
-    ...publicProducts.map((p) => {
+    "title,slug,product_url,primary_image_storage_path,image_link",
+    ...publicProducts
+      .sort((a, b) => a.title.localeCompare(b.title))
+      .map((p) => {
       const path = storagePath(galleryRefs(p)[0] ?? "");
+      const imageLink = path ? buildPublicProductImageUrl(path) ?? "" : "";
       return [
         esc(p.title.trim()),
         p.slug,
-        esc(`${SITE_URL}/shop/${p.slug}`),
+        esc(`${MERCHANT_SITE_URL}/shop/${p.slug}`),
         esc(path),
+        esc(imageLink),
       ].join(",");
     }),
   ].join("\n");

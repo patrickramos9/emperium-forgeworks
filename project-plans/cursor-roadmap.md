@@ -20,12 +20,12 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-06-24
+**Last updated:** 2026-07-06
 
 | Item | State |
 |------|--------|
-| **Phase** | **Post-M21** — **M19 Catalog sales & bundles** is next |
-| **Next** | **M19** — list/compare pricing, sale fields on products |
+| **Phase** | **M13 (in progress)** — public product images + Merchant feed |
+| **Next** | **M13a** — deploy public `products/*` S3 policy, export Merchant feed; then **M19** catalog sales |
 | **Blocked** | _(none)_ |
 | **Recently verified** | **M22** Stripe Tax (2026-06-24) · **M16** returns/refunds + pre-ship cancel (2026-06-24) · **M11** (2026-06-23) · **M6 new-account promo** (2026-06-20) |
 | **Recently shipped (repo)** | **M21** Printing as a Service (2026-06-24) · **M22** Stripe Tax (2026-06-24) · **M16** (2026-06-22) |
@@ -35,7 +35,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order:**  
-M8 (done) → … → **M11** (done) → **M16** (done) → **M21** (printing as a service) → **M19** (catalog sales & bundles) → **M18** → **M8a.3** (inbox vs campaigns) → M10 → M12 → **M13** (+ **M6d**) → **M6e** (guest cart + identity sync) → **M9** → **M11a** (fabrication sub-stages) → M11b (Pi) → M14
+M8 (done) → … → **M21** (done) → **M13a** (public images + Merchant feed — **in progress**) → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (Merchant API, pixels, email, M6d) → **M6e** → **M9** → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -1444,11 +1444,16 @@ Reuse existing cart/checkout — no separate payment path.
 
 ### M13 — Marketing & growth engine (new)
 
-**Status:** Planned — **after M9** (JSON-LD / SEO on-site) and core commerce milestones (**M19** sales pricing affects Merchant offers).
+**Status:** **In progress** (2026-07-06) — **M13a** public `products/*` image URLs + Merchant CSV feed shipped in repo; **backend deploy required**. Remainder (Merchant API sync, pixels, newsletter) after **M19**.
 
 **Goal:** Turn the site into a growth-ready ecommerce platform.
 
-**Scope:**
+**M13a (shipped in repo — deploy backend to activate):**
+
+1. **Public product image URLs** — S3 bucket policy on `products/*`; `buildPublicProductImageUrl()`; storefront uses stable URLs.
+2. **Merchant Center CSV** — `npm run export:merchant-feed` → `docs/merchant-center-feed.csv`. See [docs/merchant-center-feed.md](../docs/merchant-center-feed.md).
+
+**Scope (remainder):**
 
 1. **Google Merchant Center — product sync (preferred: API)**
    - **Long-term approach:** push catalog updates via **Google Merchant Center Product API** (successor to Content API for Shopping) — insert/update/delete products when admin publishes or changes a `Product` (price, availability, image, title, link).

@@ -1,3 +1,5 @@
+import * as s3 from "aws-cdk-lib/aws-s3";
+import { PolicyDocument, PolicyStatement, Effect, AnyPrincipal } from "aws-cdk-lib/aws-iam";
 import { defineBackend } from "@aws-amplify/backend";
 import { FunctionUrlAuthType } from "aws-cdk-lib/aws-lambda";
 import { auth } from "./auth/resource";
@@ -128,6 +130,32 @@ backend.updateOrderFulfillment.addEnvironment(
 );
 
 const storageBucketArn = backend.storage.resources.bucket.bucketArn;
+const productImagesBucket = backend.storage.resources.bucket;
+
+/** M13 — anonymous read for Google Merchant / Ads (products/* only; print-jobs stay private). */
+const productImagesCfnBucket = productImagesBucket.node.defaultChild as s3.CfnBucket;
+productImagesCfnBucket.publicAccessBlockConfiguration = {
+  blockPublicAcls: true,
+  ignorePublicAcls: true,
+  blockPublicPolicy: false,
+  restrictPublicBuckets: false,
+};
+
+new s3.BucketPolicy(productImagesBucket.stack!, "PublicProductCatalogImagesPolicy", {
+  bucket: productImagesBucket,
+  document: new PolicyDocument({
+    statements: [
+      new PolicyStatement({
+        sid: "PublicReadProductCatalogImages",
+        effect: Effect.ALLOW,
+        principals: [new AnyPrincipal()],
+        actions: ["s3:GetObject"],
+        resources: [`${storageBucketArn}/products/*`],
+      }),
+    ],
+  }),
+});
+
 backend.updateOrderFulfillment.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ["s3:DeleteObject"],
@@ -151,5 +179,6 @@ const stripeWebhookUrl = backend.stripeWebhook.resources.lambda.addFunctionUrl({
 backend.addOutput({
   custom: {
     stripeWebhookUrl: stripeWebhookUrl.url,
+    publicProductImageBaseUrl: `https://${productImagesBucket.bucketName}.s3.${productImagesBucket.stack.region}.amazonaws.com`,
   },
 });

@@ -1,6 +1,7 @@
 import type { Product } from "@/data/seedProducts";
 import { productToGalleryImages } from "@/lib/productGallery";
 import { isStoragePath, normalizeImageRef, normalizeImageRefs } from "@/lib/productImageRefs";
+import { buildPublicProductImageUrl } from "@/lib/publicProductImageUrl";
 import { getPublicCatalogImageUrl } from "@/lib/storefrontStorage";
 
 /** Resolve a stored path or legacy URL to a browser-loadable image URL. */
@@ -10,6 +11,9 @@ export async function resolveImageUrl(
   if (!ref?.trim()) return undefined;
 
   const path = normalizeImageRef(ref);
+  const publicUrl = buildPublicProductImageUrl(path);
+  if (publicUrl) return publicUrl;
+
   if (!isStoragePath(path)) return ref;
 
   try {

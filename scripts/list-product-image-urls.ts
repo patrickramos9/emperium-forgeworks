@@ -8,6 +8,7 @@ import { Amplify } from "aws-amplify";
 import { getUrl } from "aws-amplify/storage";
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../amplify/data/resource";
+import { buildPublicProductImageUrl } from "../src/lib/publicProductImageUrl";
 
 Amplify.configure(outputs);
 
@@ -62,6 +63,10 @@ function galleryRefs(row: Schema["Product"]["type"]): string[] {
 async function resolveRef(ref: string): Promise<string | undefined> {
   const path = normalizeImageRef(ref);
   if (!path) return undefined;
+
+  const publicUrl = buildPublicProductImageUrl(path);
+  if (publicUrl) return publicUrl;
+
   if (!isStoragePath(path)) {
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
     if (path.startsWith("/")) return `${SITE_URL}${path}`;
