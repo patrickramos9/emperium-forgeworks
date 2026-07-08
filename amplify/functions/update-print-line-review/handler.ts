@@ -53,7 +53,7 @@ export const handler: Schema["updatePrintLineReview"]["functionHandler"] =
     }
 
     let refundedCents = 0;
-    let orderStatus = order.status ?? "paid";
+    let orderStatus: string = order.status ?? "paid";
 
     if (reviewStatus === "rejected") {
       const amountCents = computePrintRejectRefundCents(order, lines, uploadId);
