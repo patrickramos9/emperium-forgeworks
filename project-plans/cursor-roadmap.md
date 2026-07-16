@@ -20,23 +20,23 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-07-07
+**Last updated:** 2026-07-15
 
 | Item | State |
 |------|--------|
-| **Phase** | **Post-M13a** — **M19 Catalog sales & bundles** is next |
-| **Next** | **M19** — list/compare pricing, sale fields on products |
-| **Blocked** | _(none)_ |
-| **Recently verified** | **M13a** public product images + Merchant feed (2026-07-07) · **M21** · **M22** · **M16** · **M11** |
-| **Recently verified** | **M22** Stripe Tax (2026-06-24) · **M16** returns/refunds + pre-ship cancel (2026-06-24) · **M11** (2026-06-23) · **M6 new-account promo** (2026-06-20) |
-| **Recently shipped (repo)** | **M21** Printing as a Service (2026-06-24) · **M22** Stripe Tax (2026-06-24) · **M16** (2026-06-22) |
-| **In progress** | _(none)_ |
+| **Phase** | **Out-of-order execution** — milestones have shipped opportunistically (print/Merchant ahead of catalog sales). Treat §4 specs as authority; **this table** as queue. |
+| **Next** | **M21c** — Print quote-first (upload → review → quote → pay → print); multi-figure / size-tier pricing |
+| **Then** | **M19** — Catalog sales & bundles |
+| **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
+| **Recently verified** | **M13a** public product images + Merchant feed (2026-07-07) · **M22** · **M16** · **M11** |
+| **Recently shipped (repo)** | **M21b** print file review (approve/reject + refund) · **M21** print-as-service pay-first · policy file-requirements checklist · **M13a** · **M22** · **M16** |
+| **In progress** | **M21c** planning (replace pay-first with quote-first) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
-**Recommended build order:**  
-M8 (done) → … → **M21** (done) → **M13a** (public images + Merchant feed — **done**) → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (Merchant API, pixels, email, M6d) → **M6e** → **M9** → **M11a** → M11b → M14
+**Recommended build order (living):**  
+… → **M21** (done, pay-first) → **M13a** (done) → **M21b** (done, post-pay review) → **M21c** (next — quote-first) → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** → **M6e** → **M9** → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -179,7 +179,8 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M6 new-account promo** — `useForNewAccount` template flag + `new_account` grant via `issueNewAccountWelcomeGrant` after verify/sign-in — **production verified** (2026-06-20)
 - **M11** — Customer order status + shipping (`fulfillmentStatus`, 4-stage timeline, admin fulfillment stepper, in-app `order` notifications, tracking on ship, order detail with line items/variants/product links) — **production verified** (2026-06-23); checkout orphan-order fix; admin orders list fulfillment column; cart/admin product link routing (shop vs vault vs admin edit)
 - **M16** — Returns, refunds & exchanges — **production verified** (2026-06-24): admin refunds, return requests, pre-ship cancel, Payment/Fulfillment columns, refund status on customer + admin
-- **M21** — Printing as a Service — **shipped** (2026-06-24): `/print`, STL upload, cart/checkout, admin config, STL purge on ship
+- **M21** — Printing as a Service (pay-first v1) — **shipped** (2026-06-24): `/print`, STL/ZIP upload, cart/checkout, admin config, STL purge on ship; later: file-requirements checklist in policy
+- **M21b** — Print file review (post-pay) — **shipped** (repo 2026-07): `reviewStatus` on print lines; admin approve/reject; reject → refund; block **Processing** until approved; customer banners + in-app notifications. **Superseded for pricing** by **M21c** (keep review UX patterns).
 - **M22** — Stripe Tax — **production verified** (2026-06-24)
 - **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
 
@@ -201,11 +202,16 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | **Customer** | `/print` policy + configurator; home card when active; cart + Stripe checkout |
 | **Schema** | `PrintServiceConfig`; `CheckoutCartLine.printServiceJson`; order snapshots with `printService` |
 | **Storage** | `print-jobs/{entity_id}/*` prefix; purge on **Shipped** |
-| **Admin** | `/admin/print-service` pricing/policy; order detail STL download + purge status |
+| **Admin** | `/admin/print-service` pricing/policy; order detail STL/ZIP download + purge status |
+| **M21b** | Post-pay file review (`updatePrintLineReview`); approve / reject+refund; fulfillment gate before **Processing** |
 
-**Ops before go-live:** Create catalog product slug `printing-as-a-service` (shipping profile + weight). Admin → Print service → **Active**.
+**Known product flaw (drives M21c):** Pay-first assumes **one size tier per upload**. Does not charge per figure or support mixed size bands in one job. Admin cannot set the true price before payment.
 
-**Deploy:** Backend (schema, storage, checkout + fulfillment Lambdas) + frontend.
+**Ops before go-live:** Create catalog product slug `printing-as-a-service` (shipping profile + weight). Admin → Print service → **Active**. Paste live **policy** (file-requirements checklist) from defaults if DB still has short policy.
+
+**Deploy:** Backend (schema, storage, checkout + fulfillment + print-review Lambdas) + frontend.
+
+**Next print milestone:** **M21c** — quote-first (see §4).
 
 ### 3.5 M22 — Stripe Tax (2026-06-24)
 
@@ -293,7 +299,7 @@ _(none)_
 
 ### In progress
 
-_(none — monitor production; fix bugs ad hoc)_
+- **M21c** — Print **quote-first** redesign (spec in §4) — upload → admin review/tiers → quote → pay → print
 
 ### Resolved bugs
 
@@ -305,7 +311,7 @@ _(none — monitor production; fix bugs ad hoc)_
 
 **Next**
 
-- **M21** — **Printing as a Service** — home-page entry, policy + print configurator, STL upload, standard cart/checkout (see §4)
+- **M21c** — Print quote-first + multi-figure / size-tier pricing (see §4) — replaces pay-first pricing model from **M21**
 
 **Then**
 
@@ -1301,7 +1307,7 @@ On each fulfillment transition (when `userId` is set):
 
 ### M19 — Catalog sales & product bundles
 
-**Status:** Planned — **after M21**, **before M18** (price alerts need stable sale fields from M19).
+**Status:** Planned — **after M21c**, **before M18** (price alerts need stable sale fields from M19).
 
 **Goal:** Admin-defined **storefront sales** on individual products and **bundles** (multi-SKU single purchase). Distinct from **M6** (per-account promo grants auto-applied at checkout).
 
@@ -1340,11 +1346,97 @@ On each fulfillment transition (when `userId` is set):
 
 ---
 
-### M21 — Printing as a Service
+### M21c — Print quote-first (multi-figure pricing)
 
-**Status:** Planned — **after M16**, **before M19**. **Shipped** 2026-06-24.
+**Status:** Planned — **next** (2026-07-15). Replaces **M21** pay-first pricing. Reuses storage, `PrintServiceConfig` tiers, admin download, purge-on-ship, and review UX patterns from **M21b**.
 
-**Goal:** Let customers order **prints of their own STL files** through the normal storefront: policy acknowledgment → configure print → add to cart → Stripe checkout → standard **M11** fulfillment. Entry from the existing home-page card (today disabled **Custom Forge**).
+**Goal:** Correct commercial flow for resin print jobs:
+
+1. Customer **uploads** STL(s) / ZIP + picks resin/color + accepts policy (**no size price yet**)
+2. Admin **reviews** file(s), counts figures, **assigns size tier(s)** (and quantities)
+3. System **generates a quote** (Σ figure count × tier price + resin deltas)
+4. Customer **pays** the quote
+5. Admin **prints** and fulfills via existing **M11** stages
+
+Flip from current: ~~Tier → Pay → Upload → Review → Print~~ → **Upload → Review → Quote → Pay → Print**.
+
+**Depends on:** **M21** / **M21b** (reuse), **M3b** (Stripe checkout), **M11**, **M16** (refunds for edge cases after pay).
+
+**Out of scope (M21c):**
+
+- Auto mesh measurement / instant size detection (nice-to-have later)
+- Automated mesh repair or printability scoring
+- Bespoke sculpt commissions
+- Catalog **M19** sales
+
+#### Why
+
+Pay-first only works when the customer can pick a known SKU. Figure count and true size band are operator decisions. Quote-first avoids wrong charges and refund churn.
+
+#### Customer flow
+
+1. **`/print`**
+   - Policy + file-requirements checklist (existing markdown) + acknowledgment
+   - Upload STL or ZIP (existing caps)
+   - Resin type + color (customer choice; shared for the job in v1)
+   - Optional notes (“3 heroes + 1 monster”, etc.)
+   - **Submit print request** — **not** add-to-cart; no live size-tier price
+2. **Account** — list of print requests with status: `submitted` → `in_review` → `quoted` → `paid` / `declined` / `cancelled`
+3. When **quoted** — show breakdown (e.g. `2 × 32mm`, `1 × 75mm`, resin, total) + **Pay quote** CTA → Stripe Checkout for that amount
+4. After pay — appears as a normal paid **Order** with print payload; fulfillment unchanged
+
+#### Admin flow
+
+1. **Print request queue** (new admin page or dashboard filter) — pending review first
+2. Open request → download file(s) → assign **figure lines**:
+   - `{ sizeTierId, quantity }` (one or more rows)
+   - Optional admin notes to customer
+3. **Generate quote** — price from live `PrintServiceConfig` size tiers + resin delta; lock snapshot of labels/prices on the quote
+4. **Decline** — if file fails requirements (no charge); notify customer in-app
+5. After **paid** — fulfill like today’s print orders (download already available; purge on ship)
+
+#### Data model (sketch)
+
+- **`PrintRequest`** (or equivalent):
+  - `id`, `userId`, `status`, `storagePath(s)`, `originalFileName(s)`
+  - `resinTypeId/Label`, `resinColorId/Label`
+  - `customerNotes`, `adminNotes`
+  - `figureLines[]`: `{ sizeTierId, sizeLabel, quantity, unitPriceCents }`
+  - `quoteCents`, `quotedAt`, `orderId?` (set when paid)
+- Prefer **not** putting unpaid jobs in the cart. Cart/checkout only after quote acceptance (dedicated “pay this quote” path is OK; can still create an `Order` via existing Stripe session flow).
+
+#### Cutover
+
+- New submissions use quote-first only when M21c is live.
+- Existing pay-first cart/checkout path for print: **remove or hard-disable** after cutover (avoid two models).
+- **M21b** `reviewStatus` on paid lines: less critical for pricing (geometry is reviewed before quote); may simplify to request statuses instead of post-pay approve/reject. Keep reject+refund only for edge cases after payment if still needed.
+
+#### Cursor rules
+
+- Do **not** charge until admin quote exists and customer pays.
+- Do **not** put customer STLs in Merchant feed / public catalog.
+- Price from admin-assigned figure lines × config tiers — never trust customer-entered size as the charge basis.
+- Reuse `print-jobs/` storage + purge-on-ship.
+- Prefer in-app notifications over email until SES is reliable.
+
+#### Acceptance
+
+- Customer can submit upload + resin/color without choosing a size tier or seeing a final print price.
+- Admin can set multi-tier figure counts; quote total matches config math.
+- Customer pays only after quote; Stripe amount matches quote.
+- Declined requests never create a charge.
+- Paid jobs fulfill and purge STL on ship like M21.
+- Mixed-size batch (e.g. 2×32mm + 1×75mm) prices correctly on one request.
+
+---
+
+### M21 — Printing as a Service (historical pay-first v1)
+
+**Status:** **Shipped** 2026-06-24 (pay-first). **M21b** post-pay review shipped (repo 2026-07). **Pricing model superseded by M21c** — do not extend this flow; implement **M21c** instead. Detail below kept as reference for what production still runs until cutover.
+
+**Goal (v1, as built):** Customers order prints of their own STL/ZIP files: policy → configure size/resin/color → upload → cart → Stripe → **M11** fulfillment. Post-pay **M21b** review can approve or reject+refund.
+
+**Product gap:** One size tier + one price per upload — does not charge per figure or support mixed sizes. See **M21c**.
 
 **Depends on:** **M3b** (checkout), **M11** (order + fulfillment), **M15** (shipping on checkout). Optional: **M20b** (`BlobStorageProvider`) — v1 may use Amplify Storage + S3 prefix like sculptor uploads.
 
@@ -1365,13 +1457,14 @@ On each fulfillment transition (when `userId` is set):
      - Emperium Forgeworks **does not keep a copy** of the STL after the print job is complete and shipped (operational deletion — see backend).
      - We **do not re-sell** the physical print or the digital file once the order is complete.
      - Standard shop terms / liability limits apply (link to **Forge Terms**).
+     - **File requirements checklist** (manifold/watertight, Chitubox-supportable, resin-oriented, etc.).
    - **Configurator** — all required before **Add to cart**:
      | Field | Notes |
      |-------|--------|
      | **Size** | Admin-defined tier (e.g. 32mm, 75mm, 100mm, custom band) — drives **price** |
      | **Resin type** | Admin-defined options (e.g. standard, tough, flexible) — may adjust price |
      | **Resin color** | Admin-defined options per type or global palette |
-     | **STL file** | `.stl` only; max size cap (env/config); one file **per cart line** |
+     | **STL file** | `.stl` / `.zip`; max size cap; one file **per cart line** |
    - Live **price preview** from selected size/type surcharges.
    - **Add to cart** → existing `/cart` → **M3b** checkout → **M11** order detail + admin queue.
 
@@ -1444,7 +1537,7 @@ Reuse existing cart/checkout — no separate payment path.
 - Keep print-service logic in dedicated modules; do not fork checkout Lambda into a second code path.
 - Validate file type/size server-side in upload Lambda, not only client-side.
 
-#### Acceptance
+#### Acceptance (v1 — met)
 
 - Home card navigates to `/print`; disabled state removed when `PrintServiceConfig.active`.
 - Customer cannot add to cart until policy checked + all four parameters set + valid STL uploaded.
