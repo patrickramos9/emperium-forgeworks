@@ -166,6 +166,14 @@ export function AccountMenu() {
               >
                 Orders
               </Link>
+              <Link
+                role="menuitem"
+                to="/account/print-requests"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Print requests
+              </Link>
               {hasPartnerAccess && (
                 <Link
                   role="menuitem"

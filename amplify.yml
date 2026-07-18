@@ -16,6 +16,11 @@ backend:
         - npm ci --prefix amplify/functions/notify-order-placed --cache .npm-fn-notify-order --prefer-offline
         - npm ci --prefix amplify/functions/get-storefront-stats --cache .npm-fn-storefront-stats --prefer-offline
         - npm ci --prefix amplify/functions/update-order-fulfillment --cache .npm-fn-update-fulfillment --prefer-offline
+        - npm ci --prefix amplify/functions/update-print-line-review --cache .npm-fn-print-review --prefer-offline
+        - npm ci --prefix amplify/functions/submit-print-request --cache .npm-fn-submit-print --prefer-offline
+        - npm ci --prefix amplify/functions/admin-quote-print-request --cache .npm-fn-quote-print --prefer-offline
+        - npm ci --prefix amplify/functions/admin-decline-print-request --cache .npm-fn-decline-print --prefer-offline
+        - npm ci --prefix amplify/functions/create-print-quote-checkout --cache .npm-fn-print-quote-checkout --prefer-offline
         - export CI=1
         - echo "pipeline-deploy branch=$AWS_BRANCH app-id=$AWS_APP_ID"
         - |
@@ -50,6 +55,16 @@ backend:
       - .npm-fn-storefront-stats/**/*
       - amplify/functions/update-order-fulfillment/node_modules/**/*
       - .npm-fn-update-fulfillment/**/*
+      - amplify/functions/update-print-line-review/node_modules/**/*
+      - .npm-fn-print-review/**/*
+      - amplify/functions/submit-print-request/node_modules/**/*
+      - .npm-fn-submit-print/**/*
+      - amplify/functions/admin-quote-print-request/node_modules/**/*
+      - .npm-fn-quote-print/**/*
+      - amplify/functions/admin-decline-print-request/node_modules/**/*
+      - .npm-fn-decline-print/**/*
+      - amplify/functions/create-print-quote-checkout/node_modules/**/*
+      - .npm-fn-print-quote-checkout/**/*
 frontend:
   phases:
     preBuild:

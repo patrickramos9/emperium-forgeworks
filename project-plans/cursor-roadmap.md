@@ -25,12 +25,12 @@ Cursor should treat this file as the **source of truth** for:
 | Item | State |
 |------|--------|
 | **Phase** | **Out-of-order execution** — milestones have shipped opportunistically (print/Merchant ahead of catalog sales). Treat §4 specs as authority; **this table** as queue. |
-| **Next** | **M21c** — Print quote-first (upload → review → quote → pay → print); multi-figure / size-tier pricing |
+| **Next** | Continue **M21c** cutover / verify in production after backend deploy |
 | **Then** | **M19** — Catalog sales & bundles |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M13a** public product images + Merchant feed (2026-07-07) · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M21b** print file review (approve/reject + refund) · **M21** print-as-service pay-first · policy file-requirements checklist · **M13a** · **M22** · **M16** |
-| **In progress** | **M21c** planning (replace pay-first with quote-first) |
+| **Recently shipped (repo)** | **M21c** quote-first print (in progress / repo) · **M21b** · **M21** · **M13a** · **M22** · **M16** |
+| **In progress** | **M21c** — Print quote-first (upload → review → quote → pay) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -1348,7 +1348,7 @@ On each fulfillment transition (when `userId` is set):
 
 ### M21c — Print quote-first (multi-figure pricing)
 
-**Status:** Planned — **next** (2026-07-15). Replaces **M21** pay-first pricing. Reuses storage, `PrintServiceConfig` tiers, admin download, purge-on-ship, and review UX patterns from **M21b**.
+**Status:** **In progress** (repo 2026-07-18). Replaces **M21** pay-first pricing. Reuses storage, `PrintServiceConfig` tiers, admin download, purge-on-ship.
 
 **Goal:** Correct commercial flow for resin print jobs:
 

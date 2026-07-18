@@ -2,28 +2,22 @@ import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageFeedback } from "@/components/PageFeedback";
 import { ResinColorSwatches } from "@/components/ResinColorSwatches";
-import { useCart } from "@/context/CartContext";
-import { formatPrice } from "@/data/seedProducts";
 import { hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintServiceMaxFileSize,
-  formatPrintServiceVariantLabel,
   isPrintServiceUploadFile,
   parsePrintPolicyMarkdown,
   PRINT_SERVICE_FILE_ACCEPT,
   PRINT_SERVICE_FILE_HINT,
-  resolvePrintServicePriceCents,
   type PrintServiceConfigData,
-  type PrintServiceLinePayload,
 } from "@/lib/printService";
 import {
   newPrintUploadId,
   uploadPrintServiceStl,
 } from "@/lib/printServiceUpload";
-import {
-  fetchPrintServiceConfig,
-  resolvePrintCatalogProduct,
-} from "@/services/printServiceConfigService";
+import { requireCustomerSession } from "@/lib/amplifyDataClient";
+import { fetchPrintServiceConfig } from "@/services/printServiceConfigService";
+import { submitPrintRequest } from "@/services/printRequestService";
 import { useToast } from "@/context/ToastContext";
 
 function PrintPolicyContent({ markdown }: { markdown: string }) {
@@ -82,16 +76,15 @@ function PrintPolicyContent({ markdown }: { markdown: string }) {
 
 export function PrintServicePage() {
   const navigate = useNavigate();
-  const { addPrintServiceLine } = useCart();
   const { showToast } = useToast();
 
   const [config, setConfig] = useState<PrintServiceConfigData | null>(null);
   const [loading, setLoading] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [policyAccepted, setPolicyAccepted] = useState(false);
-  const [sizeTierId, setSizeTierId] = useState("");
   const [resinTypeId, setResinTypeId] = useState("");
   const [resinColorId, setResinColorId] = useState("");
+  const [customerNotes, setCustomerNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +100,6 @@ export function PrintServicePage() {
         if (cancelled) return;
         setConfig(cfg);
         setSignedIn(session);
-        if (cfg.sizeTiers[0]) setSizeTierId(cfg.sizeTiers[0].id);
         if (cfg.resinTypes[0]) setResinTypeId(cfg.resinTypes[0].id);
         const firstColor =
           cfg.resinColors.find((color) =>
@@ -116,7 +108,9 @@ export function PrintServicePage() {
         if (firstColor) setResinColorId(firstColor.id);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Could not load print service.");
+          setError(
+            err instanceof Error ? err.message : "Could not load print service.",
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -142,11 +136,6 @@ export function PrintServicePage() {
       setResinColorId(availableColors[0]!.id);
     }
   }, [availableColors, resinColorId]);
-
-  const priceCents = useMemo(() => {
-    if (!config || !sizeTierId || !resinTypeId) return null;
-    return resolvePrintServicePriceCents(config, sizeTierId, resinTypeId);
-  }, [config, sizeTierId, resinTypeId]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -178,64 +167,40 @@ export function PrintServicePage() {
       );
       return;
     }
-    if (priceCents == null) {
-      setError("Select valid print options.");
-      return;
-    }
 
-    const sizeTier = config.sizeTiers.find((row) => row.id === sizeTierId);
     const resinType = config.resinTypes.find((row) => row.id === resinTypeId);
     const resinColor = config.resinColors.find((row) => row.id === resinColorId);
-    if (!sizeTier || !resinType || !resinColor) {
+    if (!resinType || !resinColor) {
       setError("Selected options are no longer available.");
       return;
     }
 
     setSubmitting(true);
     try {
-      if (!(await hasCustomerSession())) {
-        navigate("/account/login?redirect=/print");
-        return;
-      }
-
-      const catalogProduct = await resolvePrintCatalogProduct(config);
-      if (!catalogProduct) {
-        throw new Error(
-          `Catalog product "${config.catalogProductSlug}" is missing. Ask admin to create it with a shipping profile.`,
-        );
-      }
+      const client = await requireCustomerSession(navigate, "/print");
+      if (!client) return;
 
       const uploadId = newPrintUploadId();
       const storagePath = await uploadPrintServiceStl(uploadId, file);
-
-      const printService: PrintServiceLinePayload = {
+      const printRequestId = await submitPrintRequest(client, {
         uploadId,
         storagePath,
         originalFileName: file.name,
-        sizeTierId: sizeTier.id,
-        sizeLabel: sizeTier.label,
         resinTypeId: resinType.id,
-        resinTypeLabel: resinType.label,
         resinColorId: resinColor.id,
-        resinColorLabel: resinColor.label,
-      };
-
-      addPrintServiceLine({
-        productId: catalogProduct.id,
-        slug: catalogProduct.slug,
-        title: catalogProduct.title?.trim() || "Printing as a Service",
-        priceCents,
-        printService,
+        customerNotes: customerNotes.trim() || undefined,
       });
 
       showToast({
-        title: "Added to cart",
-        description: formatPrintServiceVariantLabel(printService),
+        title: "Print request submitted",
+        description: "We’ll review your file and send a quote.",
         tone: "success",
       });
-      navigate("/cart");
+      navigate(`/account/print-requests/${printRequestId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add print to cart.");
+      setError(
+        err instanceof Error ? err.message : "Could not submit print request.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -272,16 +237,19 @@ export function PrintServicePage() {
         Printing as a Service
       </h1>
       <p className="mt-3 max-w-2xl font-body-md text-on-surface-variant">
-        Upload your own {PRINT_SERVICE_FILE_HINT} file, choose size and resin, and checkout like any
-        other order. One file per cart line.
+        Upload your {PRINT_SERVICE_FILE_HINT}. We review the file, count figures by
+        size, and send you a quote before anything is charged.
       </p>
 
       {!signedIn && (
         <PageFeedback tone="info" className="mt-6">
-          <Link to="/account/login?redirect=/print" className="text-primary hover:underline">
+          <Link
+            to="/account/login?redirect=/print"
+            className="text-primary hover:underline"
+          >
             Sign in
           </Link>{" "}
-          to upload a file and add a print to your cart.
+          to submit a print request.
         </PageFeedback>
       )}
 
@@ -309,32 +277,16 @@ export function PrintServicePage() {
               className="mt-1"
             />
             <span className="text-body-sm text-on-surface">
-              I confirm my file meets the requirements above and accept the print policy.
+              I confirm my file meets the requirements above and accept the print
+              policy.
             </span>
           </label>
         </section>
 
         <section className="border border-outline-variant/20 bg-surface-container-low p-stack-lg iron-bevel">
           <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
-            Configure your print
+            Submit your file
           </h2>
-
-          <label className="mt-4 block">
-            <span className="font-label-sm uppercase text-on-surface-variant">
-              Size
-            </span>
-            <select
-              value={sizeTierId}
-              onChange={(e) => setSizeTierId(e.target.value)}
-              className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
-            >
-              {config.sizeTiers.map((tier) => (
-                <option key={tier.id} value={tier.id}>
-                  {tier.label} — {formatPrice(tier.priceCents)}
-                </option>
-              ))}
-            </select>
-          </label>
 
           <label className="mt-4 block">
             <span className="font-label-sm uppercase text-on-surface-variant">
@@ -348,9 +300,6 @@ export function PrintServicePage() {
               {config.resinTypes.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.label}
-                  {(type.priceDeltaCents ?? 0) > 0
-                    ? ` (+${formatPrice(type.priceDeltaCents ?? 0)})`
-                    : ""}
                 </option>
               ))}
             </select>
@@ -360,34 +309,32 @@ export function PrintServicePage() {
             <span className="font-label-sm uppercase text-on-surface-variant">
               Resin color
             </span>
-            {availableColors.length === 0 ? (
-              <p className="mt-2 text-body-sm text-on-surface-variant">
-                No colors available for this resin type.
-              </p>
-            ) : availableColors.some((color) => color.hexColor) ? (
+            <div className="mt-2">
               <ResinColorSwatches
                 colors={availableColors}
                 value={resinColorId}
                 onChange={setResinColorId}
               />
-            ) : (
-              <select
-                value={resinColorId}
-                onChange={(e) => setResinColorId(e.target.value)}
-                className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
-              >
-                {availableColors.map((color) => (
-                  <option key={color.id} value={color.id}>
-                    {color.label}
-                  </option>
-                ))}
-              </select>
-            )}
+            </div>
           </div>
 
           <label className="mt-4 block">
             <span className="font-label-sm uppercase text-on-surface-variant">
-              Model file
+              Notes (optional)
+            </span>
+            <textarea
+              rows={3}
+              value={customerNotes}
+              onChange={(e) => setCustomerNotes(e.target.value)}
+              placeholder="e.g. 3 heroes + 1 monster, preferred scale notes"
+              className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
+            />
+          </label>
+
+          <label className="mt-4 block">
+            <span className="font-label-sm uppercase text-on-surface-variant">
+              File ({PRINT_SERVICE_FILE_HINT}, max{" "}
+              {formatPrintServiceMaxFileSize(config.maxFileBytes)})
             </span>
             <input
               type="file"
@@ -395,28 +342,28 @@ export function PrintServicePage() {
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="mt-1 w-full text-body-sm"
             />
-            <span className="mt-1 block text-label-sm text-on-surface-variant">
-              Max {formatPrintServiceMaxFileSize(config.maxFileBytes)} · {PRINT_SERVICE_FILE_HINT}
-            </span>
           </label>
 
-          <p className="mt-6 font-label-md text-xl text-primary">
-            {priceCents != null ? formatPrice(priceCents) : "—"} before shipping &amp; tax
-          </p>
-
-          {error && (
-            <PageFeedback tone="error" className="mt-4">
-              {error}
-            </PageFeedback>
-          )}
+          {error && <p className="mt-4 text-error">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting || !signedIn}
-            className="mt-6 w-full bg-primary px-4 py-3 font-label-md uppercase tracking-widest text-on-primary disabled:opacity-50"
+            className="molten-glow mt-6 w-full bg-primary px-6 py-3 font-label-md uppercase text-on-primary disabled:opacity-50"
           >
-            {submitting ? "Uploading…" : "Add to cart"}
+            {submitting ? "Submitting…" : "Submit print request"}
           </button>
+
+          <p className="mt-3 text-body-sm text-on-surface-variant">
+            After we review, you’ll get a quote in{" "}
+            <Link
+              to="/account/print-requests"
+              className="text-primary hover:underline"
+            >
+              Account → Print requests
+            </Link>
+            .
+          </p>
         </section>
       </form>
     </div>

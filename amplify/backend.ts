@@ -22,6 +22,10 @@ import { submitReturnRequest } from "./functions/submit-return-request/resource"
 import { updateReturnRequest } from "./functions/update-return-request/resource";
 import { cancelCustomerOrder } from "./functions/cancel-customer-order/resource";
 import { updatePrintLineReview } from "./functions/update-print-line-review/resource";
+import { submitPrintRequest } from "./functions/submit-print-request/resource";
+import { adminQuotePrintRequest } from "./functions/admin-quote-print-request/resource";
+import { adminDeclinePrintRequest } from "./functions/admin-decline-print-request/resource";
+import { createPrintQuoteCheckout } from "./functions/create-print-quote-checkout/resource";
 
 const backend = defineBackend({
   auth,
@@ -44,6 +48,10 @@ const backend = defineBackend({
   updateReturnRequest,
   cancelCustomerOrder,
   updatePrintLineReview,
+  submitPrintRequest,
+  adminQuotePrintRequest,
+  adminDeclinePrintRequest,
+  createPrintQuoteCheckout,
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;
@@ -124,6 +132,15 @@ backend.updatePrintLineReview.addEnvironment(
   process.env.STRIPE_SECRET_KEY ?? "",
 );
 backend.updatePrintLineReview.addEnvironment("SITE_URL", siteUrl);
+
+backend.adminQuotePrintRequest.addEnvironment("SITE_URL", siteUrl);
+backend.adminDeclinePrintRequest.addEnvironment("SITE_URL", siteUrl);
+
+backend.createPrintQuoteCheckout.addEnvironment(
+  "STRIPE_SECRET_KEY",
+  process.env.STRIPE_SECRET_KEY ?? "",
+);
+backend.createPrintQuoteCheckout.addEnvironment("SITE_URL", siteUrl);
 
 backend.updateOrderFulfillment.addEnvironment("SITE_URL", siteUrl);
 backend.updateOrderFulfillment.addEnvironment(

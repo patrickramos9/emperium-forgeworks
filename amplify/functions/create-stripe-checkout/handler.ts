@@ -23,7 +23,6 @@ import {
   normalizePrintServiceConfigRow,
   parsePrintServiceJson,
   PRINT_SERVICE_CONFIG_KEY,
-  resolvePrintServicePriceCents,
   formatPrintServiceVariantLabel,
   withPendingPrintReview,
 } from "../order-shared/printService.js";
@@ -396,43 +395,17 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     const hasPrintLines = lineItems.some((item) => isPrintServiceLine(item));
 
     if (hasPrintLines) {
-      if (!userId) {
-        throw new Error("Sign in to order a custom print.");
-      }
-      if (!printConfig?.active) {
-        throw new Error("Printing as a Service is not available right now.");
-      }
+      throw new Error(
+        "Custom prints now use quote-first checkout. Submit a print request from /print, then pay from your account when quoted.",
+      );
     }
 
     for (const item of lineItems) {
       const printService = parsePrintServiceJson(item.printServiceJson);
       if (printService) {
-        if (!printConfig?.active) {
-          throw new Error("Printing as a Service is not available right now.");
-        }
-        if (item.quantity !== 1) {
-          throw new Error("Each print upload must be ordered one at a time.");
-        }
-        const expected = resolvePrintServicePriceCents(
-          printConfig,
-          printService.sizeTierId,
-          printService.resinTypeId,
+        throw new Error(
+          "Custom prints now use quote-first checkout. Submit a print request from /print, then pay from your account when quoted.",
         );
-        if (expected == null) {
-          throw new Error("Selected print options are no longer available.");
-        }
-        if (item.priceCents !== expected) {
-          throw new Error(
-            "Print pricing changed. Refresh the page and add your print again.",
-          );
-        }
-        const product = productById.get(item.productId);
-        if (!product) {
-          throw new Error(
-            "Print service catalog product is missing. Contact support.",
-          );
-        }
-        continue;
       }
 
       const product = productById.get(item.productId);

@@ -36,6 +36,8 @@ import { AccountOrderDetailPage } from "@/pages/account/AccountOrderDetailPage";
 import { AccountReturnRequestPage } from "@/pages/account/AccountReturnRequestPage";
 import { AccountNotificationsPage } from "@/pages/account/AccountNotificationsPage";
 import { AccountFavoritesPage } from "@/pages/account/AccountFavoritesPage";
+import { AccountPrintRequestsPage } from "@/pages/account/AccountPrintRequestsPage";
+import { AccountPrintRequestDetailPage } from "@/pages/account/AccountPrintRequestDetailPage";
 import { VaultPage } from "@/pages/VaultPage";
 import { VaultProductDetailPage } from "@/pages/VaultProductDetailPage";
 import { AdminVaultPage } from "@/pages/admin/AdminVaultPage";
@@ -52,6 +54,8 @@ import { AdminShippingProfileEditPage } from "@/pages/admin/AdminShippingProfile
 import { AdminSculptorsPage } from "@/pages/admin/AdminSculptorsPage";
 import { AdminSculptorEditPage } from "@/pages/admin/AdminSculptorEditPage";
 import { AdminPrintServicePage } from "@/pages/admin/AdminPrintServicePage";
+import { AdminPrintRequestsPage } from "@/pages/admin/AdminPrintRequestsPage";
+import { AdminPrintRequestDetailPage } from "@/pages/admin/AdminPrintRequestDetailPage";
 import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayout";
 import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage";
 import { TrustedSiteScript } from "@/components/TrustedSiteScript";
@@ -121,6 +125,14 @@ export default function App() {
             />
             <Route path="/account/notifications" element={<AccountNotificationsPage />} />
             <Route path="/account/favorites" element={<AccountFavoritesPage />} />
+            <Route
+              path="/account/print-requests"
+              element={<AccountPrintRequestsPage />}
+            />
+            <Route
+              path="/account/print-requests/:id"
+              element={<AccountPrintRequestDetailPage />}
+            />
           </Route>
           <Route path="/account/login" element={<AccountLoginPage />} />
           <Route path="/account/forgot-password" element={<AccountForgotPasswordPage />} />
@@ -145,6 +157,11 @@ export default function App() {
             <Route path="shipping" element={<AdminShippingProfilesPage />} />
             <Route path="shipping/:id" element={<AdminShippingProfileEditPage />} />
             <Route path="print-service" element={<AdminPrintServicePage />} />
+            <Route path="print-requests" element={<AdminPrintRequestsPage />} />
+            <Route
+              path="print-requests/:id"
+              element={<AdminPrintRequestDetailPage />}
+            />
             <Route path="announcements" element={<AdminAnnouncementsPage />} />
             <Route
               path="announcements/:id"

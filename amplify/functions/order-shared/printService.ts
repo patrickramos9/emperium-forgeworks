@@ -47,6 +47,13 @@ export type PrintServiceLinePayload = {
   reviewStatus?: PrintReviewStatus;
   reviewNotes?: string;
   reviewedAt?: string;
+  figureLines?: {
+    sizeTierId: string;
+    sizeLabel: string;
+    quantity: number;
+    unitPriceCents: number;
+  }[];
+  printRequestId?: string;
 };
 
 export type CheckoutLineItemWithPrint = {

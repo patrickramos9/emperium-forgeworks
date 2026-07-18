@@ -16,6 +16,10 @@ import { submitReturnRequest as submitReturnRequestFn } from "../functions/submi
 import { updateReturnRequest as updateReturnRequestFn } from "../functions/update-return-request/resource";
 import { cancelCustomerOrder as cancelCustomerOrderFn } from "../functions/cancel-customer-order/resource";
 import { updatePrintLineReview as updatePrintLineReviewFn } from "../functions/update-print-line-review/resource";
+import { submitPrintRequest as submitPrintRequestFn } from "../functions/submit-print-request/resource";
+import { adminQuotePrintRequest as adminQuotePrintRequestFn } from "../functions/admin-quote-print-request/resource";
+import { adminDeclinePrintRequest as adminDeclinePrintRequestFn } from "../functions/admin-decline-print-request/resource";
+import { createPrintQuoteCheckout as createPrintQuoteCheckoutFn } from "../functions/create-print-quote-checkout/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -161,6 +165,27 @@ const schema = a.schema({
     orderStatus: a.string().required(),
   }),
 
+  SubmitPrintRequestResult: a.customType({
+    success: a.boolean().required(),
+    printRequestId: a.id().required(),
+  }),
+
+  AdminQuotePrintRequestResult: a.customType({
+    success: a.boolean().required(),
+    quoteCents: a.integer().required(),
+    notificationSent: a.boolean().required(),
+  }),
+
+  AdminDeclinePrintRequestResult: a.customType({
+    success: a.boolean().required(),
+    notificationSent: a.boolean().required(),
+  }),
+
+  PrintFigureLineInput: a.customType({
+    sizeTierId: a.string().required(),
+    quantity: a.integer().required(),
+  }),
+
   ReturnRequestLineItem: a.customType({
     productId: a.string().required(),
     slug: a.string().required(),
@@ -293,6 +318,52 @@ const schema = a.schema({
     .returns(a.ref("UpdatePrintLineReviewResult"))
     .authorization((allow) => [allow.group("admin")])
     .handler(a.handler.function(updatePrintLineReviewFn)),
+
+  submitPrintRequest: a
+    .mutation()
+    .arguments({
+      uploadId: a.string().required(),
+      storagePath: a.string().required(),
+      originalFileName: a.string().required(),
+      resinTypeId: a.string().required(),
+      resinColorId: a.string().required(),
+      customerNotes: a.string(),
+    })
+    .returns(a.ref("SubmitPrintRequestResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(submitPrintRequestFn)),
+
+  adminQuotePrintRequest: a
+    .mutation()
+    .arguments({
+      printRequestId: a.id().required(),
+      figureLines: a.ref("PrintFigureLineInput").array().required(),
+      adminNotes: a.string(),
+    })
+    .returns(a.ref("AdminQuotePrintRequestResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(adminQuotePrintRequestFn)),
+
+  adminDeclinePrintRequest: a
+    .mutation()
+    .arguments({
+      printRequestId: a.id().required(),
+      adminNotes: a.string(),
+    })
+    .returns(a.ref("AdminDeclinePrintRequestResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(adminDeclinePrintRequestFn)),
+
+  createPrintQuoteCheckoutSession: a
+    .mutation()
+    .arguments({
+      printRequestId: a.id().required(),
+      successUrl: a.string(),
+      cancelUrl: a.string(),
+    })
+    .returns(a.ref("CheckoutSessionResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(createPrintQuoteCheckoutFn)),
 
   cancelCustomerOrder: a
     .mutation()
@@ -699,6 +770,38 @@ const schema = a.schema({
       allow.group("admin"),
     ]),
 
+  /** M21c — Quote-first print job (upload → review → quote → pay). */
+  PrintRequest: a
+    .model({
+      userId: a.string().required(),
+      status: a.enum([
+        "submitted",
+        "in_review",
+        "quoted",
+        "paid",
+        "declined",
+        "cancelled",
+      ]),
+      uploadId: a.string().required(),
+      storagePath: a.string().required(),
+      originalFileName: a.string().required(),
+      resinTypeId: a.string().required(),
+      resinTypeLabel: a.string().required(),
+      resinColorId: a.string().required(),
+      resinColorLabel: a.string().required(),
+      customerNotes: a.string(),
+      adminNotes: a.string(),
+      /** JSON PrintFigureLine[] */
+      figureLines: a.json(),
+      quoteCents: a.integer(),
+      quotedAt: a.datetime(),
+      orderId: a.id(),
+    })
+    .authorization((allow) => [
+      allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
+      allow.group("admin").to(["read", "update", "delete"]),
+    ]),
+
   Sculptor: a
     .model({
       slug: a.string().required(),
@@ -744,6 +847,10 @@ const schema = a.schema({
   allow.resource(updateReturnRequestFn),
   allow.resource(cancelCustomerOrderFn),
   allow.resource(updatePrintLineReviewFn),
+  allow.resource(submitPrintRequestFn),
+  allow.resource(adminQuotePrintRequestFn),
+  allow.resource(adminDeclinePrintRequestFn),
+  allow.resource(createPrintQuoteCheckoutFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;

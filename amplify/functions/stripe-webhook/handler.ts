@@ -160,6 +160,19 @@ async function handleCheckoutCompleted(
     } catch (err) {
       console.error("Promo fulfillment failed", err);
     }
+
+    const printRequestId = session.metadata?.printRequestId?.trim();
+    if (printRequestId) {
+      try {
+        await dataClient.models.PrintRequest.update({
+          id: printRequestId,
+          status: "paid",
+          orderId,
+        });
+      } catch (err) {
+        console.error("PrintRequest paid update failed", err);
+      }
+    }
   }
 
   return null;

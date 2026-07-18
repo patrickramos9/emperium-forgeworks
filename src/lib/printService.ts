@@ -60,6 +60,14 @@ export type PrintServiceLinePayload = {
   reviewStatus?: PrintReviewStatus;
   reviewNotes?: string;
   reviewedAt?: string;
+  /** M21c — multi-figure quote breakdown (on paid quote orders). */
+  figureLines?: {
+    sizeTierId: string;
+    sizeLabel: string;
+    quantity: number;
+    unitPriceCents: number;
+  }[];
+  printRequestId?: string;
 };
 
 export function isPrintServiceCartLine(
@@ -302,8 +310,8 @@ Before uploading your STL or ZIP, please make sure:
 - The model is designed for resin printing (FDM-optimized files often fail).
 
 ## Review & refunds
-- After checkout we review your upload before printing begins.
-- If your file meets these requirements, we can print it. If not, we issue a full refund before printing begins.`;
+- After you submit, we review your upload and send a quote before payment.
+- If your file meets these requirements, we quote and print it. If not, we decline the request — nothing is charged.`;
 
 export type PrintPolicyBlock =
   | { type: "heading"; text: string }
