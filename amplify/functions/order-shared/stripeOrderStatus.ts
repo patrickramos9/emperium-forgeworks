@@ -1,9 +1,9 @@
-import type { generateClient } from "aws-amplify/data";
 import type Stripe from "stripe";
 import type { Schema } from "../../data/resource";
+import type { OrderSharedDataClient } from "./dataClient.js";
 import { applyRefundToOrder } from "./refunds.js";
 
-type DataClient = ReturnType<typeof generateClient<Schema>>;
+type DataClient = OrderSharedDataClient;
 type OrderRecord = Schema["Order"]["type"];
 type OrderStatus = NonNullable<OrderRecord["status"]>;
 
@@ -15,7 +15,7 @@ export async function getOrderById(
   if (errors?.length) {
     throw new Error(errors.map((e) => e.message).join("; "));
   }
-  return data ?? null;
+  return (data as OrderRecord | null | undefined) ?? null;
 }
 
 export async function updateOrderStatus(
@@ -32,7 +32,7 @@ export async function updateOrderStatus(
   if (errors?.length) {
     throw new Error(errors.map((e) => e.message).join("; "));
   }
-  return data ?? null;
+  return (data as OrderRecord | null | undefined) ?? null;
 }
 
 /** Pending checkout abandoned — do not overwrite paid/refunded orders. */
@@ -64,7 +64,7 @@ export async function cancelSupersededPendingOrders(
       throw new Error(response.errors.map((e) => e.message).join("; "));
     }
     for (const row of response.data ?? []) {
-      if (row) rows.push(row);
+      if (row) rows.push(row as OrderRecord);
     }
     nextToken = response.nextToken ?? undefined;
   } while (nextToken);

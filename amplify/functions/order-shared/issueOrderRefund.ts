@@ -1,13 +1,13 @@
 import type Stripe from "stripe";
-import type { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../data/resource";
+import type { OrderSharedDataClient } from "./dataClient.js";
 import {
   applyRefundToOrder,
   refundableCentsRemaining,
   type RefundLedgerEntry,
 } from "./refunds.js";
 
-type DataClient = ReturnType<typeof generateClient<Schema>>;
+type DataClient = OrderSharedDataClient;
 type OrderRecord = Schema["Order"]["type"];
 
 type RefundReason = "requested_by_customer" | "duplicate" | "fraudulent";

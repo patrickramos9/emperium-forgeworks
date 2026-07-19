@@ -1,8 +1,8 @@
-import type { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../data/resource";
+import type { OrderSharedDataClient } from "./dataClient.js";
 import { canCustomerRequestReturn, returnIneligibilityReason } from "./refunds.js";
 
-type DataClient = ReturnType<typeof generateClient<Schema>>;
+type DataClient = OrderSharedDataClient;
 type OrderRecord = Schema["Order"]["type"];
 type ReturnRequestRecord = Schema["ReturnRequest"]["type"];
 
@@ -17,9 +17,11 @@ export async function getOpenReturnRequestForOrder(
   orderId: string,
 ): Promise<ReturnRequestRecord | null> {
   let nextToken: string | undefined;
+  const returnModel = client.models.ReturnRequest;
+  if (!returnModel) return null;
 
   do {
-    const response = await client.models.ReturnRequest.list({
+    const response = await returnModel.list({
       filter: { orderId: { eq: orderId } },
       limit: 25,
       nextToken,
@@ -28,8 +30,9 @@ export async function getOpenReturnRequestForOrder(
       throw new Error(response.errors.map((e) => e.message).join("; "));
     }
     for (const row of response.data ?? []) {
-      if (row && OPEN_STATUSES.has(row.status ?? "requested")) {
-        return row;
+      const request = row as ReturnRequestRecord | null;
+      if (request && OPEN_STATUSES.has(request.status ?? "requested")) {
+        return request;
       }
     }
     nextToken = response.nextToken ?? undefined;

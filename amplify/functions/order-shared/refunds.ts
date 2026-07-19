@@ -1,7 +1,7 @@
-import type { generateClient } from "aws-amplify/data";
 import type { Schema } from "../../data/resource";
+import type { OrderSharedDataClient } from "./dataClient.js";
 
-type DataClient = ReturnType<typeof generateClient<Schema>>;
+type DataClient = OrderSharedDataClient;
 type OrderRecord = Schema["Order"]["type"];
 type OrderStatus = NonNullable<OrderRecord["status"]>;
 
@@ -71,7 +71,7 @@ export async function applyRefundToOrder(
   }
   if (!order.data) return null;
 
-  const row = order.data;
+  const row = order.data as OrderRecord;
   const ledger = parseRefundLedger(row.refunds);
   const nextLedger = input.entry
     ? mergeRefundEntry(ledger, input.entry)
@@ -93,7 +93,7 @@ export async function applyRefundToOrder(
   if (errors?.length) {
     throw new Error(errors.map((e) => e.message).join("; "));
   }
-  return data ?? null;
+  return (data as OrderRecord | null | undefined) ?? null;
 }
 
 export function returnWindowStartIso(order: OrderRecord): string | null {
