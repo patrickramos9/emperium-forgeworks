@@ -27,7 +27,9 @@ export async function getOpenReturnRequestForOrder(
       nextToken,
     });
     if (response.errors?.length) {
-      throw new Error(response.errors.map((e) => e.message).join("; "));
+      throw new Error(
+        response.errors.map((e: { message: string }) => e.message).join("; "),
+      );
     }
     for (const row of response.data ?? []) {
       const request = row as ReturnRequestRecord | null;

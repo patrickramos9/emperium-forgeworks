@@ -67,7 +67,9 @@ export async function applyRefundToOrder(
 ): Promise<OrderRecord | null> {
   const order = await client.models.Order.get({ id: orderId });
   if (order.errors?.length) {
-    throw new Error(order.errors.map((e) => e.message).join("; "));
+    throw new Error(
+      order.errors.map((e: { message: string }) => e.message).join("; "),
+    );
   }
   if (!order.data) return null;
 
@@ -91,7 +93,7 @@ export async function applyRefundToOrder(
   });
 
   if (errors?.length) {
-    throw new Error(errors.map((e) => e.message).join("; "));
+    throw new Error(errors.map((e: { message: string }) => e.message).join("; "));
   }
   return (data as OrderRecord | null | undefined) ?? null;
 }

@@ -13,7 +13,7 @@ export async function getOrderById(
 ): Promise<OrderRecord | null> {
   const { data, errors } = await client.models.Order.get({ id: orderId });
   if (errors?.length) {
-    throw new Error(errors.map((e) => e.message).join("; "));
+    throw new Error(errors.map((e: { message: string }) => e.message).join("; "));
   }
   return (data as OrderRecord | null | undefined) ?? null;
 }
@@ -30,7 +30,7 @@ export async function updateOrderStatus(
     ...extra,
   });
   if (errors?.length) {
-    throw new Error(errors.map((e) => e.message).join("; "));
+    throw new Error(errors.map((e: { message: string }) => e.message).join("; "));
   }
   return (data as OrderRecord | null | undefined) ?? null;
 }
@@ -61,7 +61,9 @@ export async function cancelSupersededPendingOrders(
       nextToken,
     });
     if (response.errors?.length) {
-      throw new Error(response.errors.map((e) => e.message).join("; "));
+      throw new Error(
+        response.errors.map((e: { message: string }) => e.message).join("; "),
+      );
     }
     for (const row of response.data ?? []) {
       if (row) rows.push(row as OrderRecord);
