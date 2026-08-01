@@ -147,7 +147,10 @@ export function AccountNotificationsPage() {
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-on-surface-variant">{note.body}</p>
                 {note.kind === "order" && (
-                  <OrderNotificationLink body={note.body} />
+                  <>
+                    <OrderNotificationLink body={note.body} />
+                    <PrintRequestNotificationLink body={note.body} />
+                  </>
                 )}
               </li>
             );
@@ -167,6 +170,20 @@ function OrderNotificationLink({ body }: { body: string }) {
       className="mt-3 inline-block font-label-sm uppercase text-primary hover:underline"
     >
       View order
+    </Link>
+  );
+}
+
+function PrintRequestNotificationLink({ body }: { body: string }) {
+  const match = body.match(/(\/account\/print-requests\/[a-zA-Z0-9-]+)/);
+  if (!match) return null;
+  const isQuote = /quote/i.test(body);
+  return (
+    <Link
+      to={match[1]}
+      className="mt-3 inline-block font-label-sm uppercase text-primary hover:underline"
+    >
+      {isQuote ? "Review and pay quote" : "View print request"}
     </Link>
   );
 }

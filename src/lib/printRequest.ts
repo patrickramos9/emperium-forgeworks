@@ -67,6 +67,19 @@ export function printRequestStatusLabel(status: PrintRequestStatus): string {
   }
 }
 
+/** Needs admin attention (review / quote) — used for nav badge. */
+export function isPendingPrintRequest(
+  status: PrintRequestStatus | string | null | undefined,
+): boolean {
+  return status === "submitted" || status === "in_review";
+}
+
+export function countPendingPrintRequests(
+  rows: { status: PrintRequestStatus | string | null | undefined }[],
+): number {
+  return rows.filter((row) => isPendingPrintRequest(row.status)).length;
+}
+
 export function parsePrintFigureLines(raw: unknown): PrintFigureLine[] {
   if (!raw) return [];
   try {

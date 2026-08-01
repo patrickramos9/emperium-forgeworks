@@ -7,6 +7,7 @@ import {
   touchAdminActivity,
 } from "@/lib/adminSessionPolicy";
 import { useUnacknowledgedOrderCount } from "@/hooks/useUnacknowledgedOrderCount";
+import { usePendingPrintRequestCount } from "@/hooks/usePendingPrintRequestCount";
 
 type NavItem = { label: string; to: string; end?: boolean };
 
@@ -40,6 +41,7 @@ export function AdminLayout() {
   const [ready, setReady] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const { count: newOrderCount } = useUnacknowledgedOrderCount();
+  const { count: pendingPrintCount } = usePendingPrintRequestCount();
 
   useEffect(() => {
     async function guard() {
@@ -128,6 +130,11 @@ export function AdminLayout() {
                       {newOrderCount}
                     </span>
                   )}
+                  {item.to === "/admin/print-requests" && pendingPrintCount > 0 && (
+                    <span className="bg-primary px-2 py-0.5 font-label-sm text-on-primary">
+                      {pendingPrintCount}
+                    </span>
+                  )}
                 </span>
               </NavLink>
             ))}
@@ -154,6 +161,11 @@ export function AdminLayout() {
                 {item.to === "/admin/orders" && newOrderCount > 0 && (
                   <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center bg-primary px-1 text-[10px] text-on-primary">
                     {newOrderCount}
+                  </span>
+                )}
+                {item.to === "/admin/print-requests" && pendingPrintCount > 0 && (
+                  <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center bg-primary px-1 text-[10px] text-on-primary">
+                    {pendingPrintCount}
                   </span>
                 )}
               </NavLink>

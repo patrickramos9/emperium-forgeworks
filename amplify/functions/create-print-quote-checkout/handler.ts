@@ -57,14 +57,28 @@ async function loadShippingProfiles(): Promise<ShippingProfileRecord[]> {
 }
 
 async function findProductBySlug(slug: string): Promise<ProductRecord | null> {
-  const response = await dataClient.models.Product.list({
-    filter: { slug: { eq: slug } },
-    limit: 1,
-  });
-  if (response.errors?.length) {
-    throw new Error(response.errors.map((e) => e.message).join("; "));
-  }
-  return response.data?.[0] ?? null;
+  const normalized = slug.trim();
+  if (!normalized) return null;
+
+  // AppSync slug filters on Product are unreliable — scan pages and match locally
+  // (same approach as src/lib/listAllProducts.findProductBySlug).
+  let nextToken: string | undefined;
+  do {
+    const response = await dataClient.models.Product.list({
+      limit: 100,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    const match = (response.data ?? []).find(
+      (row) => row?.slug === normalized,
+    );
+    if (match) return match;
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  return null;
 }
 
 export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler"] =
