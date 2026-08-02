@@ -41,8 +41,9 @@ export const BUSINESS_LOGO_URL = `${SITE_URL.replace(/\/$/, "")}/favicon.svg`;
 /** Shown to customers when a return is approved (M16). */
 export const RETURN_SHIP_INSTRUCTIONS = `Ship returns to: ${BUSINESS_LEGAL_NAME}, ${BUSINESS_ADDRESS_ONE_LINE}. Contact ${CONTACT_EMAIL} or ${CONTACT_PHONE_DISPLAY} with your order number before shipping. Buyer pays return shipping per our returns policy.`;
 
+/** Public Etsy shop reviews page — default outbound link for imported reviews. */
 export const ETSY_SHOP_REVIEWS_URL =
-  "https://www.etsy.com/shop/EmperiumForgeworks?ref=shop_sugg_market#reviews";
+  "https://www.etsy.com/shop/EmperiumForgeworks/reviews";
 
 export const PLAUSIBLE_DOMAIN =
   import.meta.env.VITE_PLAUSIBLE_DOMAIN?.trim() || undefined;

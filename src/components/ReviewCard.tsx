@@ -4,6 +4,7 @@ import { resolveImageUrl } from "@/lib/productImageUrls";
 import {
   reviewBadgeLabel,
   reviewDisplayName,
+  reviewEtsyUrl,
   reviewImagePaths,
   type ReviewRecord,
 } from "@/services/reviewService";
@@ -62,6 +63,7 @@ function ReviewPhotos({
 export function ReviewCard({ review, compact = false }: ReviewCardProps) {
   const rating = Math.min(5, Math.max(1, review.rating ?? 5));
   const imagePaths = reviewImagePaths(review);
+  const etsyUrl = reviewEtsyUrl(review);
 
   return (
     <blockquote
@@ -93,9 +95,21 @@ export function ReviewCard({ review, compact = false }: ReviewCardProps) {
         <cite className="font-label-md uppercase not-italic text-on-surface">
           {reviewDisplayName(review)}
         </cite>
-        <span className="bg-secondary-container/30 px-2 py-1 font-label-sm uppercase tracking-widest text-secondary">
-          {reviewBadgeLabel(review)}
-        </span>
+        {etsyUrl ? (
+          <a
+            href={etsyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-secondary-container/30 px-2 py-1 font-label-sm uppercase tracking-widest text-secondary transition-colors hover:bg-secondary-container/50 hover:text-plasma-glow"
+            title="View this review on Etsy"
+          >
+            {reviewBadgeLabel(review)} · View on Etsy
+          </a>
+        ) : (
+          <span className="bg-secondary-container/30 px-2 py-1 font-label-sm uppercase tracking-widest text-secondary">
+            {reviewBadgeLabel(review)}
+          </span>
+        )}
       </footer>
     </blockquote>
   );

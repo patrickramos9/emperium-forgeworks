@@ -18,11 +18,14 @@ import {
   isImportedReview,
   listAllReviews,
   reviewDisplayName,
+  reviewEtsyUrl,
   reviewImagePaths,
   setReviewApproved,
   setReviewProductSlug,
+  setReviewSourceUrl,
   type ReviewRecord,
 } from "@/services/reviewService";
+import { ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
 
 type ProductOption = {
   slug: string;
@@ -118,6 +121,64 @@ function ProductAssignSelect({
   );
 }
 
+function EtsySourceUrlEditor({
+  initialUrl,
+  disabled,
+  onSave,
+}: {
+  initialUrl: string;
+  disabled?: boolean;
+  onSave: (url: string) => void;
+}) {
+  const [draft, setDraft] = useState(initialUrl);
+
+  useEffect(() => {
+    setDraft(initialUrl);
+  }, [initialUrl]);
+
+  const dirty = draft.trim() !== initialUrl.trim();
+
+  return (
+    <div className="mt-3">
+      <label className="block">
+        <span className="font-label-sm uppercase text-on-surface-variant">
+          Etsy review link
+        </span>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <input
+            type="url"
+            value={draft}
+            disabled={disabled}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={ETSY_SHOP_REVIEWS_URL}
+            className="min-w-[16rem] flex-1 border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface disabled:opacity-50"
+          />
+          <button
+            type="button"
+            disabled={disabled || !dirty}
+            onClick={() => onSave(draft)}
+            className="border border-outline-variant/30 px-3 py-2 font-label-sm uppercase hover:border-primary disabled:opacity-50"
+          >
+            Save link
+          </button>
+        </div>
+      </label>
+      <p className="mt-1 text-label-sm text-on-surface-variant">
+        Leave blank to use the{" "}
+        <a
+          href={ETSY_SHOP_REVIEWS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          shop reviews page
+        </a>
+        . Storefront always shows a View on Etsy link for imports.
+      </p>
+    </div>
+  );
+}
+
 export function AdminReviewsPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<ReviewRecord[]>([]);
@@ -130,6 +191,7 @@ export function AdminReviewsPage() {
   const [importText, setImportText] = useState("");
   const [importDisplayName, setImportDisplayName] = useState("");
   const [importProductSlug, setImportProductSlug] = useState("");
+  const [importSourceUrl, setImportSourceUrl] = useState("");
   const [importApproved, setImportApproved] = useState(true);
   const [importFiles, setImportFiles] = useState<File[]>([]);
   const [importPreviews, setImportPreviews] = useState<string[]>([]);
@@ -225,6 +287,29 @@ export function AdminReviewsPage() {
     setSavingId(null);
   }
 
+  async function handleSaveSourceUrl(orderId: string, sourceUrl: string) {
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+
+    setSavingId(orderId);
+    setError(null);
+    try {
+      const updated = await setReviewSourceUrl(
+        client,
+        orderId,
+        sourceUrl.trim() || null,
+      );
+      setRows((prev) =>
+        prev.map((row) => (row.orderId === orderId ? updated : row)),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save Etsy review link",
+      );
+    }
+    setSavingId(null);
+  }
+
   async function handleDelete(orderId: string) {
     if (!window.confirm("Delete this review permanently?")) return;
 
@@ -270,6 +355,7 @@ export function AdminReviewsPage() {
         approved: importApproved,
         images,
         productSlug: linkedSlug || undefined,
+        sourceUrl: importSourceUrl.trim() || undefined,
       });
       setRows((prev) =>
         [created, ...prev].sort(
@@ -280,6 +366,7 @@ export function AdminReviewsPage() {
       setImportText("");
       setImportDisplayName("");
       setImportProductSlug("");
+      setImportSourceUrl("");
       setImportRating(5);
       setImportApproved(true);
       clearObjectUrls(importPreviews);
@@ -389,6 +476,24 @@ export function AdminReviewsPage() {
                 product page.
               </p>
             </div>
+
+            <label className="mt-4 block">
+              <span className="font-label-sm uppercase text-on-surface-variant">
+                Etsy review link (optional)
+              </span>
+              <input
+                type="url"
+                value={importSourceUrl}
+                onChange={(e) => setImportSourceUrl(e.target.value)}
+                placeholder={ETSY_SHOP_REVIEWS_URL}
+                className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface"
+              />
+              <p className="mt-1 text-label-sm text-on-surface-variant">
+                Paste a listing or shop reviews URL if you have one. Leave blank
+                to use the shop reviews page. Storefront cards always link Etsy
+                imports back to Etsy.
+              </p>
+            </label>
 
             <div className="mt-4">
               <span className="font-label-sm uppercase text-on-surface-variant">
@@ -580,6 +685,29 @@ export function AdminReviewsPage() {
                   Not linked to a product — home / reviews page only when
                   approved.
                 </p>
+              )}
+              {isImportedReview(row) && (
+                <>
+                  <EtsySourceUrlEditor
+                    initialUrl={row.sourceUrl?.trim() ?? ""}
+                    disabled={savingId === row.orderId}
+                    onSave={(url) => void handleSaveSourceUrl(row.orderId, url)}
+                  />
+                  {reviewEtsyUrl(row) && (
+                    <p className="mt-1 text-label-sm text-on-surface-variant">
+                      Storefront links to{" "}
+                      <a
+                        href={reviewEtsyUrl(row)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Etsy
+                      </a>
+                      .
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </li>

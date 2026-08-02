@@ -133,6 +133,10 @@ Announcement (standalone)
 | `text` | string | yes | min 10 chars (app validation) |
 | `displayName` | string | | Public byline |
 | `approved` | boolean | | default `false` — moderation |
+| `source` | enum | | `site` \| `etsy` |
+| `sourceUrl` | string | | Optional outbound link (Etsy); etsy reviews fall back to shop reviews URL |
+| `productSlug` | string | | When set, shows on that PDP + star average |
+| `images` | string[] | | S3 paths under `reviews/{orderId}/…` |
 
 **Auth:** guest + authenticated read; owner create; **admin** full access.
 

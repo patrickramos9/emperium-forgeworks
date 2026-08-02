@@ -720,6 +720,8 @@ const schema = a.schema({
       approved: a.boolean().default(false),
       /** On-site order review vs admin-imported testimonial (e.g. from Etsy). */
       source: a.enum(["site", "etsy"]),
+      /** Optional outbound link (usually Etsy). Falls back to shop reviews URL for `source: etsy`. */
+      sourceUrl: a.string(),
       /** When set, review appears on that product's PDP and counts toward its star average. Admin can assign any review to a product. */
       productSlug: a.string(),
       /** S3 paths under `reviews/{orderId}/…` for customer product photos. */

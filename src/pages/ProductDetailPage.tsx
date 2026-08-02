@@ -596,49 +596,64 @@ export function ProductDetailPage({
               </div>
             )}
 
-            {!isRichTextEmpty(product.description) && (
-              <div className="border border-outline-variant/10 bg-surface-container-high p-6 iron-bevel">
-                <h2 className="font-headline-md text-[18px] text-on-surface">
-                  Description
-                </h2>
-                <RichTextContent
-                  html={product.description}
-                  className="mt-stack-md"
-                />
-              </div>
-            )}
-
-            {productReviews.length > 0 && (
-              <section aria-labelledby="product-reviews-heading">
-                <div className="mb-stack-md flex flex-wrap items-end justify-between gap-3 border-l-4 border-primary pl-4">
-                  <div>
-                    <h2
-                      id="product-reviews-heading"
-                      className="font-headline-md text-[18px] uppercase text-on-surface"
-                    >
-                      Customer Reviews
+            {(!isRichTextEmpty(product.description) ||
+              productReviews.length > 0) && (
+              <div
+                className={
+                  !isRichTextEmpty(product.description) &&
+                  productReviews.length > 0
+                    ? "grid grid-cols-1 items-start gap-gutter md:grid-cols-2"
+                    : "grid grid-cols-1"
+                }
+              >
+                {!isRichTextEmpty(product.description) && (
+                  <div className="border border-outline-variant/10 bg-surface-container-high p-6 iron-bevel">
+                    <h2 className="font-headline-md text-[18px] text-on-surface">
+                      Description
                     </h2>
-                    <p className="mt-1 font-body-md text-on-surface-variant">
-                      {productReviews.length === 1
-                        ? "1 review for this piece."
-                        : `${productReviews.length} reviews for this piece.`}
-                    </p>
+                    <RichTextContent
+                      html={product.description}
+                      className="mt-stack-md"
+                    />
                   </div>
-                  <Link
-                    to="/reviews"
-                    className="font-label-sm uppercase tracking-widest text-primary hover:text-plasma-glow"
+                )}
+
+                {productReviews.length > 0 && (
+                  <section
+                    aria-labelledby="product-reviews-heading"
+                    className="min-w-0"
                   >
-                    All reviews
-                  </Link>
-                </div>
-                <ul className="grid grid-cols-1 gap-stack-md">
-                  {productReviews.map((review) => (
-                    <li key={review.orderId}>
-                      <ReviewCard review={review} />
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                    <div className="mb-stack-md flex flex-wrap items-end justify-between gap-3 border-l-4 border-primary pl-4">
+                      <div>
+                        <h2
+                          id="product-reviews-heading"
+                          className="font-headline-md text-[18px] uppercase text-on-surface"
+                        >
+                          Customer Reviews
+                        </h2>
+                        <p className="mt-1 font-body-md text-on-surface-variant">
+                          {productReviews.length === 1
+                            ? "1 review for this piece."
+                            : `${productReviews.length} reviews for this piece.`}
+                        </p>
+                      </div>
+                      <Link
+                        to="/reviews"
+                        className="font-label-sm uppercase tracking-widest text-primary hover:text-plasma-glow"
+                      >
+                        All reviews
+                      </Link>
+                    </div>
+                    <ul className="flex flex-col gap-stack-md">
+                      {productReviews.map((review) => (
+                        <li key={review.orderId}>
+                          <ReviewCard review={review} compact />
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+              </div>
             )}
           </div>
         </div>

@@ -1,4 +1,5 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
+import { ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
 import type { Schema } from "../../amplify/data/resource";
 import { getCustomerUserId } from "@/lib/customerAuth";
 import { parseOrderLineItems } from "@/services/orderService";
@@ -25,6 +26,31 @@ export function isImportedReview(review: ReviewRecord): boolean {
 
 export function reviewBadgeLabel(review: ReviewRecord): string {
   return isImportedReview(review) ? "Etsy Customer" : "Verified Purchase";
+}
+
+/** Outbound Etsy URL for imported reviews (custom `sourceUrl` or shop reviews page). */
+export function reviewEtsyUrl(review: ReviewRecord): string | null {
+  if (!isImportedReview(review)) return null;
+  const custom = review.sourceUrl?.trim();
+  return custom || ETSY_SHOP_REVIEWS_URL;
+}
+
+export function normalizeReviewSourceUrl(raw: string | null | undefined): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Etsy review link must be a valid URL.");
+  }
+  if (url.protocol !== "https:") {
+    throw new Error("Etsy review link must use https.");
+  }
+  if (!/(^|\.)etsy\.com$/i.test(url.hostname)) {
+    throw new Error("Etsy review link must be an etsy.com URL.");
+  }
+  return url.toString();
 }
 
 export function isReviewApproved(review: ReviewRecord): boolean {
@@ -230,6 +256,7 @@ export type CreateImportedReviewInput = {
   orderId?: string;
   images?: string[];
   productSlug?: string;
+  sourceUrl?: string;
 };
 
 export async function createImportedReview(
@@ -249,6 +276,7 @@ export async function createImportedReview(
   const orderId = input.orderId ?? generateImportedReviewId();
   const images = input.images?.filter(Boolean);
   const productSlug = input.productSlug?.trim();
+  const sourceUrl = normalizeReviewSourceUrl(input.sourceUrl);
   const result = await client.models.Review.create({
     orderId,
     userId: IMPORTED_REVIEW_USER_ID,
@@ -259,6 +287,7 @@ export async function createImportedReview(
     source: input.source ?? "etsy",
     images: images?.length ? images : undefined,
     ...(productSlug ? { productSlug } : {}),
+    ...(sourceUrl ? { sourceUrl } : {}),
   });
 
   if (result.errors?.length) {
@@ -298,6 +327,26 @@ export async function setReviewProductSlug(
   }
   if (!result.data) {
     throw new Error("Could not update review product.");
+  }
+  return result.data;
+}
+
+/** Set or clear the outbound Etsy (or listing) URL for an imported review. */
+export async function setReviewSourceUrl(
+  client: AmplifyDataClient,
+  orderId: string,
+  sourceUrl: string | null,
+): Promise<ReviewRecord> {
+  const normalized = normalizeReviewSourceUrl(sourceUrl);
+  const result = await client.models.Review.update({
+    orderId,
+    sourceUrl: normalized as string | null | undefined,
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+  if (!result.data) {
+    throw new Error("Could not update Etsy review link.");
   }
   return result.data;
 }
