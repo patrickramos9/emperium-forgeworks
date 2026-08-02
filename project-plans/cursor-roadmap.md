@@ -24,19 +24,19 @@ Cursor should treat this file as the **source of truth** for:
 
 | Item | State |
 |------|--------|
-| **Phase** | **Post-M21c** — catalog sales next |
-| **Next** | **M19** — Catalog sales & bundles |
-| **Then** | **M18** — Cart price-change notifications |
+| **Phase** | **M23** — trust & conversion (in progress) |
+| **Next** | **M23a remainder** — PDP trust strip + shipping-returns link → then **M23b–f** |
+| **Then** | **M19** — Catalog sales & bundles → **M18** cart price-change |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **Merchant transparency** (contact/phone/address/JSON-LD) · **`/print` process + sample pricing** · **M21c** · admin print-request badge · **M13a** |
-| **In progress** | _(none)_ — **ops:** Merchant Center identity verify + Misrepresentation review (must match live site) |
+| **Recently shipped (repo)** | **M23a (partial)** — admin assign review → product + PDP review list · **Merchant transparency** · **`/print` process + sample pricing** · **M21c** · **M13a** |
+| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **ops:** Merchant Center identity verify + Misrepresentation review |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M21** / **M21b** / **M21c** (done) → **M13a** (done) → Merchant transparency + `/print` UX polish (done, repo) → **M19** (next) → **M18** → **M8a.3** → M10 → M12 → **M13b** → **M6e** → **M9** → **M11a** → M11b → M14
+… → **M21** / **M21b** / **M21c** (done) → **M13a** (done) → Merchant transparency + `/print` UX polish (done, repo) → **M23a** review assign + PDP list (**done, repo**) → **M23a** trust strip → **M23b–f** → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** → **M6e** → **M9** → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -186,6 +186,20 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M22** — Stripe Tax — **production verified** (2026-06-24)
 - **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
 - **Merchant transparency (Misrepresentation)** — street address, phone, `/contact`, Organization JSON-LD, footer/About/Shipping contact details — **shipped** (repo 2026-08-02); **ops:** deploy + MC business info match + identity verify + request review
+- **M23a (partial)** — Admin assign review → product (`productSlug` dropdown) + PDP customer review list — **shipped** (repo 2026-08-02); remainder: PDP trust strip + always-on shipping-returns link
+
+### 3.9 M23a — Product-linked reviews (2026-08-02)
+
+| Area | What shipped |
+|------|----------------|
+| **Admin** | Admin → Reviews: product dropdown per review (`setReviewProductSlug`); import form product select; unassigned count |
+| **Service** | `setReviewProductSlug` in `reviewService.ts` (assign or clear) |
+| **PDP** | Approved reviews for `product.slug` render as `ReviewCard` list under description; link to `/reviews` |
+| **Stars** | Unchanged — product-scoped approved reviews still drive PDP average via `listApprovedReviewsForProduct` |
+
+**Still open in M23a:** trust strip beside Add to cart; shipping-returns link always visible (not only on shipping error).
+
+**Ops:** Assign existing/imported reviews to products in Admin → Reviews so PDPs show social proof.
 
 ### 3.8 Merchant transparency + print page UX (2026-08-02)
 
@@ -328,7 +342,7 @@ _(none)_
 
 ### In progress
 
-_(none — monitor production; fix bugs ad hoc)_
+**M23** — Storefront trust & legitimacy (**M23a** product-linked reviews shipped in repo; trust strip + **M23b–f** remain).
 
 **Ops follow-up (not a coding milestone):** Google Merchant Center — confirm live site shows address/phone/contact → match MC business info → Verify identity → request Misrepresentation review.
 
@@ -340,12 +354,18 @@ _(none — monitor production; fix bugs ad hoc)_
 
 ### Planned (not started)
 
-**Next**
+**Next (priority — conversion) — M23 remainder**
+
+- **M23a** — PDP trust strip (returns / shipping / Stripe) + always-on `/shipping-returns` link _(review assign + PDP list **done**)_
+- **M23b** — Cart trust line + align shipping promise copy site-wide
+- **M23c** — Hide unfinished Newsletter/Gallery; mobile nav
+- **M23d** — FAQ page
+- **M23e** — Contact hours + optional form; footer Etsy/socials
+- **M23f** — Seed/import reviews for social proof; optional payment logos
+
+**Core + polish (after M23)**
 
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
-
-**Core + polish (after M19)**
-
 - **M18** — **Cart price-change** in-system notifications (sale or list price up/down for items in cart)
 - **M8a.3** — **Inbox messages vs notification campaigns** — split immutable per-customer deliveries from editable admin broadcasts (see §4)
 
@@ -1332,9 +1352,95 @@ On each fulfillment transition (when `userId` is set):
 
 ---
 
+### M23 — Storefront trust & legitimacy
+
+**Status:** **In progress** (ahead of **M19**). Audit 2026-08-02. **M23a (partial) shipped** 2026-08-02 — admin product assign + PDP review list.
+
+**Goal:** Make existing legitimacy assets (LLC identity, shipping/returns, Stripe, TrustedSite, reviews, craftsmanship story) **visible where buyers decide** — PDP and cart — and close unfinished chrome that reads as a half-built shop.
+
+**Depends on:** Nothing new — reuse **M8b** reviews, **M15** shipping display, **M16** returns policy, Merchant transparency (contact/address), Stripe cart copy, TrustedSite footer.
+
+**Why now:** Catalog sales (**M19**) improve price psychology; they do not fix “is this store real?” hesitation. Fix conversion trust first.
+
+#### Audit snapshot (ground work here)
+
+**Already strong (do not rebuild):**
+- LLC name, street address, phone, named email (Melissa) — footer, `/contact`, About, Organization JSON-LD
+- Full `/shipping-returns`, `/privacy-policy`, `/forge-terms`
+- Craftsmanship / process story (About + home tech specs)
+- Stripe Checkout + “Powered by Stripe” on cart; TrustedSite script + footer badges
+- Reviews backend, `/reviews`, Verified / Etsy Customer badges, optional Etsy reviews link
+- Per-product shipping via `ProductShippingInfo`
+- **Admin assign review → product + PDP review bodies** (M23a partial, 2026-08-02)
+
+**Gaps that hurt cold traffic:**
+1. ~~PDP fetches reviews but never renders review bodies~~ — **done** (admin `productSlug` assign + PDP `ReviewCard` list)
+2. No returns / guarantee / secure-checkout strip near **Add to cart**
+3. Cart has thin pre-Stripe reassurance (no returns restatement; TrustedSite only in footer)
+4. **No FAQ** page
+5. Disabled **Newsletter** + disabled **Gallery** read unfinished
+6. **Mobile header** hides Shop/About/Contact (`nav` is `hidden md:flex`)
+7. Shipping promise **inconsistent** — shop banner “1–3 business days” vs policy “usually same day”
+8. Contact says hours are listed; **hours missing**
+9. No brand **social / Etsy** links in footer/header (Etsy only on reviews surfaces)
+10. Homepage reviews section **hides entirely** when no approved reviews — social proof vanishes
+
+#### Build order (ship in slices)
+
+| Slice | Deliver | Priority | Status |
+|-------|---------|----------|--------|
+| **M23a** | Admin: assign existing reviews to a product (`productSlug` dropdown); PDP review list + photos; trust strip next to Add to cart; always-on `/shipping-returns` link | **Highest** | **Partial** — assign + PDP list **shipped** (2026-08-02); trust strip + shipping-returns link **open** |
+| **M23b** | Cart trust line (returns + Stripe + TrustedSite or short secure copy); align shipping promise copy site-wide (one canonical window) | **Highest** | Open |
+| **M23c** | Unfinished chrome: hide or remove disabled Newsletter + Gallery until ready; **mobile nav** for Shop / About / Contact | High | Open |
+| **M23d** | **FAQ** page (`/faq`) — resin, scale, supports, shipping, returns, licensed art, made-to-order variance; footer + PDP links | High | Open |
+| **M23e** | Contact **business hours** (ET); optional simple contact form; footer **Etsy** (+ real brand socials if URLs exist in config) | Medium | Open |
+| **M23f** | Ops/content: seed/import enough approved reviews (incl. Etsy) so home + PDP social proof is never empty; optional payment-method logos on PDP/cart (Visa/MC/Amex/Apple Pay/Google Pay) | Medium | Open |
+
+#### Frontend (expected touch points)
+
+- `ProductDetailPage.tsx` — ~~render review list~~ (**done**); trust strip component near CTA (**open**)
+- `AdminReviewsPage.tsx` / `reviewService.setReviewProductSlug` — ~~product assign~~ (**done**)
+- `CartPage.tsx` — reassurance above Checkout CTA
+- `Header.tsx` — mobile navigation; stop linking disabled Gallery (or remove until **M9**)
+- `HomePage.tsx` — newsletter: hide CTA until **M13b** wires it, or clearly “coming soon” without looking broken
+- `ShopPage.tsx` + `ShippingReturnsPage.tsx` + PDP shipping copy — **one** ready-to-ship promise
+- New `FaqPage.tsx` + route in `App.tsx`; footer link in `Footer.tsx`
+- `ContactPage.tsx` — concrete hours; optional form (mailto or thin Dynamo model — prefer mailto / existing email first)
+- `src/lib/config.ts` — optional `ETSY_SHOP_URL` / social URLs for footer (reviews URL already exists)
+
+#### Out of scope (M23)
+
+- Trustpilot / new third-party review networks (TrustedSite + Etsy bridge is enough)
+- Redesign / light-mode theme
+- Full newsletter provider (**M13b** / **M9**)
+- Gallery page (**M9**)
+- Admin–customer chat (**M10**)
+- Catalog sales (**M19**)
+
+#### Cursor rules
+
+- Prefer **surfacing** existing services/components over new backends.
+- No new Amplify models unless contact-form persistence is explicitly chosen (default: no new model).
+- Do not invent shipping windows — pick the real ops promise and use it everywhere.
+- Keep dark forge design system; trust UI should match existing tokens (no generic purple badge kits).
+
+#### Acceptance
+
+- ~~PDP shows review bodies when approved reviews are assigned to that product.~~ **Met** (2026-08-02).
+- ~~Admin can select an existing review and assign it to a catalog product.~~ **Met** (2026-08-02).
+- Add-to-cart region shows returns + shipping + secure checkout without scrolling to footer.
+- Cart Checkout CTA has visible returns + Stripe reassurance.
+- `/faq` loads and is linked from footer; key answers match `/shipping-returns` and Forge Terms.
+- Mobile can reach Shop, About, Contact from header.
+- No disabled Newsletter/Gallery controls that look like broken features.
+- Shop banner and Shipping & Returns use the **same** ship-timing language.
+- Contact page lists concrete business hours.
+
+---
+
 ### M19 — Catalog sales & product bundles
 
-**Status:** Planned — **after M21c**, **before M18** (price alerts need stable sale fields from M19).
+**Status:** Planned — **after M23** (trust/conversion), **before M18** (price alerts need stable sale fields from M19).
 
 **Goal:** Admin-defined **storefront sales** on individual products and **bundles** (multi-SKU single purchase). Distinct from **M6** (per-account promo grants auto-applied at checkout).
 

@@ -281,6 +281,27 @@ export async function setReviewApproved(
   }
 }
 
+/** Assign (or clear) which product this review appears on / counts toward. */
+export async function setReviewProductSlug(
+  client: AmplifyDataClient,
+  orderId: string,
+  productSlug: string | null,
+): Promise<ReviewRecord> {
+  const slug = productSlug?.trim() || null;
+  const result = await client.models.Review.update({
+    orderId,
+    // Amplify clears optional string fields with null.
+    productSlug: slug as string | null | undefined,
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+  if (!result.data) {
+    throw new Error("Could not update review product.");
+  }
+  return result.data;
+}
+
 export async function deleteReview(
   client: AmplifyDataClient,
   orderId: string,

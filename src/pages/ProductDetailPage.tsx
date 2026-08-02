@@ -29,6 +29,7 @@ import { useProductShippingDisplay } from "@/hooks/useProductShippingDisplay";
 import { ProductShippingInfo } from "@/components/ProductShippingInfo";
 import { ProductFavoriteButton } from "@/components/ProductFavoriteButton";
 import { ProductStarRating } from "@/components/ProductStarRating";
+import { ReviewCard } from "@/components/ReviewCard";
 import { StaleFavoriteNotice } from "@/components/StaleFavoriteNotice";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
@@ -605,6 +606,39 @@ export function ProductDetailPage({
                   className="mt-stack-md"
                 />
               </div>
+            )}
+
+            {productReviews.length > 0 && (
+              <section aria-labelledby="product-reviews-heading">
+                <div className="mb-stack-md flex flex-wrap items-end justify-between gap-3 border-l-4 border-primary pl-4">
+                  <div>
+                    <h2
+                      id="product-reviews-heading"
+                      className="font-headline-md text-[18px] uppercase text-on-surface"
+                    >
+                      Customer Reviews
+                    </h2>
+                    <p className="mt-1 font-body-md text-on-surface-variant">
+                      {productReviews.length === 1
+                        ? "1 review for this piece."
+                        : `${productReviews.length} reviews for this piece.`}
+                    </p>
+                  </div>
+                  <Link
+                    to="/reviews"
+                    className="font-label-sm uppercase tracking-widest text-primary hover:text-plasma-glow"
+                  >
+                    All reviews
+                  </Link>
+                </div>
+                <ul className="grid grid-cols-1 gap-stack-md">
+                  {productReviews.map((review) => (
+                    <li key={review.orderId}>
+                      <ReviewCard review={review} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
           </div>
         </div>

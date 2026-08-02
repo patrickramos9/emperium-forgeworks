@@ -1,9 +1,11 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { StarRatingInput } from "@/components/ReviewCard";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { configureAmplify } from "@/lib/amplify";
 import { hasReviewModel } from "@/lib/dataModels";
+import { listAllProducts, type ProductRecord } from "@/lib/listAllProducts";
+import { isPrintServiceCatalogSlug } from "@/lib/printService";
 import { resolveImageUrl } from "@/lib/productImageUrls";
 import {
   MAX_REVIEW_IMAGES,
@@ -18,8 +20,24 @@ import {
   reviewDisplayName,
   reviewImagePaths,
   setReviewApproved,
+  setReviewProductSlug,
   type ReviewRecord,
 } from "@/services/reviewService";
+
+type ProductOption = {
+  slug: string;
+  title: string;
+};
+
+function productOptionsFromCatalog(products: ProductRecord[]): ProductOption[] {
+  return products
+    .filter((row) => row.slug && !isPrintServiceCatalogSlug(row.slug))
+    .map((row) => ({
+      slug: row.slug,
+      title: row.title.split("–")[0]?.trim() || row.title,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title));
+}
 
 function clearObjectUrls(urls: string[]) {
   for (const url of urls) {
@@ -62,9 +80,48 @@ function AdminReviewThumbnails({ paths }: { paths: string[] }) {
   );
 }
 
+function ProductAssignSelect({
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  options: ProductOption[];
+  disabled?: boolean;
+  onChange: (slug: string) => void;
+}) {
+  const known = !value || options.some((opt) => opt.slug === value);
+
+  return (
+    <label className="block min-w-[14rem] flex-1">
+      <span className="font-label-sm uppercase text-on-surface-variant">
+        Product
+      </span>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface disabled:opacity-50"
+      >
+        <option value="">Home page only (no product)</option>
+        {!known && value ? (
+          <option value={value}>{value} (missing from catalog)</option>
+        ) : null}
+        {options.map((opt) => (
+          <option key={opt.slug} value={opt.slug}>
+            {opt.title}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function AdminReviewsPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<ReviewRecord[]>([]);
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -107,7 +164,12 @@ export function AdminReviewsPage() {
       return;
     }
     try {
-      setRows(await listAllReviews(client));
+      const [reviews, products] = await Promise.all([
+        listAllReviews(client),
+        listAllProducts(client),
+      ]);
+      setRows(reviews);
+      setProductOptions(productOptionsFromCatalog(products));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load reviews");
     }
@@ -117,6 +179,11 @@ export function AdminReviewsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const unassignedCount = useMemo(
+    () => rows.filter((row) => !row.productSlug?.trim()).length,
+    [rows],
+  );
 
   async function handleToggleApproved(orderId: string, approved: boolean) {
     const client = await requireAdminSession(navigate);
@@ -133,6 +200,27 @@ export function AdminReviewsPage() {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
+    }
+    setSavingId(null);
+  }
+
+  async function handleAssignProduct(orderId: string, productSlug: string) {
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+
+    setSavingId(orderId);
+    setError(null);
+    try {
+      const updated = await setReviewProductSlug(
+        client,
+        orderId,
+        productSlug || null,
+      );
+      setRows((prev) =>
+        prev.map((row) => (row.orderId === orderId ? updated : row)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not assign product");
     }
     setSavingId(null);
   }
@@ -173,6 +261,7 @@ export function AdminReviewsPage() {
           ? await uploadReviewImages(orderId, importFiles)
           : undefined;
 
+      const linkedSlug = importProductSlug.trim();
       const created = await createImportedReview(client, {
         orderId,
         rating: importRating,
@@ -180,7 +269,7 @@ export function AdminReviewsPage() {
         displayName: importDisplayName,
         approved: importApproved,
         images,
-        productSlug: importProductSlug.trim() || undefined,
+        productSlug: linkedSlug || undefined,
       });
       setRows((prev) =>
         [created, ...prev].sort(
@@ -196,7 +285,11 @@ export function AdminReviewsPage() {
       clearObjectUrls(importPreviews);
       setImportFiles([]);
       setImportPreviews([]);
-      setImportSuccess("Etsy review imported.");
+      setImportSuccess(
+        linkedSlug
+          ? "Etsy review imported and linked to product."
+          : "Etsy review imported.",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed");
     }
@@ -232,11 +325,18 @@ export function AdminReviewsPage() {
       </h1>
       <p className="mt-2 text-on-surface-variant">
         Moderate customer reviews before they appear under{" "}
-        <strong>Voices From The Void</strong> on the home page. Copy Etsy
-        reviews into the form below to publish them on your storefront.
+        <strong>Voices From The Void</strong> on the home page and on product
+        pages. Assign a product to show the review on that PDP and count toward
+        its star rating. Copy Etsy reviews into the form below to publish them
+        on your storefront.
         {pendingCount > 0 && (
           <span className="ml-2 text-secondary">
             {pendingCount} pending
+          </span>
+        )}
+        {unassignedCount > 0 && (
+          <span className="ml-2 text-on-surface-variant">
+            {unassignedCount} without a product
           </span>
         )}
       </p>
@@ -278,22 +378,17 @@ export function AdminReviewsPage() {
               />
             </label>
 
-            <label className="mt-4 block">
-              <span className="font-label-sm uppercase text-on-surface-variant">
-                Product slug (optional)
-              </span>
-              <input
-                type="text"
+            <div className="mt-4">
+              <ProductAssignSelect
                 value={importProductSlug}
-                onChange={(e) => setImportProductSlug(e.target.value)}
-                placeholder="e.g. cosmic-leviathan"
-                className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface"
+                options={productOptions}
+                onChange={setImportProductSlug}
               />
               <p className="mt-1 text-label-sm text-on-surface-variant">
-                When set, this review counts toward that product&apos;s star
-                rating on its detail page.
+                Link this review to a catalog product so it appears on that
+                product page.
               </p>
-            </label>
+            </div>
 
             <div className="mt-4">
               <span className="font-label-sm uppercase text-on-surface-variant">
@@ -376,7 +471,7 @@ export function AdminReviewsPage() {
                 className="size-4"
               />
               <span className="text-label-sm text-on-surface">
-                Publish immediately on the home page
+                Publish immediately on the storefront
               </span>
             </label>
 
@@ -462,6 +557,31 @@ export function AdminReviewsPage() {
             {reviewImagePaths(row).length > 0 && (
               <AdminReviewThumbnails paths={reviewImagePaths(row)} />
             )}
+            <div className="mt-4 border-t border-outline-variant/15 pt-3">
+              <ProductAssignSelect
+                value={row.productSlug?.trim() ?? ""}
+                options={productOptions}
+                disabled={savingId === row.orderId}
+                onChange={(slug) => void handleAssignProduct(row.orderId, slug)}
+              />
+              {row.productSlug?.trim() ? (
+                <p className="mt-1 text-label-sm text-on-surface-variant">
+                  Shows on{" "}
+                  <Link
+                    to={`/shop/${row.productSlug.trim()}`}
+                    className="text-primary hover:underline"
+                  >
+                    /shop/{row.productSlug.trim()}
+                  </Link>
+                  {row.approved ? "" : " once approved"}.
+                </p>
+              ) : (
+                <p className="mt-1 text-label-sm text-on-surface-variant">
+                  Not linked to a product — home / reviews page only when
+                  approved.
+                </p>
+              )}
+            </div>
           </li>
         ))}
       </ul>
