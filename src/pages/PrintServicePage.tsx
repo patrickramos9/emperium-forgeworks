@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PageFeedback } from "@/components/PageFeedback";
 import { ResinColorSwatches } from "@/components/ResinColorSwatches";
+import { formatPrice } from "@/data/seedProducts";
 import { hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintServiceMaxFileSize,
@@ -10,6 +11,8 @@ import {
   PRINT_SERVICE_FILE_ACCEPT,
   PRINT_SERVICE_FILE_HINT,
   type PrintServiceConfigData,
+  type PrintServiceResinType,
+  type PrintServiceSizeTier,
 } from "@/lib/printService";
 import {
   newPrintUploadId,
@@ -19,6 +22,107 @@ import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import { fetchPrintServiceConfig } from "@/services/printServiceConfigService";
 import { submitPrintRequest } from "@/services/printRequestService";
 import { useToast } from "@/context/ToastContext";
+
+const PRINT_PROCESS_STEPS = [
+  {
+    title: "Upload your file",
+    body: `Sign in, accept the print policy, choose resin type and color, and upload your ${PRINT_SERVICE_FILE_HINT}. Add notes if your file has multiple figures or special requests.`,
+  },
+  {
+    title: "We review & size",
+    body: "We inspect the model, count each figure, and assign size tiers. Complex supports, hollows, or multi-part files may affect the quote.",
+  },
+  {
+    title: "Receive a quote",
+    body: "You’ll get a line-item quote in Account → Print requests. Nothing is charged until you accept and pay.",
+  },
+  {
+    title: "Pay & we print",
+    body: "Pay the quote when you’re ready. We print, cure, and ship—then update your order with tracking.",
+  },
+] as const;
+
+function SamplePricing({
+  sizeTiers,
+  resinTypes,
+}: {
+  sizeTiers: PrintServiceSizeTier[];
+  resinTypes: PrintServiceResinType[];
+}) {
+  const resinSurcharges = resinTypes.filter(
+    (type) => (type.priceDeltaCents ?? 0) !== 0,
+  );
+
+  if (!sizeTiers.length) return null;
+
+  return (
+    <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-stack-lg iron-bevel">
+      <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
+        Sample pricing
+      </h2>
+      <p className="mt-2 max-w-2xl font-body-md text-on-surface-variant">
+        Per-figure starting rates by size tier. Your quote is based on how many
+        figures we find in your file and which sizes they match—not a flat file
+        fee.
+      </p>
+
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full min-w-[20rem] text-left">
+          <thead>
+            <tr className="border-b border-outline-variant/30">
+              <th className="pb-3 font-label-sm uppercase text-on-surface-variant">
+                Size tier
+              </th>
+              <th className="pb-3 text-right font-label-sm uppercase text-on-surface-variant">
+                Per figure
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sizeTiers.map((tier) => (
+              <tr
+                key={tier.id}
+                className="border-b border-outline-variant/15 last:border-0"
+              >
+                <td className="py-3 font-body-md text-on-surface">
+                  {tier.label}
+                </td>
+                <td className="py-3 text-right font-body-md tabular-nums text-on-surface">
+                  {formatPrice(tier.priceCents)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {resinSurcharges.length > 0 && (
+        <p className="mt-4 text-body-sm text-on-surface-variant">
+          Resin options:{" "}
+          {resinSurcharges.map((type, index) => {
+            const delta = type.priceDeltaCents ?? 0;
+            const signed =
+              delta > 0
+                ? `+${formatPrice(delta)}`
+                : `−${formatPrice(Math.abs(delta))}`;
+            return (
+              <span key={type.id}>
+                {index > 0 ? "; " : ""}
+                {type.label} {signed} per figure
+              </span>
+            );
+          })}
+          .
+        </p>
+      )}
+
+      <p className="mt-3 text-body-sm text-on-surface-variant">
+        Final total = sum of (size rate ± resin adjustment) × figure count after
+        review.
+      </p>
+    </section>
+  );
+}
 
 function PrintPolicyContent({ markdown }: { markdown: string }) {
   const blocks = parsePrintPolicyMarkdown(markdown);
@@ -240,6 +344,32 @@ export function PrintServicePage() {
         Upload your {PRINT_SERVICE_FILE_HINT}. We review the file, count figures by
         size, and send you a quote before anything is charged.
       </p>
+
+      <section className="mt-stack-lg">
+        <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
+          How it works
+        </h2>
+        <ol className="mt-6 grid gap-gutter sm:grid-cols-2 lg:grid-cols-4">
+          {PRINT_PROCESS_STEPS.map((step, index) => (
+            <li key={step.title} className="min-w-0">
+              <span className="font-label-sm uppercase text-primary">
+                Step {index + 1}
+              </span>
+              <h3 className="mt-2 font-headline-md text-on-surface">
+                {step.title}
+              </h3>
+              <p className="mt-2 font-body-md text-on-surface-variant">
+                {step.body}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <SamplePricing
+        sizeTiers={config.sizeTiers}
+        resinTypes={config.resinTypes}
+      />
 
       {!signedIn && (
         <PageFeedback tone="info" className="mt-6">
