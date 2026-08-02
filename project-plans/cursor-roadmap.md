@@ -20,7 +20,7 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-01
+**Last updated:** 2026-08-02
 
 | Item | State |
 |------|--------|
@@ -29,14 +29,14 @@ Cursor should treat this file as the **source of truth** for:
 | **Then** | **M18** — Cart price-change notifications |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M21c** · admin print-request badge · notification print-request links · catalog product scan fix · **M21b** · **M21** · **M13a** |
-| **In progress** | _(none)_ |
+| **Recently shipped (repo)** | **Merchant transparency** (contact/phone/address/JSON-LD) · **`/print` process + sample pricing** · **M21c** · admin print-request badge · **M13a** |
+| **In progress** | _(none)_ — **ops:** Merchant Center identity verify + Misrepresentation review (must match live site) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M21** / **M21b** / **M21c** (done) → **M13a** (done) → **M19** (next) → **M18** → **M8a.3** → M10 → M12 → **M13b** → **M6e** → **M9** → **M11a** → M11b → M14
+… → **M21** / **M21b** / **M21c** (done) → **M13a** (done) → Merchant transparency + `/print` UX polish (done, repo) → **M19** (next) → **M18** → **M8a.3** → M10 → M12 → **M13b** → **M6e** → **M9** → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -93,7 +93,7 @@ When adding new functionality, **prefer extending existing patterns**:
 ### 1.1 System layers
 
 - **Frontend SPA (React + Vite + Tailwind)**
-  - Storefront (`/`, `/shop`, `/shop/:slug`, `/vault`, `/about`, `/reviews`)
+  - Storefront (`/`, `/shop`, `/shop/:slug`, `/vault`, `/about`, `/contact`, `/print`, `/reviews`)
   - Cart + checkout (`/cart`, `/checkout/success`)
   - Customer account (`/account/*`)
   - Admin portal (`/admin/*`)
@@ -182,8 +182,21 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M21** — Printing as a Service (pay-first v1) — **shipped** (2026-06-24): `/print`, STL/ZIP upload, cart/checkout, admin config, STL purge on ship; later: file-requirements checklist in policy
 - **M21b** — Print file review (post-pay) — **shipped** (repo 2026-07): `reviewStatus` on print lines; admin approve/reject; reject → refund; block **Processing** until approved; customer banners + in-app notifications. **Superseded for pricing** by **M21c** (keep review UX patterns).
 - **M21c** — Print quote-first (multi-figure) — **production verified** (2026-08-01): upload → admin review/tiers → quote → pay → fulfill; pay-first cart path disabled; admin print-request badge; notification deep links
+- **M21c UX polish** — `/print` how-it-works steps + sample price table from live `PrintServiceConfig.sizeTiers` (and resin deltas) — **shipped** (repo 2026-08-02)
 - **M22** — Stripe Tax — **production verified** (2026-06-24)
 - **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
+- **Merchant transparency (Misrepresentation)** — street address, phone, `/contact`, Organization JSON-LD, footer/About/Shipping contact details — **shipped** (repo 2026-08-02); **ops:** deploy + MC business info match + identity verify + request review
+
+### 3.8 Merchant transparency + print page UX (2026-08-02)
+
+| Area | What shipped |
+|------|----------------|
+| **Config** | `BUSINESS_*` / `CONTACT_PHONE*` / address helpers in `src/lib/config.ts` (single source for UI + return-ship copy) |
+| **Pages** | `/contact`; About + Shipping & Returns show phone/address; footer nav + contact block |
+| **Schema.org** | `OrganizationJsonLd` on storefront layout (name, logo, email, phone, PostalAddress) |
+| **Print UX** | `/print` — four-step process copy; sample pricing table driven by admin size tiers (+ resin surcharge note) |
+
+**Ops (Merchant Center):** After deploy, business name / address / phone / email in MC must match the live site exactly → complete **Verify identity** → request **Misrepresentation** review. Site work alone does not clear the suspension.
 
 ### 3.7 M13a — Public catalog images + Merchant feed (2026-07-07)
 
@@ -223,8 +236,9 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | **Schema** | `PrintRequest`; mutations submit / quote / decline / `createPrintQuoteCheckoutSession` |
 | **Checkout** | Quote amount locked server-side; pay-first print cart lines rejected |
 | **Notify** | In-app quote/decline notifications + deep-link CTAs on Account → Notifications |
+| **UX (2026-08-02)** | How-it-works steps + sample pricing from live `sizeTiers` / resin deltas on `/print` |
 
-**Production verified** 2026-08-01 — end-to-end customer quote → pay flow.
+**Production verified** 2026-08-01 — end-to-end customer quote → pay flow. **UX polish** shipped in repo 2026-08-02 (process + sample prices).
 
 **Deploy:** Backend (PrintRequest + Lambdas) + frontend.
 
@@ -315,6 +329,8 @@ _(none)_
 ### In progress
 
 _(none — monitor production; fix bugs ad hoc)_
+
+**Ops follow-up (not a coding milestone):** Google Merchant Center — confirm live site shows address/phone/contact → match MC business info → Verify identity → request Misrepresentation review.
 
 ### Resolved bugs
 
@@ -1387,11 +1403,13 @@ Pay-first only works when the customer can pick a known SKU. Figure count and tr
 #### Customer flow
 
 1. **`/print`**
+   - **How it works** — short process steps (upload → review/size → quote → pay/print)
+   - **Sample pricing** — table from live `PrintServiceConfig.sizeTiers` (+ resin `priceDeltaCents` note); labeled as starting / per-figure rates before quote
    - Policy + file-requirements checklist (existing markdown) + acknowledgment
    - Upload STL or ZIP (existing caps)
    - Resin type + color (customer choice; shared for the job in v1)
    - Optional notes (“3 heroes + 1 monster”, etc.)
-   - **Submit print request** — **not** add-to-cart; no live size-tier price
+   - **Submit print request** — **not** add-to-cart; no customer-selected size price at submit
 2. **Account** — list of print requests with status: `submitted` → `in_review` → `quoted` → `paid` / `declined` / `cancelled`
 3. When **quoted** — show breakdown (e.g. `2 × 32mm`, `1 × 75mm`, resin, total) + **Pay quote** CTA → Stripe Checkout for that amount
 4. After pay — appears as a normal paid **Order** with print payload; fulfillment unchanged
@@ -1578,7 +1596,7 @@ Reuse existing cart/checkout — no separate payment path.
    - **Bootstrap option:** one-time or nightly **XML/JSON feed** from `Product` data if API credentials / Merchant account setup lag — same field mapping as API payloads.
    - **Required fields (typical):** `id`, `title`, `description`, `link`, `image_link`, `price`, `availability`, `condition`; `identifier_exists: no` for custom prints without GTIN when allowed.
    - **Exclude:** vault-gated SKUs unless intentionally listed in a separate Merchant feed.
-   - **Ops:** Merchant Center account, domain + business verification, shipping/returns policies linked in MC (align with site legal pages).
+   - **Ops:** Merchant Center account, domain + business verification, shipping/returns policies linked in MC (align with site legal pages). **Storefront transparency (2026-08-02):** `/contact`, footer address/phone, Organization JSON-LD — keep MC business info in sync after deploy.
    - **Depends on M9 JSON-LD?** No — on-page JSON-LD helps organic search; Merchant API is for **Shopping / free listings** surfaces. Both use the same underlying product fields.
 
 2. **Tracking pixels**
