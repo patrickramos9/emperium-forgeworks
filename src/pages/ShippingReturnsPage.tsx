@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { CONTACT_EMAIL } from "@/lib/config";
+import { CONTACT_EMAIL, CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL } from "@/lib/config";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 
 const linkClassName =
@@ -54,11 +54,19 @@ const SECTIONS: {
         heading: "Questions",
         body: (
           <>
-            For shipping, return, or refund questions, reach out to{" "}
+            For shipping, return, or refund questions, email{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className={linkClassName}>
               {CONTACT_EMAIL}
-            </a>{" "}
-            and include your order number.
+            </a>
+            , call{" "}
+            <a href={`tel:${CONTACT_PHONE_TEL}`} className={linkClassName}>
+              {CONTACT_PHONE_DISPLAY}
+            </a>
+            , or visit our{" "}
+            <Link to="/contact" className={linkClassName}>
+              Contact
+            </Link>{" "}
+            page. Include your order number.
           </>
         ),
       },
@@ -118,15 +126,27 @@ export function ShippingReturnsPage() {
             Need help?
           </h2>
           <p className="mb-stack-md max-w-2xl font-body-md text-on-surface-variant">
-            Email us with your order number and we will get back to you as soon
-            as we can.
+            Email or call with your order number and we will get back to you as
+            soon as we can. Full address and hours are on the{" "}
+            <Link to="/contact" className={linkClassName}>
+              Contact
+            </Link>{" "}
+            page.
           </p>
-          <a
-            href={`mailto:${CONTACT_EMAIL}`}
-            className="inline-flex items-center gap-2 bg-primary px-6 py-3 font-label-md uppercase tracking-wider text-on-primary transition-colors hover:bg-primary-container hover:text-on-primary-container"
-          >
-            {CONTACT_EMAIL}
-          </a>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="inline-flex items-center gap-2 bg-primary px-6 py-3 font-label-md uppercase tracking-wider text-on-primary transition-colors hover:bg-primary-container hover:text-on-primary-container"
+            >
+              {CONTACT_EMAIL}
+            </a>
+            <a
+              href={`tel:${CONTACT_PHONE_TEL}`}
+              className="inline-flex items-center gap-2 border border-outline-variant px-6 py-3 font-label-md uppercase tracking-wider text-on-surface transition-colors hover:border-primary hover:text-primary"
+            >
+              {CONTACT_PHONE_DISPLAY}
+            </a>
+          </div>
         </div>
 
         <p className="mt-stack-lg text-center">

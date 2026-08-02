@@ -4,7 +4,7 @@ Feature-by-feature manual QA checklist for production (and optionally local/sand
 
 **Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
-**Roadmap last synced:** 2026-06-24
+**Roadmap last synced:** 2026-08-01
 
 ---
 
@@ -51,7 +51,7 @@ Pre-launch sign-off closed 2026-06-11. **M11** signed off 2026-06-23 (§19). **M
 | **Catalog/admin product change** | §2 PDP, §17b, §9, §18a admin catalog |
 | **New milestone** | Matching section below + remove from **Not yet built** |
 
-**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, **M11** (§19), go-live polish §18a, order notification email, **M9a** (§20), **M16** (§21), **M22** (§22), **M21** (§23), **M13a** (§24).
+**Production-verified (regression optional):** M3b (incl. cancel/refund sync), M6 (core + **M6b** + **M6c** + **new-account**), M7b, M8b/c/d, M15, **M17**, **M11** (§19), go-live polish §18a, order notification email, **M9a** (§20), **M16** (§21), **M22** (§22), **M21** / **M21c** (§23), **M13a** (§24).
 
 **Do not test yet:** M19, M18, M6d marketing email, M10, M12, **M13b**, **M9** (SEO/gallery — not M9a).
 
@@ -755,25 +755,31 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 
 ---
 
-## §23 — Printing as a Service (M21)
+## §23 — Printing as a Service (M21 / M21c)
 
-**Status:** **Shipped** 2026-06-24 — deploy backend + frontend; create `printing-as-a-service` product + enable in Admin → Print service.
+**Status:** **M21** shipped 2026-06-24 (pay-first). **M21c** quote-first — **production verified** 2026-08-01.
 
 ### Setup
 
-- [ ] Admin → **Print service** → save config, set **Active**
-- [ ] Admin → **Products** → create slug `printing-as-a-service` with shipping profile + weight (oz)
+- [x] Admin → **Print service** → save config, set **Active**
+- [x] Catalog product slug `printing-as-a-service` with shipping profile + weight (oz) — `npx tsx scripts/seed-print-service-product.ts` if missing
 
-### Customer flow
+### Customer flow (M21c — current)
 
-- [ ] Home **Printing as a Service** card → `/print` (when active)
-- [ ] Sign in required; policy checkbox; size / resin / color / `.stl` upload
-- [ ] Add to cart → checkout → paid order with print config on line items
+- [x] Home **Printing as a Service** card → `/print` (when active)
+- [x] Sign in; policy checkbox; resin / color / notes / `.stl` or `.zip` upload (**no size price**)
+- [x] Submit → Account → Print requests
+- [x] After admin quote → notification + **Review and pay quote** link → Stripe → paid order
 
-### Admin fulfillment
+### Admin flow (M21c)
 
-- [ ] Order detail → **Download STL** for print lines
-- [ ] Mark **Shipped** → STL purged; **Purged after ship** shown on re-open
+- [x] Admin → **Print requests** (badge when `submitted` / `in_review`)
+- [x] Download file; assign figure lines by size tier; **Save quote** or **Decline**
+- [x] Order detail after pay → **Download STL/ZIP**; mark **Shipped** → file purged
+
+### Legacy (do not use)
+
+- Pay-first size-tier → cart → checkout for prints is **disabled** (server rejects print cart lines)
 
 ---
 
@@ -811,7 +817,7 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M13b** | Merchant API sync, marketing pixels, UTM on orders | M13a done §24 |
 | **M6e** | Guest cart server sync + identity merge | — |
 
-**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**, **§23 (M21)**, **§24 (M13a)**.
+**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**, **§23 (M21/M21c)**, **§24 (M13a)**.
 
 Add test sections here when each **new** milestone ships.
 

@@ -20,23 +20,23 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-07-15
+**Last updated:** 2026-08-01
 
 | Item | State |
 |------|--------|
-| **Phase** | **Out-of-order execution** — milestones have shipped opportunistically (print/Merchant ahead of catalog sales). Treat §4 specs as authority; **this table** as queue. |
-| **Next** | Continue **M21c** cutover / verify in production after backend deploy |
-| **Then** | **M19** — Catalog sales & bundles |
+| **Phase** | **Post-M21c** — catalog sales next |
+| **Next** | **M19** — Catalog sales & bundles |
+| **Then** | **M18** — Cart price-change notifications |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
-| **Recently verified** | **M13a** public product images + Merchant feed (2026-07-07) · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M21c** quote-first print (in progress / repo) · **M21b** · **M21** · **M13a** · **M22** · **M16** |
-| **In progress** | **M21c** — Print quote-first (upload → review → quote → pay) |
+| **Recently verified** | **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
+| **Recently shipped (repo)** | **M21c** · admin print-request badge · notification print-request links · catalog product scan fix · **M21b** · **M21** · **M13a** |
+| **In progress** | _(none)_ |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M21** (done, pay-first) → **M13a** (done) → **M21b** (done, post-pay review) → **M21c** (next — quote-first) → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** → **M6e** → **M9** → **M11a** → M11b → M14
+… → **M21** / **M21b** / **M21c** (done) → **M13a** (done) → **M19** (next) → **M18** → **M8a.3** → M10 → M12 → **M13b** → **M6e** → **M9** → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -181,6 +181,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M16** — Returns, refunds & exchanges — **production verified** (2026-06-24): admin refunds, return requests, pre-ship cancel, Payment/Fulfillment columns, refund status on customer + admin
 - **M21** — Printing as a Service (pay-first v1) — **shipped** (2026-06-24): `/print`, STL/ZIP upload, cart/checkout, admin config, STL purge on ship; later: file-requirements checklist in policy
 - **M21b** — Print file review (post-pay) — **shipped** (repo 2026-07): `reviewStatus` on print lines; admin approve/reject; reject → refund; block **Processing** until approved; customer banners + in-app notifications. **Superseded for pricing** by **M21c** (keep review UX patterns).
+- **M21c** — Print quote-first (multi-figure) — **production verified** (2026-08-01): upload → admin review/tiers → quote → pay → fulfill; pay-first cart path disabled; admin print-request badge; notification deep links
 - **M22** — Stripe Tax — **production verified** (2026-06-24)
 - **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
 
@@ -205,13 +206,27 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | **Admin** | `/admin/print-service` pricing/policy; order detail STL/ZIP download + purge status |
 | **M21b** | Post-pay file review (`updatePrintLineReview`); approve / reject+refund; fulfillment gate before **Processing** |
 
-**Known product flaw (drives M21c):** Pay-first assumes **one size tier per upload**. Does not charge per figure or support mixed size bands in one job. Admin cannot set the true price before payment.
+**Known product flaw (fixed by M21c):** Pay-first assumed **one size tier per upload**. **M21c** replaces with quote-first multi-figure pricing.
 
-**Ops before go-live:** Create catalog product slug `printing-as-a-service` (shipping profile + weight). Admin → Print service → **Active**. Paste live **policy** (file-requirements checklist) from defaults if DB still has short policy.
+**Ops:** Catalog product slug `printing-as-a-service` (shipping profile + weight). Admin → Print service → **Active**. Live **policy** should match quote-before-pay wording.
 
 **Deploy:** Backend (schema, storage, checkout + fulfillment + print-review Lambdas) + frontend.
 
-**Next print milestone:** **M21c** — quote-first (see §4).
+**Superseded by:** **M21c** (see §3.6b / §4).
+
+### 3.6b M21c — Print quote-first (2026-08-01)
+
+| Area | What shipped |
+|------|----------------|
+| **Customer** | `/print` submit (file + resin/color + notes, no size price); Account → Print requests; pay quote via Stripe |
+| **Admin** | `/admin/print-requests` queue; figure lines by size tier; save quote / decline; nav badge for pending |
+| **Schema** | `PrintRequest`; mutations submit / quote / decline / `createPrintQuoteCheckoutSession` |
+| **Checkout** | Quote amount locked server-side; pay-first print cart lines rejected |
+| **Notify** | In-app quote/decline notifications + deep-link CTAs on Account → Notifications |
+
+**Production verified** 2026-08-01 — end-to-end customer quote → pay flow.
+
+**Deploy:** Backend (PrintRequest + Lambdas) + frontend.
 
 ### 3.5 M22 — Stripe Tax (2026-06-24)
 
@@ -299,7 +314,7 @@ _(none)_
 
 ### In progress
 
-- **M21c** — Print **quote-first** redesign (spec in §4) — upload → admin review/tiers → quote → pay → print
+_(none — monitor production; fix bugs ad hoc)_
 
 ### Resolved bugs
 
@@ -310,10 +325,6 @@ _(none)_
 ### Planned (not started)
 
 **Next**
-
-- **M21c** — Print quote-first + multi-figure / size-tier pricing (see §4) — replaces pay-first pricing model from **M21**
-
-**Then**
 
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
 
@@ -1348,7 +1359,7 @@ On each fulfillment transition (when `userId` is set):
 
 ### M21c — Print quote-first (multi-figure pricing)
 
-**Status:** **In progress** (repo 2026-07-18). Replaces **M21** pay-first pricing. Reuses storage, `PrintServiceConfig` tiers, admin download, purge-on-ship.
+**Status:** **Production verified** (2026-08-01). Replaces **M21** pay-first pricing. Reuses storage, `PrintServiceConfig` tiers, admin download, purge-on-ship.
 
 **Goal:** Correct commercial flow for resin print jobs:
 
@@ -1432,11 +1443,11 @@ Pay-first only works when the customer can pick a known SKU. Figure count and tr
 
 ### M21 — Printing as a Service (historical pay-first v1)
 
-**Status:** **Shipped** 2026-06-24 (pay-first). **M21b** post-pay review shipped (repo 2026-07). **Pricing model superseded by M21c** — do not extend this flow; implement **M21c** instead. Detail below kept as reference for what production still runs until cutover.
+**Status:** **Shipped** 2026-06-24 (pay-first). **M21b** post-pay review shipped (repo 2026-07). **Pricing model superseded by M21c** (production verified 2026-08-01) — historical reference only; do not extend this flow.
 
 **Goal (v1, as built):** Customers order prints of their own STL/ZIP files: policy → configure size/resin/color → upload → cart → Stripe → **M11** fulfillment. Post-pay **M21b** review can approve or reject+refund.
 
-**Product gap:** One size tier + one price per upload — does not charge per figure or support mixed sizes. See **M21c**.
+**Product gap (closed by M21c):** One size tier + one price per upload — does not charge per figure or support mixed sizes.
 
 **Depends on:** **M3b** (checkout), **M11** (order + fulfillment), **M15** (shipping on checkout). Optional: **M20b** (`BlobStorageProvider`) — v1 may use Amplify Storage + S3 prefix like sculptor uploads.
 

@@ -3,7 +3,12 @@ import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
-import { CONTACT_EMAIL } from "@/lib/config";
+import {
+  BUSINESS_ADDRESS_LINES,
+  CONTACT_EMAIL,
+  CONTACT_PHONE_DISPLAY,
+  CONTACT_PHONE_TEL,
+} from "@/lib/config";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasReviewModel } from "@/lib/dataModels";
 import {
@@ -101,7 +106,7 @@ export function AboutPage() {
               Born in Shadow.
             </h1>
             <p className="font-body-lg text-on-surface-variant">
-              Based in Miami, Florida, Emperium Forgeworks is more than a
+              Based in Miramar, Florida, Emperium Forgeworks is more than a
               studio—it&apos;s a digital foundry dedicated to manifesting the
               dark and the divine through premium resin miniatures.
             </p>
@@ -154,7 +159,7 @@ export function AboutPage() {
           <div className="grid grid-cols-1 items-center gap-margin-desktop md:grid-cols-2">
             <div className="order-2 space-y-stack-md md:order-1">
               <span className="font-label-md uppercase tracking-[0.3em] text-primary">
-                Miami Protocol
+                Miramar Protocol
               </span>
               <h2 className="font-display-lg text-display-lg uppercase tracking-tighter text-on-surface">
                 Forge Story
@@ -162,7 +167,7 @@ export function AboutPage() {
               <div className="h-px w-full bg-gradient-to-r from-primary/50 to-transparent" />
               <p className="font-body-lg leading-relaxed text-on-surface-variant">
                 Emperium Forgeworks emerged from a singular obsession: the pursuit
-                of the perfect print. In the heart of Miami, we&apos;ve established
+                of the perfect print. In Miramar, Florida, we&apos;ve established
                 a sanctuary for wargamers and RPG enthusiasts who refuse to settle
                 for the standard.
               </p>
@@ -215,13 +220,33 @@ export function AboutPage() {
               Questions about orders, commissions, or the studio? Melissa handles
               forge inquiries directly.
             </p>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="mt-stack-md inline-flex items-center gap-2 font-label-md uppercase tracking-widest text-primary transition-colors hover:text-plasma-glow"
-            >
-              <Icon name="alternate_email" className="text-xl" />
-              {CONTACT_EMAIL}
-            </a>
+            <address className="mt-6 space-y-2 font-body-md not-italic text-on-surface">
+              {BUSINESS_ADDRESS_LINES.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </address>
+            <div className="mt-stack-md flex flex-col items-center gap-3">
+              <a
+                href={`tel:${CONTACT_PHONE_TEL}`}
+                className="inline-flex items-center gap-2 font-label-md uppercase tracking-widest text-primary transition-colors hover:text-plasma-glow"
+              >
+                <Icon name="call" className="text-xl" />
+                {CONTACT_PHONE_DISPLAY}
+              </a>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="inline-flex items-center gap-2 font-label-md uppercase tracking-widest text-primary transition-colors hover:text-plasma-glow"
+              >
+                <Icon name="alternate_email" className="text-xl" />
+                {CONTACT_EMAIL}
+              </a>
+              <Link
+                to="/contact"
+                className="font-label-sm uppercase tracking-widest text-on-surface-variant underline-offset-4 hover:text-on-surface hover:underline"
+              >
+                Full contact page
+              </Link>
+            </div>
           </div>
         </div>
       </section>

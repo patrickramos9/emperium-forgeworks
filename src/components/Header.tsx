@@ -64,6 +64,9 @@ export function Header() {
             <NavLink to="/about" className={navLinkClass}>
               About
             </NavLink>
+            <NavLink to="/contact" className={navLinkClass}>
+              Contact
+            </NavLink>
           </nav>
         </div>
 

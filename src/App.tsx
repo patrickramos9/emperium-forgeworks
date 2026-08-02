@@ -9,6 +9,7 @@ import { HomePage } from "@/pages/HomePage";
 import { ShopPage } from "@/pages/ShopPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
 import { AboutPage } from "@/pages/AboutPage";
+import { ContactPage } from "@/pages/ContactPage";
 import { ShippingReturnsPage } from "@/pages/ShippingReturnsPage";
 import { PrivacyPolicyPage } from "@/pages/PrivacyPolicyPage";
 import { ForgeTermsPage } from "@/pages/ForgeTermsPage";
@@ -100,6 +101,7 @@ export default function App() {
             <Route path="/vault" element={<VaultPage />} />
             <Route path="/vault/:slug" element={<VaultProductDetailPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/process" element={<Navigate to="/about" replace />} />
             <Route path="/process/*" element={<Navigate to="/about" replace />} />
             <Route path="/shipping-returns" element={<ShippingReturnsPage />} />
