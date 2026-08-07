@@ -549,7 +549,7 @@ _(none)_
 
 ### M6e — Guest identity parity (in progress)
 
-**Status:** **Foundation** verified 2026-08-06. **Guest cart sync** verified 2026-08-07. **Guest favorites** shipped in repo (2026-08-07) — `GuestFavorite` model, guest `toggleProductFavorite` + `listGuestFavorites`, PDP save without login, `/account/favorites` for guests, merge-on-login + favorite grants deferred to sign-in. **Deploy backend + frontend** to verify. **Next:** guest print requests.
+**Status:** **Foundation** verified 2026-08-06. **Guest cart sync** verified 2026-08-07. **Guest favorites** shipped in repo (2026-08-07) — `GuestFavorite` model, guest `toggleProductFavorite` + `getGuestFavorites`, PDP save without login, `/account/favorites` for guests, merge-on-login + favorite grants deferred to sign-in. **Deploy backend + frontend** to verify. **Next:** guest print requests.
 
 **Today (gaps):**
 - Guest **carts** live in browser `localStorage` only; `syncCartSnapshot` requires Cognito; `Product.activeCartCount` and abandon detection see **signed-in** shoppers only.
@@ -601,7 +601,7 @@ Extend or parallel **`CartSnapshot`** (historical options):
 
 #### B — Favorites
 
-**Shipped (repo 2026-08-07):** **Option B** — `GuestFavorite` (PK `guestId`+`productId`); `toggleProductFavorite` + `listGuestFavorites` accept guest HMAC; PDP save without login; `/account/favorites` works signed-out; merge creates user `Favorite` + may issue favorite grant; `favoriteCount` includes guests.
+**Shipped (repo 2026-08-07):** **Option B** — `GuestFavorite` (PK `guestId`+`productId`); `toggleProductFavorite` + `getGuestFavorites` accept guest HMAC; PDP save without login; `/account/favorites` works signed-out; merge creates user `Favorite` + may issue favorite grant; `favoriteCount` includes guests.
 
 **Data model** (historical options):
 

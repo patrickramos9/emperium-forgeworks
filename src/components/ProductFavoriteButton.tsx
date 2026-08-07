@@ -57,7 +57,7 @@ export function ProductFavoriteButton({
         } else {
           await ensureGuestSession();
           const client = await getGuestDataClient();
-          if (!client?.queries.listGuestFavorites) {
+          if (!client?.queries.getGuestFavorites) {
             if (!cancelled) {
               setFavorited(false);
               setLoading(false);

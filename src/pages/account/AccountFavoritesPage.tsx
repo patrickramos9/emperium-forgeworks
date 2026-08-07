@@ -52,7 +52,7 @@ export function AccountFavoritesPage() {
 
     await ensureGuestSession();
     const client = await getGuestDataClient();
-    if (!client?.queries.listGuestFavorites) {
+    if (!client?.queries.getGuestFavorites) {
       throw new Error(
         "Guest favorites are not available yet. Redeploy the Amplify backend.",
       );

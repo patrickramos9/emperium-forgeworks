@@ -181,7 +181,7 @@ async function handleToggle(event: AppSyncEvent) {
 }
 
 export const handler = async (event: AppSyncEvent) => {
-  if (event.info.fieldName === "listGuestFavorites") {
+  if (event.info.fieldName === "getGuestFavorites") {
     return handleListGuestFavorites(event);
   }
   return handleToggle(event);

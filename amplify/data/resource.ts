@@ -277,7 +277,7 @@ const schema = a.schema({
     .handler(a.handler.function(toggleProductFavoriteFn)),
 
   /** M6e — list favorites for a verified guest session (GuestFavorite is not client-readable). */
-  listGuestFavorites: a
+  getGuestFavorites: a
     .query()
     .arguments({
       guestId: a.string().required(),
@@ -714,7 +714,7 @@ const schema = a.schema({
 
   /**
    * M6e — guest favorites (parallel to Favorite; Amplify PK cannot share userId|guestId).
-   * Written via toggleProductFavorite / mergeGuestIdentity; listed via listGuestFavorites.
+   * Written via toggleProductFavorite / mergeGuestIdentity; listed via getGuestFavorites.
    */
   GuestFavorite: a
     .model({

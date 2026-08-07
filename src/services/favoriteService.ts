@@ -60,7 +60,7 @@ export async function listUserFavorites(
 export async function listGuestFavorites(
   client: AmplifyDataClient,
 ): Promise<FavoriteRecord[]> {
-  if (!client.queries.listGuestFavorites) {
+  if (!client.queries.getGuestFavorites) {
     throw new Error(
       "Guest favorites are not available yet. Redeploy the Amplify backend.",
     );
@@ -70,7 +70,7 @@ export async function listGuestFavorites(
     throw new Error("Guest session not ready — reload and try again.");
   }
 
-  const { data, errors } = await client.queries.listGuestFavorites({
+  const { data, errors } = await client.queries.getGuestFavorites({
     guestId: session.guestId,
     guestToken: session.guestToken,
   });
