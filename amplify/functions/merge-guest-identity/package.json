@@ -1,0 +1,8 @@
+{
+  "name": "merge-guest-identity",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "aws-amplify": "6.17.0"
+  }
+}

@@ -549,7 +549,7 @@ _(none)_
 
 ### M6e — Guest identity parity (backlog)
 
-**Status:** **Planned** — after **M6d** / **M13** marketing email path (or in parallel if abandon / guest-print friction is prioritized).
+**Status:** **In progress** — **foundation** (2026-08-06): `ensure-guest-session` Function URL (HttpOnly cookie + HMAC `guestToken`), `mergeGuestIdentity` AppSync mutation (verify + stub merge), SPA bootstrap + post-login merge hooks. **Next:** widen `CartSnapshot` / `Favorite` / `PrintRequest` with `guestId` and implement real merge.
 
 **Today (gaps):**
 - Guest **carts** live in browser `localStorage` only; `syncCartSnapshot` requires Cognito; `Product.activeCartCount` and abandon detection see **signed-in** shoppers only.

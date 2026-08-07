@@ -26,6 +26,8 @@ import { submitPrintRequest } from "./functions/submit-print-request/resource";
 import { adminQuotePrintRequest } from "./functions/admin-quote-print-request/resource";
 import { adminDeclinePrintRequest } from "./functions/admin-decline-print-request/resource";
 import { createPrintQuoteCheckout } from "./functions/create-print-quote-checkout/resource";
+import { ensureGuestSession } from "./functions/ensure-guest-session/resource";
+import { mergeGuestIdentity } from "./functions/merge-guest-identity/resource";
 
 const backend = defineBackend({
   auth,
@@ -43,6 +45,8 @@ const backend = defineBackend({
   updateOrderFulfillment,
   cancelStripeCheckout,
   issueNewAccountGrant,
+  mergeGuestIdentity,
+  ensureGuestSession,
   createStripeRefund,
   submitReturnRequest,
   updateReturnRequest,
@@ -115,6 +119,20 @@ backend.notifyOrderPlaced.addEnvironment(
   "ORDER_NOTIFICATION_FROM_EMAIL",
   process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
     "melissa@emperiumforgeworks.com",
+);
+
+/** M6e — HMAC secret for guestToken (AppSync cannot receive Function URL HttpOnly cookies). */
+const guestSessionSecret =
+  process.env.GUEST_SESSION_SECRET ??
+  "dev-only-guest-session-secret-change-me";
+backend.ensureGuestSession.addEnvironment("SITE_URL", siteUrl);
+backend.ensureGuestSession.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
+);
+backend.mergeGuestIdentity.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
 );
 
 backend.createStripeRefund.addEnvironment(
@@ -200,9 +218,16 @@ const stripeWebhookUrl = backend.stripeWebhook.resources.lambda.addFunctionUrl({
   authType: FunctionUrlAuthType.NONE,
 });
 
+/** M6e — Set-Cookie guest session (AppSync cannot set HTTP cookies). */
+const ensureGuestSessionUrl =
+  backend.ensureGuestSession.resources.lambda.addFunctionUrl({
+    authType: FunctionUrlAuthType.NONE,
+  });
+
 backend.addOutput({
   custom: {
     stripeWebhookUrl: stripeWebhookUrl.url,
+    ensureGuestSessionUrl: ensureGuestSessionUrl.url,
     publicProductImageBaseUrl: `https://${productImagesBucket.bucketName}.s3.${productImagesBucket.stack.region}.amazonaws.com`,
   },
 });

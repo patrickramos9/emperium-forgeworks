@@ -8,6 +8,7 @@ import {
 import { configureAmplify } from "@/lib/amplify";
 import { PageFeedback } from "@/components/PageFeedback";
 import { ensureNewAccountWelcomeGrant } from "@/services/newAccountPromoService";
+import { mergeGuestIdentityOnSignIn } from "@/services/guestIdentityService";
 
 export function AccountLoginPage() {
   const navigate = useNavigate();
@@ -53,6 +54,11 @@ export function AccountLoginPage() {
       const result = await signIn({ username: email, password });
 
       if (result.isSignedIn) {
+        try {
+          await mergeGuestIdentityOnSignIn();
+        } catch (mergeErr) {
+          console.error("Guest identity merge failed", mergeErr);
+        }
         try {
           await ensureNewAccountWelcomeGrant();
         } catch (grantErr) {

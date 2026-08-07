@@ -20,6 +20,7 @@ import { submitPrintRequest as submitPrintRequestFn } from "../functions/submit-
 import { adminQuotePrintRequest as adminQuotePrintRequestFn } from "../functions/admin-quote-print-request/resource";
 import { adminDeclinePrintRequest as adminDeclinePrintRequestFn } from "../functions/admin-decline-print-request/resource";
 import { createPrintQuoteCheckout as createPrintQuoteCheckoutFn } from "../functions/create-print-quote-checkout/resource";
+import { mergeGuestIdentity as mergeGuestIdentityFn } from "../functions/merge-guest-identity/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -105,6 +106,16 @@ const schema = a.schema({
 
   IssueNewAccountGrantResult: a.customType({
     issued: a.boolean().required(),
+  }),
+
+  /** M6e — merge guest-owned rows into Cognito user after sign-in. */
+  MergeGuestIdentityResult: a.customType({
+    merged: a.boolean().required(),
+    guestId: a.string().required(),
+    userId: a.string().required(),
+    cartsMerged: a.integer().required(),
+    favoritesMerged: a.integer().required(),
+    printRequestsMerged: a.integer().required(),
   }),
 
   SyncCartSnapshotResult: a.customType({
@@ -258,6 +269,17 @@ const schema = a.schema({
     .returns(a.ref("IssueNewAccountGrantResult"))
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(issueNewAccountGrantFn)),
+
+  /** M6e — verify HMAC guestToken + merge guest data into signed-in user (stub until guest rows exist). */
+  mergeGuestIdentity: a
+    .mutation()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+    })
+    .returns(a.ref("MergeGuestIdentityResult"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(mergeGuestIdentityFn)),
 
   syncCartSnapshot: a
     .mutation()
@@ -844,6 +866,7 @@ const schema = a.schema({
   allow.resource(updateOrderFulfillmentFn),
   allow.resource(cancelStripeCheckoutFn),
   allow.resource(issueNewAccountGrantFn),
+  allow.resource(mergeGuestIdentityFn),
   allow.resource(createStripeRefundFn),
   allow.resource(submitReturnRequestFn),
   allow.resource(updateReturnRequestFn),

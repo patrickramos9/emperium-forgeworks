@@ -9,6 +9,7 @@ import { PageFeedback } from "@/components/PageFeedback";
 import { useNotificationBadge } from "@/context/NotificationBadgeContext";
 import { useToast } from "@/context/ToastContext";
 import { ensureNewAccountWelcomeGrant } from "@/services/newAccountPromoService";
+import { mergeGuestIdentityOnSignIn } from "@/services/guestIdentityService";
 
 type VerifyLocationState = {
   password?: string;
@@ -74,6 +75,11 @@ export function AccountRegisterVerifyPage() {
       const { confirmSignUp, signIn } = await import("aws-amplify/auth");
       await confirmSignUp({ username: trimmedEmail, confirmationCode: code.trim() });
       await signIn({ username: trimmedEmail, password });
+      try {
+        await mergeGuestIdentityOnSignIn();
+      } catch (mergeErr) {
+        console.error("Guest identity merge failed", mergeErr);
+      }
       try {
         await ensureNewAccountWelcomeGrant();
       } catch (grantErr) {

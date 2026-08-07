@@ -18,6 +18,19 @@ Amplify Data default mode is **`identityPool`**. Unauthenticated visitors receiv
 
 Signed-in users should use **`userPool`** mode so owner-based rules (`ownerDefinedIn("userId")`) apply correctly.
 
+### M6e guest shopper identity (cookie + token)
+
+Separate from Cognito IAM “guest” auth mode: a **stable shopper `guestId`** for carts/favorites/prints before sign-in.
+
+| Piece | Role |
+|-------|------|
+| **`ensure-guest-session`** Function URL | Sets HttpOnly `efw_guest_id` cookie; returns `{ guestId, guestToken }` |
+| **`guestToken`** | HMAC of `guestId` (`GUEST_SESSION_SECRET`) so AppSync mutations can verify identity (Function URL cookies are not sent to AppSync) |
+| **`mergeGuestIdentity`** mutation | Authenticated; verifies token; merges guest rows into Cognito `sub` (stub until models have `guestId`) |
+| **SPA** | Calls ensure on bootstrap; stores id/token in `localStorage`; merge on login/register |
+
+Set **`GUEST_SESSION_SECRET`** in Amplify Hosting / pipeline env for production (do not rely on the dev fallback).
+
 ---
 
 ## Frontend client selection
