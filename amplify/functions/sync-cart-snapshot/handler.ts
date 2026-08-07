@@ -13,6 +13,15 @@ import {
   applyProductCartCountDelta,
   productIdsInCartLines,
 } from "../cart-shared/productCartCounts.js";
+import {
+  lineItemsJsonFromSnapshot,
+  normalizeLineItems,
+  parseLineItems,
+  snapshotHasItems,
+  snapshotSignature,
+  type CartSnapshotLine,
+} from "../cart-shared/snapshotLines.js";
+import { verifyGuestToken } from "../guest-shared/cookie.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -23,85 +32,16 @@ const dataClient = generateClient<Schema>();
 
 const DEFAULT_ABANDON_HOURS = 24;
 
-function parseLineItems(
-  raw: unknown,
-): Schema["CartSnapshotLine"]["type"][] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) {
-    return raw.filter(
-      (row): row is Schema["CartSnapshotLine"]["type"] =>
-        row != null && typeof row === "object" && "quantity" in row,
-    );
-  }
-  if (typeof raw === "string") {
-    try {
-      return parseLineItems(JSON.parse(raw));
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
+type SyncResult = {
+  synced: boolean;
+  grantIssued: boolean;
+  grantsRevoked: boolean;
+};
 
-function snapshotHasItems(
-  lineItems: Schema["CartSnapshotLine"]["type"][] | null | undefined,
-): boolean {
-  return (lineItems ?? []).some((row) => row && row.quantity > 0);
-}
-
-/** Stable signature — slug/qty/price only so catalog id sync does not reset idle time. */
-function snapshotSignature(
-  lineItems: Schema["CartSnapshotLine"]["type"][],
-): string {
-  return JSON.stringify(
-    lineItems
-      .filter((row) => row.quantity > 0)
-      .map((row) => ({
-        slug: row.slug ?? row.productId,
-        quantity: row.quantity,
-        priceCents: row.priceCents,
-      }))
-      .sort((a, b) => a.slug.localeCompare(b.slug)),
-  );
-}
-
-function normalizeLineItems(
-  lineItems: Schema["CartSnapshotLine"]["type"][],
-): Schema["CartSnapshotLine"]["type"][] {
-  return lineItems
-    .filter((row) => row && row.quantity > 0)
-    .map((row) => ({
-      productId: row.productId,
-      slug: row.slug?.trim() || row.productId,
-      quantity: row.quantity,
-      priceCents: row.priceCents,
-      ...(row.title?.trim() ? { title: row.title.trim() } : {}),
-    }));
-}
-
-/** CartSnapshot.lineItems is a.json() — AppSync expects a serialized JSON string. */
-function lineItemsJsonFromSnapshot(
-  lineItems: Schema["CartSnapshotLine"]["type"][],
-): string {
-  return JSON.stringify(normalizeLineItems(lineItems));
-}
-
-export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
-  event,
-) => {
-  const userId =
-    event.identity && "sub" in event.identity
-      ? (event.identity.sub as string | undefined)
-      : undefined;
-  if (!userId) {
-    throw new Error("Sign in to sync cart.");
-  }
-
-  const lineItems = normalizeLineItems(
-    (event.arguments.lineItems ?? []).filter(
-      (row): row is Schema["CartSnapshotLine"]["type"] => row != null,
-    ),
-  );
+async function syncUserCart(
+  userId: string,
+  lineItems: CartSnapshotLine[],
+): Promise<SyncResult> {
   const now = new Date().toISOString();
   const nowMs = Date.now();
   let grantIssued = false;
@@ -114,7 +54,6 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
 
   const incomingHasItems = snapshotHasItems(lineItems);
   const previous = existing.data;
-
   const previousLines = parseLineItems(previous?.lineItems);
   const previousProductIds = productIdsInCartLines(previousLines);
   const nextProductIds = productIdsInCartLines(lineItems);
@@ -187,4 +126,93 @@ export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
   }
 
   return { synced: true, grantIssued, grantsRevoked };
+}
+
+/** Guest carts: snapshot + counts only. Promo grants wait for sign-in merge (M6). */
+async function syncGuestCart(
+  guestId: string,
+  lineItems: CartSnapshotLine[],
+): Promise<SyncResult> {
+  const now = new Date().toISOString();
+
+  const existing = await dataClient.models.GuestCartSnapshot.get({ guestId });
+  if (existing.errors?.length) {
+    throw new Error(existing.errors.map((e) => e.message).join("; "));
+  }
+
+  const incomingHasItems = snapshotHasItems(lineItems);
+  const previous = existing.data;
+  const previousLines = parseLineItems(previous?.lineItems);
+  const previousProductIds = productIdsInCartLines(previousLines);
+  const nextProductIds = productIdsInCartLines(lineItems);
+  const linesChanged =
+    !previous ||
+    snapshotSignature(previousLines) !== snapshotSignature(lineItems);
+
+  try {
+    await applyProductCartCountDelta(
+      dataClient,
+      previousProductIds,
+      nextProductIds,
+    );
+  } catch (err) {
+    console.error("Product cart count update failed", err);
+  }
+
+  if (!incomingHasItems) {
+    if (previous) {
+      await dataClient.models.GuestCartSnapshot.delete({ guestId });
+    }
+    return { synced: true, grantIssued: false, grantsRevoked: false };
+  }
+
+  const payload = {
+    guestId,
+    lineItems: lineItemsJsonFromSnapshot(lineItems),
+    updatedAt: linesChanged ? now : (previous?.updatedAt ?? now),
+    abandonedAt: previous?.abandonedAt ?? null,
+  };
+
+  if (previous) {
+    const updateResult =
+      await dataClient.models.GuestCartSnapshot.update(payload);
+    if (updateResult.errors?.length) {
+      throw new Error(updateResult.errors.map((e) => e.message).join("; "));
+    }
+  } else {
+    const createResult =
+      await dataClient.models.GuestCartSnapshot.create(payload);
+    if (createResult.errors?.length) {
+      throw new Error(createResult.errors.map((e) => e.message).join("; "));
+    }
+  }
+
+  return { synced: true, grantIssued: false, grantsRevoked: false };
+}
+
+export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
+  event,
+) => {
+  const lineItems = normalizeLineItems(
+    (event.arguments.lineItems ?? []).filter(
+      (row): row is CartSnapshotLine => row != null,
+    ),
+  );
+
+  const userId =
+    event.identity && "sub" in event.identity
+      ? (event.identity.sub as string | undefined)
+      : undefined;
+
+  if (userId) {
+    return syncUserCart(userId, lineItems);
+  }
+
+  const guestId = event.arguments.guestId?.trim() ?? "";
+  const guestToken = event.arguments.guestToken?.trim() ?? "";
+  if (!(await verifyGuestToken(guestId, guestToken))) {
+    throw new Error("Invalid or missing guest session.");
+  }
+
+  return syncGuestCart(guestId, lineItems);
 };

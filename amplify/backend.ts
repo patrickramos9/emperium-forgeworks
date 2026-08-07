@@ -134,6 +134,10 @@ backend.mergeGuestIdentity.addEnvironment(
   "GUEST_SESSION_SECRET",
   guestSessionSecret,
 );
+backend.syncCartSnapshot.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
+);
 
 backend.createStripeRefund.addEnvironment(
   "STRIPE_SECRET_KEY",

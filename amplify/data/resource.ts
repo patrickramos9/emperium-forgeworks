@@ -285,9 +285,12 @@ const schema = a.schema({
     .mutation()
     .arguments({
       lineItems: a.ref("CartSnapshotLine").array().required(),
+      /** M6e — required with guestToken when calling as guest (IAM). Ignored when Cognito `sub` is present. */
+      guestId: a.string(),
+      guestToken: a.string(),
     })
     .returns(a.ref("SyncCartSnapshotResult"))
-    .authorization((allow) => [allow.authenticated()])
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(syncCartSnapshotFn)),
 
   notifyOrderPlaced: a
@@ -471,7 +474,7 @@ const schema = a.schema({
       weightOz: a.integer(),
       /** Cached PDP shipping copy from assigned/default profile (set on admin save). */
       shippingDisplay: a.json(),
-      /** Signed-in carts currently containing this product (updated via syncCartSnapshot). Guest carts — **M6e**. */
+      /** Signed-in carts currently containing this product (updated via syncCartSnapshot). Guest carts via GuestCartSnapshot — **M6e**. */
       activeCartCount: a.integer().default(0),
       /** Signed-in users who favorited this product (updated via toggleProductFavorite). Guests — **M6e**. */
       favoriteCount: a.integer().default(0),
@@ -686,7 +689,7 @@ const schema = a.schema({
       allow.group("admin").to(["read"]),
     ]),
 
-  /** Server-side cart for abandon detection (M6c). */
+  /** Server-side cart for abandon detection (M6c). PK = Cognito sub. */
   CartSnapshot: a
     .model({
       userId: a.string().required(),
@@ -699,6 +702,20 @@ const schema = a.schema({
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read"]),
       allow.group("admin").to(["read"]),
     ]),
+
+  /**
+   * M6e — server-side guest cart (parallel to CartSnapshot; Amplify PK cannot be userId|guestId).
+   * Written only via syncCartSnapshot / mergeGuestIdentity Lambdas.
+   */
+  GuestCartSnapshot: a
+    .model({
+      guestId: a.string().required(),
+      lineItems: a.json().required(),
+      updatedAt: a.datetime().required(),
+      abandonedAt: a.datetime(),
+    })
+    .identifier(["guestId"])
+    .authorization((allow) => [allow.group("admin").to(["read"])]),
 
   Notification: a
     .model({

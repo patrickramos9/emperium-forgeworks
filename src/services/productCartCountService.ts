@@ -1,7 +1,6 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import { productIdsInCartLines } from "@/lib/productCartCounts";
 import { listAllProducts } from "@/lib/listAllProducts";
-import type { Schema } from "../../amplify/data/resource";
 
 const BACKFILL_SESSION_KEY = "adminProductCartCountsBackfill";
 
@@ -26,17 +25,21 @@ function parseSnapshotLineItems(raw: unknown): CartLineLike[] {
   );
 }
 
-async function listAllCartSnapshots(
-  client: AmplifyDataClient,
-): Promise<Schema["CartSnapshot"]["type"][]> {
-  const CartSnapshot = client.models.CartSnapshot;
-  if (!CartSnapshot) return [];
-
-  const rows: Schema["CartSnapshot"]["type"][] = [];
+async function listAllRows<T>(
+  list: (args: {
+    limit: number;
+    nextToken?: string;
+  }) => Promise<{
+    data?: Array<T | null> | null;
+    nextToken?: string | null;
+    errors?: Array<{ message: string }> | null;
+  }>,
+): Promise<T[]> {
+  const rows: T[] = [];
   let nextToken: string | undefined;
 
   do {
-    const response = await CartSnapshot.list({ limit: 100, nextToken });
+    const response = await list({ limit: 100, nextToken });
     if (response.errors?.length) {
       throw new Error(response.errors.map((e) => e.message).join("; "));
     }
@@ -49,17 +52,27 @@ async function listAllCartSnapshots(
   return rows;
 }
 
-/** One-time per browser session: align Product.activeCartCount with CartSnapshot rows. */
+/** One-time per browser session: align Product.activeCartCount with user + guest snapshots. */
 export async function backfillProductCartCountsIfNeeded(
   client: AmplifyDataClient,
 ): Promise<void> {
   if (sessionStorage.getItem(BACKFILL_SESSION_KEY) === "1") return;
   if (!client.models.CartSnapshot) return;
 
-  const snapshots = await listAllCartSnapshots(client);
+  const userSnapshots = await listAllRows((args) =>
+    client.models.CartSnapshot!.list(args),
+  );
+
+  let guestSnapshots: Array<{ lineItems?: unknown }> = [];
+  if (client.models.GuestCartSnapshot) {
+    guestSnapshots = await listAllRows((args) =>
+      client.models.GuestCartSnapshot!.list(args),
+    );
+  }
+
   const counts = new Map<string, number>();
 
-  for (const snapshot of snapshots) {
+  for (const snapshot of [...userSnapshots, ...guestSnapshots]) {
     for (const productId of productIdsInCartLines(
       parseSnapshotLineItems(snapshot.lineItems),
     )) {

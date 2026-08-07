@@ -30,7 +30,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M6e foundation** guest session + merge stub (2026-08-06) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
 | **Recently shipped (repo)** | **M23a (partial)** — admin assign review → product + PDP review list · **Merchant transparency** · **`/print` process + sample pricing** · **M21c** · **M13a** |
-| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **M6e** next: guest `CartSnapshot` · **ops:** Merchant Center identity verify + Misrepresentation review |
+| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **M6e** guest cart sync (repo; deploy to verify) → then favorites · **ops:** Merchant Center identity verify + Misrepresentation review |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -549,7 +549,7 @@ _(none)_
 
 ### M6e — Guest identity parity (in progress)
 
-**Status:** **Foundation production verified** (2026-08-06) — `ensure-guest-session` Function URL (HttpOnly cookie + HMAC `guestToken`), SPA bootstrap stores `efw_guest_id` / `efw_guest_token`, `mergeGuestIdentity` AppSync mutation verifies token after sign-in (merge counts still `0` until guest-owned rows exist). **Next:** widen `CartSnapshot` / `Favorite` / `PrintRequest` with `guestId` and implement real merge.
+**Status:** **Foundation production verified** (2026-08-06). **Guest cart sync** shipped in repo (2026-08-06) — `GuestCartSnapshot` model, `syncCartSnapshot` allows guest + HMAC token, `activeCartCount` includes guests, merge-on-login moves guest cart → user `CartSnapshot` (abandon grant may issue post-merge). **Deploy backend + frontend** to verify. **Next:** guest favorites, then guest print requests.
 
 **Today (gaps):**
 - Guest **carts** live in browser `localStorage` only; `syncCartSnapshot` requires Cognito; `Product.activeCartCount` and abandon detection see **signed-in** shoppers only.
@@ -583,26 +583,19 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 
 #### A — Cart snapshot sync
 
-Extend or parallel **`CartSnapshot`**:
+**Shipped (repo 2026-08-06):** **Option B** — `GuestCartSnapshot` model (PK `guestId`) parallel to `CartSnapshot` (PK `userId`), because Amplify identifiers cannot be `userId | guestId` on one table without a breaking PK migration.
+
+- **`syncCartSnapshot`** — `allow.guest()` + `allow.authenticated()`; guest path requires verified HMAC `guestId`/`guestToken`.
+- Counts via shared `applyProductCartCountDelta` for both models.
+- Guests do **not** receive abandon grants on sync; grants may issue on **merge** when idle rules qualify.
+- **`mergeGuestIdentity`** unions lines (prefer user on conflict), deletes guest row, recomputes counts.
+
+Extend or parallel **`CartSnapshot`** (historical options):
 
 | Option | Recommendation |
 |--------|----------------|
 | **A — widen `CartSnapshot`** | Add optional `guestId` (PK or GSI); exactly one of `userId` \| `guestId` set |
-| **B — `GuestCartSnapshot` model** | PK `guestId`; same `lineItems`, `updatedAt`, `abandonedAt` fields |
-
-Prefer **one sync code path** in Lambda with shared line-item normalization (`cart-shared/`).
-
-**API**
-- **`syncCartSnapshot`** (or guest twin) — `allow.guest()` + `allow.authenticated()`:
-  - Authenticated: current behavior (`userId` from `sub`).
-  - Guest: cookie-backed `guestId`.
-- Rate-limit / payload caps on guest sync (abuse hygiene).
-- **`Product.activeCartCount`:** increment/decrement from **both** user and guest snapshots (one cart per `userId` or per `guestId`).
-
-**Frontend**
-- Bootstrap: ensure guest cookie exists (Set-Cookie on first API call, or lightweight guest-session endpoint).
-- **`useCartSnapshotSync`:** run for **all** shoppers.
-- Merge: union line items (prefer user cart on conflict); delete guest row; recompute counts; issue abandon grant if idle rules fire **post-merge** under `userId`.
+| **B — `GuestCartSnapshot` model** | PK `guestId`; same `lineItems`, `updatedAt`, `abandonedAt` fields — **chosen** |
 
 ---
 

@@ -47,7 +47,7 @@ async function adjustProductCartCount(
   }
 }
 
-/** Distinct signed-in carts containing each product — one per user cart snapshot. */
+/** Distinct carts (signed-in or guest) containing each product — one per snapshot. */
 export async function applyProductCartCountDelta(
   client: DataClient,
   previousIds: Set<string>,

@@ -1,5 +1,6 @@
 import type { CartLine } from "@/context/CartContext";
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
+import { getStoredGuestSession } from "@/services/guestSessionService";
 
 export function cartLinesToSnapshotInput(items: CartLine[]) {
   return items
@@ -35,6 +36,7 @@ export type SyncCartSnapshotResult = {
 export async function syncCartSnapshot(
   client: AmplifyDataClient,
   items: CartLine[],
+  options?: { asGuest?: boolean },
 ): Promise<SyncCartSnapshotResult> {
   if (!client.mutations.syncCartSnapshot) {
     return {
@@ -45,10 +47,26 @@ export async function syncCartSnapshot(
   }
 
   const lineItems = cartLinesToSnapshotInput(items);
+  const args: {
+    lineItems: ReturnType<typeof cartLinesToSnapshotInput>;
+    guestId?: string;
+    guestToken?: string;
+  } = { lineItems };
 
-  const { data, errors } = await client.mutations.syncCartSnapshot({
-    lineItems,
-  });
+  if (options?.asGuest) {
+    const session = getStoredGuestSession();
+    if (!session) {
+      return {
+        synced: false,
+        grantIssued: false,
+        error: "Guest session not ready — reload and try again.",
+      };
+    }
+    args.guestId = session.guestId;
+    args.guestToken = session.guestToken;
+  }
+
+  const { data, errors } = await client.mutations.syncCartSnapshot(args);
   if (errors?.length) {
     const message = errors.map((e) => e.message).join("; ");
     console.warn("[syncCartSnapshot]", message);

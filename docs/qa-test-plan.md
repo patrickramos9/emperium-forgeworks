@@ -815,7 +815,7 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M15b** | Cart shipping estimate preview; Stripe ETA UI | — |
 | **M12** | Notification preferences | Depends on M8a.3 |
 | **M13b** | Merchant API sync, marketing pixels, UTM on orders | M13a done §24 |
-| **M6e** (remainder) | Guest carts / favorites / print requests + real merge | Foundation verified — see **§25** |
+| **M6e** (remainder) | Guest favorites / print requests + finish merge | Foundation + **guest cart** in repo 2026-08-06; verify after deploy — see **§25** |
 
 **Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**, **§23 (M21/M21c)**, **§24 (M13a)**, **§25 (M6e foundation)**.
 
@@ -837,6 +837,14 @@ Add test sections here when each **new** milestone ships.
 
 - [x] After login/register, `mergeGuestIdentity` succeeds (counts may be `0` until guest rows exist)
 - [ ] Tampered `efw_guest_token` → merge fails without blocking login (optional regression)
+
+### Guest cart sync (repo 2026-08-06 — verify after backend deploy)
+
+- [ ] Signed out: add item → Network `syncCartSnapshot` succeeds with `guestId`/`guestToken`
+- [ ] Admin product **In N carts** increases for that product (guest included)
+- [ ] Signed out: remove/clear cart → count decreases; guest snapshot deleted when empty
+- [ ] Sign in with items only in guest cart → merge; `cartsMerged: 1`; guest row gone; user cart has items
+- [ ] Sign in with overlapping product in both carts → user qty/price wins; count does not double
 
 ---
 
