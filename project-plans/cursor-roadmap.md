@@ -20,7 +20,7 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-07
 
 | Item | State |
 |------|--------|
@@ -28,9 +28,9 @@ Cursor should treat this file as the **source of truth** for:
 | **Next** | **M23a remainder** — PDP trust strip + shipping-returns link → then **M23b–f** |
 | **Then** | **M19** — Catalog sales & bundles → **M18** cart price-change |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
-| **Recently verified** | **M6e foundation** guest session + merge stub (2026-08-06) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
+| **Recently verified** | **M6e guest cart sync** (2026-08-07) · **M6e foundation** (2026-08-06) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
 | **Recently shipped (repo)** | **M23a (partial)** — admin assign review → product + PDP review list · **Merchant transparency** · **`/print` process + sample pricing** · **M21c** · **M13a** |
-| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **M6e** guest cart sync (repo; deploy to verify) → then favorites · **ops:** Merchant Center identity verify + Misrepresentation review |
+| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **M6e** next: guest favorites · **ops:** Merchant Center identity verify + Misrepresentation review |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -375,7 +375,7 @@ _(none)_
 - **M12** — Notification preferences _(depends on **M8a.3**)_
 - **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
 - **M9** — Polish & growth (gallery, SEO, performance)
-- **M6e** — **Guest identity parity** — foundation **verified**; next: guest carts / favorites / print requests + real merge (see §4)
+- **M6e** — **Guest identity parity** — foundation + **guest cart sync verified**; next: favorites / print requests (see §4)
 
 **Deferred — fabrication detail / hardware**
 
@@ -533,7 +533,7 @@ _(none)_
 | **M6 (new-account)** | `useForNewAccount` template + `new_account` grant on verify/sign-in — **production verified** 2026-06-20 |
 | **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
 | **M6d** | Abandoned-cart email (with M13) |
-| **M6e** | Guest identity foundation **verified**; remaining: server carts / favorites / print requests + real merge |
+| **M6e** | Foundation + **guest cart sync verified**; remaining: favorites / print requests |
 
 **Cursor rules:**
 - Single grant per order; never stack with shipping-profile free shipping as a “promo.”
@@ -549,7 +549,7 @@ _(none)_
 
 ### M6e — Guest identity parity (in progress)
 
-**Status:** **Foundation production verified** (2026-08-06). **Guest cart sync** shipped in repo (2026-08-06) — `GuestCartSnapshot` model, `syncCartSnapshot` allows guest + HMAC token, `activeCartCount` includes guests, merge-on-login moves guest cart → user `CartSnapshot` (abandon grant may issue post-merge). **Deploy backend + frontend** to verify. **Next:** guest favorites, then guest print requests.
+**Status:** **Foundation** verified 2026-08-06. **Guest cart sync production verified** 2026-08-07 — guest add/remove updates server `GuestCartSnapshot` + admin **In N carts**; sign-in merges into user `CartSnapshot` (same items retained). **Next:** guest favorites, then guest print requests.
 
 **Today (gaps):**
 - Guest **carts** live in browser `localStorage` only; `syncCartSnapshot` requires Cognito; `Product.activeCartCount` and abandon detection see **signed-in** shoppers only.
@@ -583,7 +583,7 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 
 #### A — Cart snapshot sync
 
-**Shipped (repo 2026-08-06):** **Option B** — `GuestCartSnapshot` model (PK `guestId`) parallel to `CartSnapshot` (PK `userId`), because Amplify identifiers cannot be `userId | guestId` on one table without a breaking PK migration.
+**Shipped + verified (2026-08-07):** **Option B** — `GuestCartSnapshot` model (PK `guestId`) parallel to `CartSnapshot` (PK `userId`), because Amplify identifiers cannot be `userId | guestId` on one table without a breaking PK migration.
 
 - **`syncCartSnapshot`** — `allow.guest()` + `allow.authenticated()`; guest path requires verified HMAC `guestId`/`guestToken`.
 - Counts via shared `applyProductCartCountDelta` for both models.
