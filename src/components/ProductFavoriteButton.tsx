@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { useToast } from "@/context/ToastContext";
 import { useNotificationBadge } from "@/context/NotificationBadgeContext";
-import { getCustomerDataClient } from "@/lib/amplifyDataClient";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
 import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import { hasFavoriteModel } from "@/lib/dataModels";
 import {
+  isGuestProductFavorited,
   isProductFavorited,
   toggleProductFavorite,
 } from "@/services/favoriteService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 
 type Props = {
   productId: string;
@@ -39,24 +43,30 @@ export function ProductFavoriteButton({
       setLoading(true);
       const session = await hasCustomerSession();
       if (!cancelled) setSignedIn(session);
-      if (!session) {
-        if (!cancelled) {
-          setFavorited(false);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const client = await getCustomerDataClient();
-      const userId = await getCustomerUserId();
-      if (!client || !userId || !hasFavoriteModel(client)) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
 
       try {
-        const saved = await isProductFavorited(client, userId, productId);
-        if (!cancelled) setFavorited(saved);
+        if (session) {
+          const client = await getCustomerDataClient();
+          const userId = await getCustomerUserId();
+          if (!client || !userId || !hasFavoriteModel(client)) {
+            if (!cancelled) setLoading(false);
+            return;
+          }
+          const saved = await isProductFavorited(client, userId, productId);
+          if (!cancelled) setFavorited(saved);
+        } else {
+          await ensureGuestSession();
+          const client = await getGuestDataClient();
+          if (!client?.queries.listGuestFavorites) {
+            if (!cancelled) {
+              setFavorited(false);
+              setLoading(false);
+            }
+            return;
+          }
+          const saved = await isGuestProductFavorited(client, productId);
+          if (!cancelled) setFavorited(saved);
+        }
       } catch (err) {
         console.warn("[ProductFavoriteButton]", err);
       }
@@ -70,18 +80,33 @@ export function ProductFavoriteButton({
   }, [productId]);
 
   const handleToggle = useCallback(async () => {
-    const client = await getCustomerDataClient();
-    if (!client) return;
-
     setBusy(true);
     try {
       const next = !favorited;
-      const result = await toggleProductFavorite(
-        client,
-        productId,
-        next,
-        productSlug,
-      );
+      let result: { favorited: boolean; grantIssued: boolean };
+
+      if (signedIn) {
+        const client = await getCustomerDataClient();
+        if (!client) return;
+        result = await toggleProductFavorite(
+          client,
+          productId,
+          next,
+          productSlug,
+        );
+      } else {
+        await ensureGuestSession();
+        const client = await getGuestDataClient();
+        if (!client) return;
+        result = await toggleProductFavorite(
+          client,
+          productId,
+          next,
+          productSlug,
+          { asGuest: true },
+        );
+      }
+
       setFavorited(result.favorited);
 
       if (result.favorited) {
@@ -92,12 +117,22 @@ export function ProductFavoriteButton({
             title: "Saved to favorites",
             description:
               "A promo offer was added — check Notifications when this item is in your cart.",
-            action: { label: "View notifications", href: "/account/notifications" },
+            action: {
+              label: "View notifications",
+              href: "/account/notifications",
+            },
+          });
+        } else if (signedIn) {
+          showToast({
+            tone: "success",
+            title: "Saved to favorites",
+            action: { label: "View favorites", href: "/account/favorites" },
           });
         } else {
           showToast({
             tone: "success",
             title: "Saved to favorites",
+            description: "Sign in anytime to unlock favorite offers.",
             action: { label: "View favorites", href: "/account/favorites" },
           });
         }
@@ -117,7 +152,14 @@ export function ProductFavoriteButton({
     } finally {
       setBusy(false);
     }
-  }, [favorited, productId, productSlug, refreshNotificationBadge, showToast]);
+  }, [
+    favorited,
+    productId,
+    productSlug,
+    refreshNotificationBadge,
+    showToast,
+    signedIn,
+  ]);
 
   if (!productInCatalog) {
     return (
@@ -136,17 +178,6 @@ export function ProductFavoriteButton({
             </button>
           </>
         )}
-      </p>
-    );
-  }
-
-  if (!signedIn) {
-    return (
-      <p className={`text-label-sm text-on-surface-variant ${className}`}>
-        <Link to="/account/login" className="text-primary hover:underline">
-          Sign in
-        </Link>{" "}
-        to save favorites and unlock offers.
       </p>
     );
   }

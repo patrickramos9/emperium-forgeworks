@@ -18,8 +18,10 @@ import {
 import {
   findActiveTemplate,
   issueAbandonedCartGrantIfNeeded,
+  issueFavoriteGrantIfNeeded,
   listAllTemplates,
 } from "../promo-shared/grantIssuance.js";
+import { adjustProductFavoriteCount } from "../favorite-shared/productFavoriteCounts.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -138,9 +140,103 @@ async function mergeGuestCartIntoUser(
   return 1;
 }
 
+async function listGuestFavoritesForMerge(guestId: string) {
+  const GuestFavorite = dataClient.models.GuestFavorite;
+  if (!GuestFavorite) return [];
+
+  const rows: { productId: string; productSlug?: string | null }[] = [];
+  let nextToken: string | undefined;
+
+  do {
+    const response = await GuestFavorite.list({
+      filter: { guestId: { eq: guestId } },
+      limit: 100,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row?.productId) {
+        rows.push({
+          productId: row.productId,
+          productSlug: row.productSlug,
+        });
+      }
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  return rows;
+}
+
+async function mergeGuestFavoritesIntoUser(
+  userId: string,
+  guestId: string,
+): Promise<number> {
+  const GuestFavorite = dataClient.models.GuestFavorite;
+  if (!GuestFavorite) return 0;
+
+  const guestRows = await listGuestFavoritesForMerge(guestId);
+  if (!guestRows.length) return 0;
+
+  let favoritesMerged = 0;
+
+  for (const row of guestRows) {
+    const productId = row.productId;
+    const productSlug = row.productSlug?.trim() || undefined;
+
+    const existing = await dataClient.models.Favorite.get({
+      userId,
+      productId,
+    });
+    if (existing.errors?.length) {
+      throw new Error(existing.errors.map((e) => e.message).join("; "));
+    }
+
+    const alreadyFavorited = Boolean(existing.data);
+
+    // Drop guest contribution to favoriteCount first.
+    const deleteGuest = await GuestFavorite.delete({ guestId, productId });
+    if (deleteGuest.errors?.length) {
+      throw new Error(deleteGuest.errors.map((e) => e.message).join("; "));
+    }
+    try {
+      await adjustProductFavoriteCount(dataClient, productId, -1);
+    } catch (err) {
+      console.error("Favorite count decrement on merge failed", err);
+    }
+
+    if (!alreadyFavorited) {
+      const createResult = await dataClient.models.Favorite.create({
+        userId,
+        productId,
+        ...(productSlug ? { productSlug } : {}),
+      });
+      if (createResult.errors?.length) {
+        throw new Error(createResult.errors.map((e) => e.message).join("; "));
+      }
+      try {
+        await adjustProductFavoriteCount(dataClient, productId, 1);
+      } catch (err) {
+        console.error("Favorite count increment on merge failed", err);
+      }
+      favoritesMerged += 1;
+
+      try {
+        await issueFavoriteGrantIfNeeded(dataClient, userId, productId);
+      } catch (err) {
+        console.error("Favorite grant on merge failed", err);
+      }
+    }
+  }
+
+  return favoritesMerged;
+}
+
 /**
- * M6e — verify guest token + Cognito sub; merge guest cart into user CartSnapshot.
- * Favorites / print requests: still stubs until those models support guest ownership.
+ * M6e — verify guest token + Cognito sub; merge guest cart + favorites into the user.
+ * Print requests: still stub until PrintRequest supports guest ownership.
  */
 export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
   event,
@@ -162,13 +258,14 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
   }
 
   const cartsMerged = await mergeGuestCartIntoUser(userId, guestId);
+  const favoritesMerged = await mergeGuestFavoritesIntoUser(userId, guestId);
 
   return {
     merged: true,
     guestId,
     userId,
     cartsMerged,
-    favoritesMerged: 0,
+    favoritesMerged,
     printRequestsMerged: 0,
   };
 };

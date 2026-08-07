@@ -30,7 +30,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M6e guest cart sync** (2026-08-07) · **M6e foundation** (2026-08-06) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
 | **Recently shipped (repo)** | **M23a (partial)** — admin assign review → product + PDP review list · **Merchant transparency** · **`/print` process + sample pricing** · **M21c** · **M13a** |
-| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **M6e** next: guest favorites · **ops:** Merchant Center identity verify + Misrepresentation review |
+| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **M6e** guest favorites (repo; deploy to verify) → then print requests · **ops:** Merchant Center identity verify + Misrepresentation review |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -375,7 +375,7 @@ _(none)_
 - **M12** — Notification preferences _(depends on **M8a.3**)_
 - **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
 - **M9** — Polish & growth (gallery, SEO, performance)
-- **M6e** — **Guest identity parity** — foundation + **guest cart sync verified**; next: favorites / print requests (see §4)
+- **M6e** — **Guest identity parity** — foundation + cart **verified**; guest favorites in repo; next: print requests (see §4)
 
 **Deferred — fabrication detail / hardware**
 
@@ -533,7 +533,7 @@ _(none)_
 | **M6 (new-account)** | `useForNewAccount` template + `new_account` grant on verify/sign-in — **production verified** 2026-06-20 |
 | **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
 | **M6d** | Abandoned-cart email (with M13) |
-| **M6e** | Foundation + **guest cart sync verified**; remaining: favorites / print requests |
+| **M6e** | Foundation + cart **verified**; guest favorites in repo; remaining: print requests |
 
 **Cursor rules:**
 - Single grant per order; never stack with shipping-profile free shipping as a “promo.”
@@ -549,7 +549,7 @@ _(none)_
 
 ### M6e — Guest identity parity (in progress)
 
-**Status:** **Foundation** verified 2026-08-06. **Guest cart sync production verified** 2026-08-07 — guest add/remove updates server `GuestCartSnapshot` + admin **In N carts**; sign-in merges into user `CartSnapshot` (same items retained). **Next:** guest favorites, then guest print requests.
+**Status:** **Foundation** verified 2026-08-06. **Guest cart sync** verified 2026-08-07. **Guest favorites** shipped in repo (2026-08-07) — `GuestFavorite` model, guest `toggleProductFavorite` + `listGuestFavorites`, PDP save without login, `/account/favorites` for guests, merge-on-login + favorite grants deferred to sign-in. **Deploy backend + frontend** to verify. **Next:** guest print requests.
 
 **Today (gaps):**
 - Guest **carts** live in browser `localStorage` only; `syncCartSnapshot` requires Cognito; `Product.activeCartCount` and abandon detection see **signed-in** shoppers only.
@@ -601,28 +601,16 @@ Extend or parallel **`CartSnapshot`** (historical options):
 
 #### B — Favorites
 
-**Today:** `Favorite` PK `(userId, productId)`; owner auth; `toggleProductFavorite` auth-only; `favoriteCount` is signed-in only.
+**Shipped (repo 2026-08-07):** **Option B** — `GuestFavorite` (PK `guestId`+`productId`); `toggleProductFavorite` + `listGuestFavorites` accept guest HMAC; PDP save without login; `/account/favorites` works signed-out; merge creates user `Favorite` + may issue favorite grant; `favoriteCount` includes guests.
 
-**Data model** (prefer mirror of cart choice):
+**Data model** (historical options):
 
 | Option | Recommendation |
 |--------|----------------|
-| **A — widen `Favorite`** | Optional `guestId`; identifier becomes `(ownerKey, productId)` where `ownerKey` is `userId` or `guestId` — or dual identifiers with exactly one owner field set |
-| **B — `GuestFavorite` model** | PK `(guestId, productId)`; same denormalized `productSlug` |
+| **A — widen `Favorite`** | Optional `guestId`; identifier becomes `(ownerKey, productId)` |
+| **B — `GuestFavorite` model** | PK `(guestId, productId)` — **chosen** |
 
-**API**
-- **`toggleProductFavorite`** — allow guest + authenticated; resolve owner from cookie or `sub`.
-- **`Product.favoriteCount`:** include guest favorites (same increment/decrement helpers; do not double-count after merge).
-
-**Frontend**
-- PDP / shop **Save** works signed-out (no login wall).
-- Guest favorites list: cookie-backed page (e.g. `/favorites` or account route that degrades for guests) — same empty/removed-product UX as **M17**.
-- Merge: union by `productId`; delete guest rows; recompute `favoriteCount`.
-
-**Promos (favorite grants)**
-- Do **not** issue `PromoGrant` to a bare `guestId` (grants stay account-bound per M6).
-- On **sign-in merge**: for each still-favorited product that would have triggered **M6b** for a new favorite, issue the favorite grant under `userId` if the user does not already have an open unused grant for that product (match existing M6b rules).
-- Auto-apply at checkout remains **signed-in only**.
+**Promos:** grants still deferred until sign-in merge (M6).
 
 ---
 

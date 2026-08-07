@@ -2,38 +2,62 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ProductCard } from "@/components/ProductCard";
 import { useProducts } from "@/hooks/useProducts";
-import { requireCustomerSession } from "@/lib/amplifyDataClient";
-import { getCustomerUserId } from "@/lib/customerAuth";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
+import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import { hasFavoriteModel } from "@/lib/dataModels";
 import {
+  listGuestFavorites,
   listUserFavorites,
   resolveFavoritesAgainstCatalog,
   toggleProductFavorite,
   type ResolvedFavorite,
 } from "@/services/favoriteService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 
 export function AccountFavoritesPage() {
   const navigate = useNavigate();
   const { products, loading: catalogLoading } = useProducts("all");
+  const [signedIn, setSignedIn] = useState(false);
   const [entries, setEntries] = useState<ResolvedFavorite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const loadFavorites = useCallback(async () => {
-    const client = await requireCustomerSession(navigate, "/account/favorites");
-    if (!client) return null;
+    const session = await hasCustomerSession();
+    setSignedIn(session);
 
-    if (!hasFavoriteModel(client)) {
-      throw new Error(
-        "Favorites are not available yet. Redeploy the Amplify backend.",
-      );
+    if (session) {
+      const client = await getCustomerDataClient();
+      if (!client) {
+        navigate(
+          `/account/login?returnTo=${encodeURIComponent("/account/favorites")}`,
+          { replace: true },
+        );
+        return null;
+      }
+      if (!hasFavoriteModel(client)) {
+        throw new Error(
+          "Favorites are not available yet. Redeploy the Amplify backend.",
+        );
+      }
+      const userId = await getCustomerUserId();
+      if (!userId) return null;
+      const favorites = await listUserFavorites(client, userId);
+      return resolveFavoritesAgainstCatalog(favorites, products);
     }
 
-    const userId = await getCustomerUserId();
-    if (!userId) return null;
-
-    const favorites = await listUserFavorites(client, userId);
+    await ensureGuestSession();
+    const client = await getGuestDataClient();
+    if (!client?.queries.listGuestFavorites) {
+      throw new Error(
+        "Guest favorites are not available yet. Redeploy the Amplify backend.",
+      );
+    }
+    const favorites = await listGuestFavorites(client);
     return resolveFavoritesAgainstCatalog(favorites, products);
   }, [navigate, products]);
 
@@ -72,18 +96,30 @@ export function AccountFavoritesPage() {
   }, [entries]);
 
   async function handleRemove(favorite: ResolvedFavorite) {
-    const client = await requireCustomerSession(navigate, "/account/favorites");
-    if (!client) return;
-
     const productId = favorite.favorite.productId;
     setRemovingId(productId);
     try {
-      await toggleProductFavorite(
-        client,
-        productId,
-        false,
-        favorite.favorite.productSlug ?? undefined,
-      );
+      if (signedIn) {
+        const client = await getCustomerDataClient();
+        if (!client) return;
+        await toggleProductFavorite(
+          client,
+          productId,
+          false,
+          favorite.favorite.productSlug ?? undefined,
+        );
+      } else {
+        await ensureGuestSession();
+        const client = await getGuestDataClient();
+        if (!client) return;
+        await toggleProductFavorite(
+          client,
+          productId,
+          false,
+          favorite.favorite.productSlug ?? undefined,
+          { asGuest: true },
+        );
+      }
       setEntries((rows) =>
         rows.filter((row) => row.favorite.productId !== productId),
       );
@@ -109,12 +145,22 @@ export function AccountFavoritesPage() {
           Saved Favorites
         </h1>
         <Link
-          to="/account"
+          to={signedIn ? "/account" : "/shop"}
           className="font-label-sm uppercase text-on-surface-variant hover:text-primary"
         >
-          ← Account
+          {signedIn ? "← Account" : "← Shop"}
         </Link>
       </div>
+
+      {!signedIn && (
+        <p className="mb-4 text-label-sm text-on-surface-variant">
+          Saved on this device.{" "}
+          <Link to="/account/login" className="text-primary underline">
+            Sign in
+          </Link>{" "}
+          to keep favorites across devices and unlock offers.
+        </p>
+      )}
 
       {error && <p className="mb-4 text-error">{error}</p>}
 

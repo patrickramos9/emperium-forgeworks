@@ -104,6 +104,15 @@ const schema = a.schema({
     grantIssued: a.boolean().required(),
   }),
 
+  GuestFavoriteListItem: a.customType({
+    productId: a.string().required(),
+    productSlug: a.string(),
+  }),
+
+  GuestFavoriteListResult: a.customType({
+    favorites: a.ref("GuestFavoriteListItem").array().required(),
+  }),
+
   IssueNewAccountGrantResult: a.customType({
     issued: a.boolean().required(),
   }),
@@ -259,9 +268,23 @@ const schema = a.schema({
       productId: a.string().required(),
       productSlug: a.string(),
       favorited: a.boolean().required(),
+      /** M6e — required with guestToken when calling as guest (IAM). Ignored when Cognito `sub` is present. */
+      guestId: a.string(),
+      guestToken: a.string(),
     })
     .returns(a.ref("ToggleFavoriteResult"))
-    .authorization((allow) => [allow.authenticated()])
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(toggleProductFavoriteFn)),
+
+  /** M6e — list favorites for a verified guest session (GuestFavorite is not client-readable). */
+  listGuestFavorites: a
+    .query()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+    })
+    .returns(a.ref("GuestFavoriteListResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(toggleProductFavoriteFn)),
 
   issueNewAccountWelcomeGrant: a
@@ -476,7 +499,7 @@ const schema = a.schema({
       shippingDisplay: a.json(),
       /** Signed-in carts currently containing this product (updated via syncCartSnapshot). Guest carts via GuestCartSnapshot — **M6e**. */
       activeCartCount: a.integer().default(0),
-      /** Signed-in users who favorited this product (updated via toggleProductFavorite). Guests — **M6e**. */
+      /** Signed-in users who favorited this product (updated via toggleProductFavorite). Guests via GuestFavorite — **M6e**. */
       favoriteCount: a.integer().default(0),
     })
     .authorization((allow) => [
@@ -688,6 +711,19 @@ const schema = a.schema({
       allow.ownerDefinedIn("userId").identityClaim("sub").to(["read", "create", "delete"]),
       allow.group("admin").to(["read"]),
     ]),
+
+  /**
+   * M6e — guest favorites (parallel to Favorite; Amplify PK cannot share userId|guestId).
+   * Written via toggleProductFavorite / mergeGuestIdentity; listed via listGuestFavorites.
+   */
+  GuestFavorite: a
+    .model({
+      guestId: a.string().required(),
+      productId: a.string().required(),
+      productSlug: a.string(),
+    })
+    .identifier(["guestId", "productId"])
+    .authorization((allow) => [allow.group("admin").to(["read"])]),
 
   /** Server-side cart for abandon detection (M6c). PK = Cognito sub. */
   CartSnapshot: a

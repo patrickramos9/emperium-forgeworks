@@ -1,6 +1,7 @@
 import type { Product } from "@/data/seedProducts";
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import { hasFavoriteModel } from "@/lib/dataModels";
+import { getStoredGuestSession } from "@/services/guestSessionService";
 
 export type FavoriteRecord = {
   productId: string;
@@ -56,6 +57,43 @@ export async function listUserFavorites(
   return rows;
 }
 
+export async function listGuestFavorites(
+  client: AmplifyDataClient,
+): Promise<FavoriteRecord[]> {
+  if (!client.queries.listGuestFavorites) {
+    throw new Error(
+      "Guest favorites are not available yet. Redeploy the Amplify backend.",
+    );
+  }
+  const session = getStoredGuestSession();
+  if (!session) {
+    throw new Error("Guest session not ready — reload and try again.");
+  }
+
+  const { data, errors } = await client.queries.listGuestFavorites({
+    guestId: session.guestId,
+    guestToken: session.guestToken,
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+
+  return (data?.favorites ?? [])
+    .filter((row): row is NonNullable<typeof row> => Boolean(row?.productId))
+    .map((row) => ({
+      productId: row.productId,
+      productSlug: row.productSlug,
+    }));
+}
+
+export async function isGuestProductFavorited(
+  client: AmplifyDataClient,
+  productId: string,
+): Promise<boolean> {
+  const favorites = await listGuestFavorites(client);
+  return favorites.some((row) => row.productId === productId);
+}
+
 /** Match saved favorites to live catalog rows; leftovers are removed-from-store. */
 export function resolveFavoritesAgainstCatalog(
   favorites: FavoriteRecord[],
@@ -107,17 +145,36 @@ export async function toggleProductFavorite(
   productId: string,
   favorited: boolean,
   productSlug?: string,
+  options?: { asGuest?: boolean },
 ): Promise<{ favorited: boolean; grantIssued: boolean }> {
   if (!client.mutations.toggleProductFavorite) {
     throw new Error(
       "Favorites API is not deployed. Redeploy the Amplify backend.",
     );
   }
-  const { data, errors } = await client.mutations.toggleProductFavorite({
+
+  const args: {
+    productId: string;
+    favorited: boolean;
+    productSlug?: string;
+    guestId?: string;
+    guestToken?: string;
+  } = {
     productId,
     favorited,
     ...(productSlug ? { productSlug } : {}),
-  });
+  };
+
+  if (options?.asGuest) {
+    const session = getStoredGuestSession();
+    if (!session) {
+      throw new Error("Guest session not ready — reload and try again.");
+    }
+    args.guestId = session.guestId;
+    args.guestToken = session.guestToken;
+  }
+
+  const { data, errors } = await client.mutations.toggleProductFavorite(args);
   if (errors?.length) {
     throw new Error(errors.map((e) => e.message).join("; "));
   }

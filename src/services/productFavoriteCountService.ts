@@ -1,46 +1,59 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import { hasFavoriteModel } from "@/lib/dataModels";
 import { listAllProducts } from "@/lib/listAllProducts";
-import type { Schema } from "../../amplify/data/resource";
 
 const BACKFILL_SESSION_KEY = "adminProductFavoriteCountsBackfill";
 
-async function listAllFavorites(
+async function listAllFavoriteProductIds(
   client: AmplifyDataClient,
-): Promise<Schema["Favorite"]["type"][]> {
-  const Favorite = client.models.Favorite;
-  if (!Favorite) return [];
+): Promise<string[]> {
+  const ids: string[] = [];
 
-  const rows: Schema["Favorite"]["type"][] = [];
-  let nextToken: string | undefined;
+  async function listModel(
+    list: (args: {
+      limit: number;
+      nextToken?: string;
+    }) => Promise<{
+      data?: Array<{ productId?: string | null } | null> | null;
+      nextToken?: string | null;
+      errors?: Array<{ message: string }> | null;
+    }>,
+  ) {
+    let nextToken: string | undefined;
+    do {
+      const response = await list({ limit: 100, nextToken });
+      if (response.errors?.length) {
+        throw new Error(response.errors.map((e) => e.message).join("; "));
+      }
+      for (const row of response.data ?? []) {
+        const productId = row?.productId?.trim();
+        if (productId) ids.push(productId);
+      }
+      nextToken = response.nextToken ?? undefined;
+    } while (nextToken);
+  }
 
-  do {
-    const response = await Favorite.list({ limit: 100, nextToken });
-    if (response.errors?.length) {
-      throw new Error(response.errors.map((e) => e.message).join("; "));
-    }
-    for (const row of response.data ?? []) {
-      if (row) rows.push(row);
-    }
-    nextToken = response.nextToken ?? undefined;
-  } while (nextToken);
+  if (client.models.Favorite) {
+    await listModel((args) => client.models.Favorite!.list(args));
+  }
+  if (client.models.GuestFavorite) {
+    await listModel((args) => client.models.GuestFavorite!.list(args));
+  }
 
-  return rows;
+  return ids;
 }
 
-/** One-time per browser session: align Product.favoriteCount with Favorite rows. */
+/** One-time per browser session: align Product.favoriteCount with user + guest favorites. */
 export async function backfillProductFavoriteCountsIfNeeded(
   client: AmplifyDataClient,
 ): Promise<void> {
   if (sessionStorage.getItem(BACKFILL_SESSION_KEY) === "1") return;
   if (!hasFavoriteModel(client)) return;
 
-  const favorites = await listAllFavorites(client);
+  const favoriteProductIds = await listAllFavoriteProductIds(client);
   const counts = new Map<string, number>();
 
-  for (const favorite of favorites) {
-    const productId = favorite.productId?.trim();
-    if (!productId) continue;
+  for (const productId of favoriteProductIds) {
     counts.set(productId, (counts.get(productId) ?? 0) + 1);
   }
 

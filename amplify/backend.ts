@@ -138,6 +138,10 @@ backend.syncCartSnapshot.addEnvironment(
   "GUEST_SESSION_SECRET",
   guestSessionSecret,
 );
+backend.toggleProductFavorite.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
+);
 
 backend.createStripeRefund.addEnvironment(
   "STRIPE_SECRET_KEY",
