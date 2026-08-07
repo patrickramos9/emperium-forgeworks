@@ -358,7 +358,7 @@ See **§17** for grant setup and checkout verification. See **§17b** for remove
 **Routes:** `/admin/products`, `/admin/products/:slug`, `/admin/products/new`
 
 - [ ] List all products; edit link works
-- [ ] **Active cart count:** product cards show **In N carts** (or similar) for signed-in shoppers with items in server snapshot — updates after cart sync (signed-in only until M6e)
+- [ ] **Active cart count:** product cards show **In N carts** (or similar) for shoppers with items in server snapshot — updates after cart sync (signed-in only until **M6e** guest carts)
 - [ ] Create product: slug, title, price, category, images upload to S3
 - [ ] Gallery order / detail image
 - [ ] Variants / option groups save and reflect on PDP
@@ -815,7 +815,7 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M15b** | Cart shipping estimate preview; Stripe ETA UI | — |
 | **M12** | Notification preferences | Depends on M8a.3 |
 | **M13b** | Merchant API sync, marketing pixels, UTM on orders | M13a done §24 |
-| **M6e** | Guest cart server sync + identity merge | — |
+| **M6e** | Guest identity parity: carts, favorites, print requests + sign-in merge | Cookie `guestId`; see roadmap §4 |
 
 **Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**, **§23 (M21/M21c)**, **§24 (M13a)**.
 

@@ -20,7 +20,7 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-06
 
 | Item | State |
 |------|--------|
@@ -375,7 +375,7 @@ _(none)_
 - **M12** — Notification preferences _(depends on **M8a.3**)_
 - **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
 - **M9** — Polish & growth (gallery, SEO, performance)
-- **M6e** — **Guest cart & identity sync** — server-side guest carts (cookie id), parity with signed-in `CartSnapshot` for counts, abandon detection, sign-in merge (see §4)
+- **M6e** — **Guest identity parity** — cookie guest id; server carts, favorites, and print requests without Cognito; merge on sign-in (see §4)
 
 **Deferred — fabrication detail / hardware**
 
@@ -533,7 +533,7 @@ _(none)_
 | **M6 (new-account)** | `useForNewAccount` template + `new_account` grant on verify/sign-in — **production verified** 2026-06-20 |
 | **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
 | **M6d** | Abandoned-cart email (with M13) |
-| **M6e** | Guest identity (cookie) + server guest cart sync; merge on sign-in; `activeCartCount` + abandon paths include guests |
+| **M6e** | Guest identity (cookie) + server carts / favorites / print requests; merge on sign-in; counts + abandon include guests |
 
 **Cursor rules:**
 - Single grant per order; never stack with shipping-profile free shipping as a “promo.”
@@ -547,11 +547,17 @@ _(none)_
 
 ---
 
-### M6e — Guest cart & identity sync (backlog)
+### M6e — Guest identity parity (backlog)
 
-**Status:** **Planned** — after **M6d** / **M13** marketing email path (or in parallel if abandon parity is prioritized). **Today:** guest carts live in **browser `localStorage` only**; `syncCartSnapshot` requires Cognito auth; `Product.activeCartCount`, abandoned-cart detection, and account promos only see **signed-in** shoppers.
+**Status:** **Planned** — after **M6d** / **M13** marketing email path (or in parallel if abandon / guest-print friction is prioritized).
 
-**Goal:** No behavioral gap between guest and signed-in shoppers for **server-visible cart state** — same snapshot sync, admin cart counts, idle/abandon tracking, and clean **merge on sign-in/register**. Checkout promos remain **account grants** at payment time (M6 business rule); guests still **sign in to redeem** offers, but their cart history and abandon eligibility are not lost while browsing signed out.
+**Today (gaps):**
+- Guest **carts** live in browser `localStorage` only; `syncCartSnapshot` requires Cognito; `Product.activeCartCount` and abandon detection see **signed-in** shoppers only.
+- **Favorites** require Cognito (`Favorite.userId` + `toggleProductFavorite`); PDP save redirects / blocks guests.
+- **Print requests (M21c)** require `requireCustomerSession` on `/print`; `PrintRequest.userId` is Cognito `sub` only.
+- **Guest checkout** for catalog products already works (Stripe email); promos remain account-only (M6).
+
+**Goal:** Shoppers can **browse, favorite, cart, checkout, and submit custom print requests without creating an account**. Cognito remains an optional upgrade for order history, promo redemption, cross-device sync, and account inbox. Shared foundation: one **stable guest identity** (cookie) that owns server rows the same way `userId` does today, with **idempotent merge on sign-in/register**.
 
 #### Why a cookie (or equivalent)
 
@@ -559,12 +565,23 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 
 | Approach | Notes |
 |----------|--------|
-| **HttpOnly cookie** (recommended) | e.g. `efw_guest_id` = UUID; set on first visit if missing; sent automatically to guest-accessible sync API; harder to tamper than `localStorage` alone |
+| **HttpOnly cookie** (recommended) | e.g. `efw_guest_id` = UUID; set on first visit if missing; sent automatically to guest-accessible APIs; harder to tamper than `localStorage` alone |
 | **localStorage mirror** | Fallback if cookie blocked; same UUID; document as secondary |
 
-**Yes — this requires persisting that id in the database** keyed by the cookie value, analogous to `CartSnapshot.userId` today.
+**Yes — this requires persisting that id in the database** keyed by the cookie value, analogous to `CartSnapshot.userId` / `Favorite.userId` / `PrintRequest.userId` today.
 
-#### Data model
+**`guestId`:** opaque UUID v4; no PII. TTL / cleanup job for idle rows > N days (e.g. 90) so counts and storage do not grow forever. Print-request rows with open quotes may use a longer TTL or "keep until paid/declined/cancelled."
+
+#### Shared identity rules
+
+1. Exactly one of **`userId`** (Cognito `sub`) **or** **`guestId`** on owned shopper rows — never both on the same row.
+2. All guest-mutating Lambdas: read `guestId` from **verified HttpOnly cookie** (or argument only when it matches cookie). Never trust a client-only id.
+3. **Sign-in / register merge** (single orchestration, preferably one Lambda or sequenced mutations): cart → favorites → print requests → recompute product counts → then issue deferred grants (abandon / favorite) under `userId`.
+4. Merge must be **idempotent** (safe if user refreshes mid-login).
+
+---
+
+#### A — Cart snapshot sync
 
 Extend or parallel **`CartSnapshot`**:
 
@@ -575,61 +592,134 @@ Extend or parallel **`CartSnapshot`**:
 
 Prefer **one sync code path** in Lambda with shared line-item normalization (`cart-shared/`).
 
-**`guestId`:** opaque UUID v4; no PII. TTL / cleanup job for rows idle > N days (e.g. 90) so counts and storage do not grow forever.
-
-#### API
-
-- **`syncCartSnapshot`** (or **`syncGuestCartSnapshot`**) — `allow.guest()` + `allow.authenticated()`:
+**API**
+- **`syncCartSnapshot`** (or guest twin) — `allow.guest()` + `allow.authenticated()`:
   - Authenticated: current behavior (`userId` from `sub`).
-  - Guest: read `guestId` from **HttpOnly cookie** (Lambda reads cookie header) or accept `guestId` argument only when it matches verified cookie (do not trust client-only ids).
+  - Guest: cookie-backed `guestId`.
 - Rate-limit / payload caps on guest sync (abuse hygiene).
 - **`Product.activeCartCount`:** increment/decrement from **both** user and guest snapshots (one cart per `userId` or per `guestId`).
 
-#### Frontend
+**Frontend**
+- Bootstrap: ensure guest cookie exists (Set-Cookie on first API call, or lightweight guest-session endpoint).
+- **`useCartSnapshotSync`:** run for **all** shoppers.
+- Merge: union line items (prefer user cart on conflict); delete guest row; recompute counts; issue abandon grant if idle rules fire **post-merge** under `userId`.
 
-- On app bootstrap: ensure guest cookie exists (edge/Lambda Set-Cookie on first API call, or lightweight guest-session endpoint).
-- **`useCartSnapshotSync`:** run for **all** shoppers — signed-in uses `sub`; guest uses cookie-backed sync (same debounce as today).
-- **Sign-in / register:** merge guest snapshot into user snapshot (union line items, prefer user cart on conflict); delete guest row; recompute cart counts; then issue abandon grant if idle rules fire post-merge.
+---
 
-#### Promos & notifications (parity scope)
+#### B — Favorites
+
+**Today:** `Favorite` PK `(userId, productId)`; owner auth; `toggleProductFavorite` auth-only; `favoriteCount` is signed-in only.
+
+**Data model** (prefer mirror of cart choice):
+
+| Option | Recommendation |
+|--------|----------------|
+| **A — widen `Favorite`** | Optional `guestId`; identifier becomes `(ownerKey, productId)` where `ownerKey` is `userId` or `guestId` — or dual identifiers with exactly one owner field set |
+| **B — `GuestFavorite` model** | PK `(guestId, productId)`; same denormalized `productSlug` |
+
+**API**
+- **`toggleProductFavorite`** — allow guest + authenticated; resolve owner from cookie or `sub`.
+- **`Product.favoriteCount`:** include guest favorites (same increment/decrement helpers; do not double-count after merge).
+
+**Frontend**
+- PDP / shop **Save** works signed-out (no login wall).
+- Guest favorites list: cookie-backed page (e.g. `/favorites` or account route that degrades for guests) — same empty/removed-product UX as **M17**.
+- Merge: union by `productId`; delete guest rows; recompute `favoriteCount`.
+
+**Promos (favorite grants)**
+- Do **not** issue `PromoGrant` to a bare `guestId` (grants stay account-bound per M6).
+- On **sign-in merge**: for each still-favorited product that would have triggered **M6b** for a new favorite, issue the favorite grant under `userId` if the user does not already have an open unused grant for that product (match existing M6b rules).
+- Auto-apply at checkout remains **signed-in only**.
+
+---
+
+#### C — Custom print requests (M21c)
+
+**Today:** `/print` calls `requireCustomerSession`; `PrintRequest.userId` required; Account → Print requests is auth-only.
+
+**Data model**
+- Widen **`PrintRequest`**: optional `guestId`; exactly one of `userId` \| `guestId`.
+- Require **contact email** at guest submit (Stripe / quote follow-up). Store on the request (`email`) — not on the guest cookie record.
+- Optional later: magic-link "view your quote" token; v1 can use **cookie + email match** on a public-ish status page.
+
+**API / storage**
+- **`submitPrintRequest`** — `allow.guest()` + authenticated; guest path sets `guestId` from cookie + `email` from form.
+- Upload to `print-jobs/` must work with **guest IAM** (or short-lived upload URL minted by Lambda after cookie check) — do not require Cognito for STL put.
+- **Quote / decline / pay quote** Lambdas: authorize by `userId === sub` **or** (`guestId` matches cookie **and** request email matches when needed).
+- Guest **Pay quote** → existing Stripe Checkout; `Order.userId` may stay null; link `PrintRequest.orderId` as today.
+
+**Frontend**
+- Remove login wall on `/print` submit for guests.
+- Guest status list: `/print/requests` (or similar) filtered by cookie — show status, quote breakdown, **Pay quote** when `quoted`.
+- Deep links from email (when SES works) can open the same page.
+- Merge on sign-in: set `userId = sub`, clear `guestId` on open requests; appear under Account → Print requests.
+
+**Notifications**
+- In-app `Notification.userId` cannot target guests — use **email** for guest quote/decline when SES is reliable; until then, cookie status page is the source of truth for guests.
+- After merge, issue in-app notifications for subsequent events under `userId` as today.
+
+---
+
+#### Promos & notifications (parity matrix)
 
 | Feature | Guest after M6e |
 |---------|-----------------|
 | **Cart snapshot / idle timer** | Yes — server `updatedAt` |
-| **Abandoned-cart grant** | Issue on **sign-in** when merged idle cart qualifies (or on return with cookie + later login) — still tied to `userId` |
+| **Abandoned-cart grant** | Issue on **sign-in** when merged idle cart qualifies — still tied to `userId` |
+| **Favorites + favoriteCount** | Yes — server rows under `guestId`; merge on sign-in |
+| **Favorite grant** | Deferred until **sign-in** merge (M6b rules under `userId`) |
 | **Auto-apply promo at checkout** | Still requires **signed-in** account (M6) |
-| **Thank-you / favorite grants** | Unchanged — need `userId` |
+| **Thank-you grant** | Needs `userId` on paid order — guest paid orders skip unless account linked |
+| **Print request submit / pay quote** | Yes — cookie + contact email |
+| **Print quote in-app inbox** | No until sign-in; email + status page for guests |
 | **M18 price-change alerts** | Can key off guest snapshot until login, then migrate to user |
 
 #### Admin
 
-- **`Product.activeCartCount`** includes guest + signed-in carts (label optional: “In N carts” unchanged).
-- Optional later: admin filter “guest vs account” carts — out of scope v1.
+- **`Product.activeCartCount`** / **`favoriteCount`** include guest + signed-in.
+- Print request queue already admin-wide — show guest badge / email when `guestId` set.
+- Optional later: admin filter "guest vs account" — out of scope v1.
 
 #### Security & privacy
 
 - Cookie: `Secure`, `SameSite=Lax`, reasonable `Max-Age` (e.g. 365d).
-- Do not store email/IP in guest snapshot.
-- GDPR: document anonymous cart id in privacy policy; cleanup on TTL.
+- Do not store email/IP on the guest identity cookie itself; email only on `PrintRequest` / `Order` where needed.
+- Rate-limit guest favorite toggles, cart sync, and print uploads.
+- GDPR: document anonymous guest id + retention in privacy policy; TTL cleanup.
 
 #### Out of scope (v1)
 
-- Guest **checkout** without email (unchanged — Stripe collects email).
-- Guest **promo redemption** without account.
+- Guest **promo redemption** without account (unchanged M6 rule).
+- Guest **account inbox** / returns portal without sign-in (returns stay account-linked).
 - Cross-device guest sync without cookie (new device = new guest id until sign-in).
+- Guest checkout without email (Stripe still collects email).
 
 #### Acceptance
 
-- Guest adds item → server row exists under `guestId` → admin product **cart count** +1.
-- Guest removes item / clears cart → count −1.
+**Cart**
+- Guest adds item → server row under `guestId` → product **cart count** +1; remove/clear → −1.
 - Guest returns days later (same cookie) → snapshot still drives abandon idle time.
-- Guest signs in → guest snapshot merged into user cart; guest row deleted; counts unchanged net of duplicate cart.
-- Signed-in behavior unchanged.
+- Guest signs in → cart merged; guest cart row deleted; counts net-correct.
+
+**Favorites**
+- Guest favorites product → row under `guestId` → **favoriteCount** +1; unfavorite → −1.
+- Guest can list favorites without Cognito.
+- Guest signs in → favorites merged; guest favorite rows deleted; favorite grant issued per M6b if eligible.
+
+**Prints**
+- Guest submits print request (policy + file + resin/color + email) without Cognito.
+- Admin can quote/decline; guest sees status via cookie page and can **Pay quote**.
+- Guest signs in → open print requests appear under Account → Print requests.
+
+**Regression**
+- Signed-in behavior unchanged for cart, favorites, prints, and promos.
 
 **Cursor rules:**
-- Reuse `sync-cart-snapshot` Lambda patterns and `cart-shared/productCartCounts.ts`; do not fork a second count implementation.
+- Reuse `sync-cart-snapshot` / favorite-count helpers; do not fork second count implementations.
 - Cookie must be validated server-side; never accept arbitrary `guestId` from SPA without cookie match.
-- Merge-on-login must be idempotent.
+- Merge-on-login must be idempotent and cover **cart + favorites + print requests** in one flow.
+- Prefer widening existing models with `guestId` over parallel guest-only tables unless Amplify identifier constraints force a split.
+- Do not weaken M6: no promo grants keyed only by `guestId`.
 
 ---
 
@@ -1517,6 +1607,7 @@ Pay-first only works when the customer can pick a known SKU. Figure count and tr
    - Optional notes (“3 heroes + 1 monster”, etc.)
    - **Submit print request** — **not** add-to-cart; no customer-selected size price at submit
 2. **Account** — list of print requests with status: `submitted` → `in_review` → `quoted` → `paid` / `declined` / `cancelled`
+   - **Auth today:** Cognito required (`requireCustomerSession`). **Guest submit + cookie status page + pay quote:** **M6e** (§C).
 3. When **quoted** — show breakdown (e.g. `2 × 32mm`, `1 × 75mm`, resin, total) + **Pay quote** CTA → Stripe Checkout for that amount
 4. After pay — appears as a normal paid **Order** with print payload; fulfillment unchanged
 
@@ -1603,7 +1694,7 @@ Pay-first only works when the customer can pick a known SKU. Figure count and tr
    - Live **price preview** from selected size/type surcharges.
    - **Add to cart** → existing `/cart` → **M3b** checkout → **M11** order detail + admin queue.
 
-3. **Auth:** Require **signed-in customer** for upload + checkout (guest STL upload deferred to **M6e**).
+3. **Auth (legacy M21 pay-first):** Was signed-in only. **M21c** currently still requires Cognito on `/print`; **guest submit + pay quote** is **M6e** (cookie `guestId` + contact email — see §4 M6e §C).
 
 #### Cart & checkout integration
 
