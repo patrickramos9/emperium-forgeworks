@@ -31,6 +31,8 @@ Separate from Cognito IAM “guest” auth mode: a **stable shopper `guestId`** 
 
 Set **`GUEST_SESSION_SECRET`** in Amplify Hosting / pipeline env for production (do not rely on the dev fallback).
 
+**Foundation verified** 2026-08-06 (ensure session + merge stub).
+
 ---
 
 ## Frontend client selection
