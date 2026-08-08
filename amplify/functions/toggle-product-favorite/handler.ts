@@ -15,7 +15,10 @@ Amplify.configure(resourceConfig, libraryOptions);
 const dataClient = generateClient<Schema>();
 
 type AppSyncEvent = {
-  info: { fieldName: string };
+  /** Amplify @function VTL puts fieldName at top level (not event.info). */
+  fieldName?: string;
+  typeName?: string;
+  info?: { fieldName?: string };
   identity?: { sub?: string } | null;
   arguments: {
     productId?: string;
@@ -25,6 +28,10 @@ type AppSyncEvent = {
     guestToken?: string | null;
   };
 };
+
+function resolveFieldName(event: AppSyncEvent): string {
+  return event.fieldName ?? event.info?.fieldName ?? "";
+}
 
 async function requireGuestId(event: AppSyncEvent): Promise<string> {
   const guestId = event.arguments.guestId?.trim() ?? "";
@@ -181,7 +188,19 @@ async function handleToggle(event: AppSyncEvent) {
 }
 
 export const handler = async (event: AppSyncEvent) => {
-  if (event.info.fieldName === "getGuestFavorites") {
+  const fieldName = resolveFieldName(event);
+  if (fieldName === "getGuestFavorites") {
+    return handleListGuestFavorites(event);
+  }
+  // Toggle when productId is present (covers missing fieldName edge cases).
+  if (event.arguments.productId) {
+    return handleToggle(event);
+  }
+  if (
+    event.arguments.guestId &&
+    event.arguments.guestToken &&
+    event.arguments.favorited === undefined
+  ) {
     return handleListGuestFavorites(event);
   }
   return handleToggle(event);
