@@ -190,9 +190,38 @@ async function syncGuestCart(
   return { synced: true, grantIssued: false, grantsRevoked: false };
 }
 
-export const handler: Schema["syncCartSnapshot"]["functionHandler"] = async (
-  event,
-) => {
+export const handler = async (event: {
+  fieldName?: string;
+  info?: { fieldName?: string };
+  identity?: { sub?: string } | null;
+  arguments: {
+    lineItems?: Array<CartSnapshotLine | null> | null;
+    guestId?: string | null;
+    guestToken?: string | null;
+  };
+}) => {
+  const fieldName = event.fieldName ?? event.info?.fieldName ?? "";
+  if (fieldName === "getGuestCartSnapshot") {
+    const guestId = event.arguments.guestId?.trim() ?? "";
+    const guestToken = event.arguments.guestToken?.trim() ?? "";
+    if (!(await verifyGuestToken(guestId, guestToken))) {
+      throw new Error("Invalid or missing guest session.");
+    }
+    const existing = await dataClient.models.GuestCartSnapshot.get({ guestId });
+    if (existing.errors?.length) {
+      throw new Error(existing.errors.map((e) => e.message).join("; "));
+    }
+    const previous = existing.data;
+    if (!previous) {
+      return { found: false, lineItems: [] };
+    }
+    return {
+      found: true,
+      lineItems: parseLineItems(previous.lineItems),
+      updatedAt: previous.updatedAt ?? undefined,
+    };
+  }
+
   const lineItems = normalizeLineItems(
     (event.arguments.lineItems ?? []).filter(
       (row): row is CartSnapshotLine => row != null,

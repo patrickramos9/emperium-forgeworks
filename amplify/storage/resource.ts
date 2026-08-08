@@ -32,6 +32,7 @@ export const storage = defineStorage({
       // entity("identity") alone does not apply to users in the customer group — they
       // assume groupscustomer IAM only (see docs/storage-auth.md).
       allow.entity("identity").to(["read", "write", "delete"]),
+      allow.guest.to(["read", "write", "delete"]),
       allow.authenticated.to(["read", "write", "delete"]),
       allow.groups(["customer"]).to(["read", "write", "delete"]),
       allow.groups(["admin"]).to(["read", "write", "delete"]),

@@ -13,7 +13,9 @@ async function resolveStorageIdentityId(): Promise<string> {
   const session = await fetchAuthSession();
   const identityId = session.identityId?.trim();
   if (!identityId) {
-    throw new Error("Could not resolve storage identity. Sign in and try again.");
+    throw new Error(
+      "Could not resolve storage identity. Reload the page and try again.",
+    );
   }
   return identityId;
 }

@@ -142,6 +142,14 @@ backend.toggleProductFavorite.addEnvironment(
   "GUEST_SESSION_SECRET",
   guestSessionSecret,
 );
+backend.submitPrintRequest.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
+);
+backend.createPrintQuoteCheckout.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
+);
 
 backend.createStripeRefund.addEnvironment(
   "STRIPE_SECRET_KEY",

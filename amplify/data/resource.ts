@@ -133,6 +133,13 @@ const schema = a.schema({
     grantsRevoked: a.boolean().required(),
   }),
 
+  /** M6e — restore guest cart UI from server when localStorage is empty. */
+  GuestCartSnapshotResult: a.customType({
+    found: a.boolean().required(),
+    lineItems: a.ref("CartSnapshotLine").array().required(),
+    updatedAt: a.datetime(),
+  }),
+
   NotifyOrderPlacedResult: a.customType({
     notified: a.boolean().required(),
   }),
@@ -188,6 +195,33 @@ const schema = a.schema({
   SubmitPrintRequestResult: a.customType({
     success: a.boolean().required(),
     printRequestId: a.id().required(),
+  }),
+
+  /** M6e — guest-safe print request fields (no direct GuestFavorite-style model list). */
+  GuestPrintRequestItem: a.customType({
+    id: a.id().required(),
+    guestId: a.string(),
+    email: a.string(),
+    status: a.string().required(),
+    uploadId: a.string().required(),
+    storagePath: a.string().required(),
+    originalFileName: a.string().required(),
+    resinTypeId: a.string().required(),
+    resinTypeLabel: a.string().required(),
+    resinColorId: a.string().required(),
+    resinColorLabel: a.string().required(),
+    customerNotes: a.string(),
+    adminNotes: a.string(),
+    figureLines: a.json(),
+    quoteCents: a.integer(),
+    quotedAt: a.datetime(),
+    orderId: a.id(),
+    createdAt: a.datetime(),
+    updatedAt: a.datetime(),
+  }),
+
+  GuestPrintRequestListResult: a.customType({
+    requests: a.ref("GuestPrintRequestItem").array().required(),
   }),
 
   AdminQuotePrintRequestResult: a.customType({
@@ -316,6 +350,17 @@ const schema = a.schema({
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(syncCartSnapshotFn)),
 
+  /** M6e — read guest cart for UI hydrate (GuestCartSnapshot is not client-readable). */
+  getGuestCartSnapshot: a
+    .query()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+    })
+    .returns(a.ref("GuestCartSnapshotResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(syncCartSnapshotFn)),
+
   notifyOrderPlaced: a
     .mutation()
     .arguments({ orderId: a.id().required() })
@@ -376,9 +421,26 @@ const schema = a.schema({
       resinTypeId: a.string().required(),
       resinColorId: a.string().required(),
       customerNotes: a.string(),
+      /** M6e — guest path (with guestToken + email). Ignored when Cognito `sub` is present. */
+      guestId: a.string(),
+      guestToken: a.string(),
+      email: a.email(),
     })
     .returns(a.ref("SubmitPrintRequestResult"))
-    .authorization((allow) => [allow.authenticated()])
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(submitPrintRequestFn)),
+
+  /** M6e — list/get guest print requests (PrintRequest owner rules are Cognito-only). */
+  getGuestPrintRequests: a
+    .query()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      /** When set, return only this request (still must belong to guestId). */
+      printRequestId: a.id(),
+    })
+    .returns(a.ref("GuestPrintRequestListResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(submitPrintRequestFn)),
 
   adminQuotePrintRequest: a
@@ -408,9 +470,12 @@ const schema = a.schema({
       printRequestId: a.id().required(),
       successUrl: a.string(),
       cancelUrl: a.string(),
+      /** M6e — guest pay path. Ignored when Cognito `sub` is present. */
+      guestId: a.string(),
+      guestToken: a.string(),
     })
     .returns(a.ref("CheckoutSessionResult"))
-    .authorization((allow) => [allow.authenticated()])
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(createPrintQuoteCheckoutFn)),
 
   cancelCustomerOrder: a
@@ -850,7 +915,12 @@ const schema = a.schema({
   /** M21c — Quote-first print job (upload → review → quote → pay). */
   PrintRequest: a
     .model({
-      userId: a.string().required(),
+      /** Cognito sub when signed in; omit for guest rows (M6e). */
+      userId: a.string(),
+      /** M6e — opaque guest id; exactly one of userId | guestId. */
+      guestId: a.string(),
+      /** Contact email — required for guest submits; optional for accounts. */
+      email: a.email(),
       status: a.enum([
         "submitted",
         "in_review",

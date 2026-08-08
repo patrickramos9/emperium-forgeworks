@@ -24,6 +24,7 @@ import {
   cancelSupersededPendingOrders,
   markPendingOrderCancelled,
 } from "../order-shared/stripeOrderStatus.js";
+import { verifyGuestToken } from "../guest-shared/cookie.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -87,8 +88,15 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
       event.identity && "sub" in event.identity
         ? (event.identity.sub as string | undefined)
         : undefined;
+
+    const guestIdArg = event.arguments.guestId?.trim() ?? "";
+    const guestTokenArg = event.arguments.guestToken?.trim() ?? "";
+    let verifiedGuestId: string | undefined;
     if (!userId) {
-      throw new Error("Sign in to pay your print quote.");
+      if (!(await verifyGuestToken(guestIdArg, guestTokenArg))) {
+        throw new Error("Invalid or missing guest session.");
+      }
+      verifiedGuestId = guestIdArg;
     }
 
     const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -113,7 +121,14 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
     if (errors?.length) {
       throw new Error(errors.map((e) => e.message).join("; "));
     }
-    if (!request || request.userId !== userId) {
+    if (!request) {
+      throw new Error("Print request not found.");
+    }
+    if (userId) {
+      if (request.userId !== userId) {
+        throw new Error("Print request not found.");
+      }
+    } else if (request.guestId !== verifiedGuestId) {
       throw new Error("Print request not found.");
     }
     if (request.status !== "quoted") {
@@ -200,7 +215,9 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
       defaultProfile,
     );
 
-    await cancelSupersededPendingOrders(dataClient, userId);
+    if (userId) {
+      await cancelSupersededPendingOrders(dataClient, userId);
+    }
 
     const stripe = new Stripe(secretKey);
     let checkoutSession: Stripe.Checkout.Session | null = null;
@@ -231,6 +248,12 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
       }
 
       const description = formatPrintServiceVariantLabel(printPayload);
+      const metadata: Record<string, string> = {
+        printRequestId: request.id,
+      };
+      if (userId) metadata.userId = userId;
+      if (verifiedGuestId) metadata.guestId = verifiedGuestId;
+
       checkoutSession = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items: [
@@ -250,10 +273,10 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
         ],
         success_url: successUrl,
         cancel_url: cancelUrl,
-        metadata: {
-          userId,
-          printRequestId: request.id,
-        },
+        metadata,
+        ...(request.email?.trim()
+          ? { customer_email: request.email.trim() }
+          : {}),
         automatic_tax: { enabled: true },
         billing_address_collection: "required",
         shipping_address_collection: {
@@ -286,7 +309,8 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
         lineItems: JSON.stringify([snapshot]),
         subtotalCents: request.quoteCents,
         totalCents: request.quoteCents,
-        userId,
+        ...(userId ? { userId } : {}),
+        ...(request.email?.trim() ? { email: request.email.trim() } : {}),
       });
       if (createResult.errors?.length) {
         throw new Error(createResult.errors.map((e) => e.message).join("; "));
@@ -298,9 +322,8 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
 
       await stripe.checkout.sessions.update(checkoutSession.id, {
         metadata: {
+          ...metadata,
           orderId,
-          userId,
-          printRequestId: request.id,
         },
       });
 

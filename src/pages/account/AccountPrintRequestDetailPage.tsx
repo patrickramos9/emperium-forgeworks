@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { formatPrice } from "@/data/seedProducts";
-import { requireCustomerSession } from "@/lib/amplifyDataClient";
-import { getCustomerUserId } from "@/lib/customerAuth";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
+import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintFigureLinesSummary,
   printRequestStatusLabel,
@@ -11,11 +14,14 @@ import {
 import {
   createPrintQuoteCheckout,
   getPrintRequestById,
+  listGuestPrintRequests,
 } from "@/services/printRequestService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 
 export function AccountPrintRequestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [signedIn, setSignedIn] = useState(false);
   const [row, setRow] = useState<PrintRequestRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -27,19 +33,41 @@ export function AccountPrintRequestDetailPage() {
         navigate("/account/print-requests");
         return;
       }
-      const client = await requireCustomerSession(
-        navigate,
-        `/account/print-requests/${id}`,
-      );
-      if (!client) return;
       try {
-        const userId = await getCustomerUserId();
-        const request = await getPrintRequestById(client, id);
-        if (!request || request.userId !== userId) {
-          navigate("/account/print-requests");
-          return;
+        const session = await hasCustomerSession();
+        setSignedIn(session);
+        if (session) {
+          const client = await getCustomerDataClient();
+          if (!client) {
+            navigate(
+              `/account/login?returnTo=${encodeURIComponent(`/account/print-requests/${id}`)}`,
+              { replace: true },
+            );
+            return;
+          }
+          const userId = await getCustomerUserId();
+          const request = await getPrintRequestById(client, id);
+          if (!request || request.userId !== userId) {
+            navigate("/account/print-requests");
+            return;
+          }
+          setRow(request);
+        } else {
+          await ensureGuestSession();
+          const client = await getGuestDataClient();
+          if (!client?.queries.getGuestPrintRequests) {
+            throw new Error(
+              "Guest print requests are not available yet. Redeploy the Amplify backend.",
+            );
+          }
+          const rows = await listGuestPrintRequests(client, id);
+          const request = rows[0] ?? null;
+          if (!request) {
+            navigate("/account/print-requests");
+            return;
+          }
+          setRow(request);
         }
-        setRow(request);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load request.");
       } finally {
@@ -53,13 +81,20 @@ export function AccountPrintRequestDetailPage() {
     setPaying(true);
     setError(null);
     try {
-      const client = await requireCustomerSession(
-        navigate,
-        `/account/print-requests/${id}`,
-      );
-      if (!client) return;
-      const { redirectUrl } = await createPrintQuoteCheckout(client, id);
-      window.location.assign(redirectUrl);
+      if (signedIn) {
+        const client = await getCustomerDataClient();
+        if (!client) return;
+        const { redirectUrl } = await createPrintQuoteCheckout(client, id);
+        window.location.assign(redirectUrl);
+      } else {
+        await ensureGuestSession();
+        const client = await getGuestDataClient();
+        if (!client) return;
+        const { redirectUrl } = await createPrintQuoteCheckout(client, id, {
+          asGuest: true,
+        });
+        window.location.assign(redirectUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed.");
       setPaying(false);
@@ -91,6 +126,14 @@ export function AccountPrintRequestDetailPage() {
       <p className="mt-2 text-on-surface-variant">
         {printRequestStatusLabel(row.status)}
       </p>
+
+      {!signedIn && (
+        <p className="mt-2 text-label-sm text-on-surface-variant">
+          Guest request
+          {row.email ? ` · ${row.email}` : ""}. Status updates appear here on
+          this device (no account inbox yet).
+        </p>
+      )}
 
       <dl className="mt-stack-lg space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
         <div>
@@ -148,7 +191,7 @@ export function AccountPrintRequestDetailPage() {
             <dd className="text-on-surface">{row.adminNotes}</dd>
           </div>
         )}
-        {row.orderId && (
+        {row.orderId && signedIn && (
           <div>
             <dt className="font-label-sm uppercase text-on-surface-variant">Order</dt>
             <dd>
@@ -165,7 +208,8 @@ export function AccountPrintRequestDetailPage() {
 
       {row.status === "submitted" || row.status === "in_review" ? (
         <p className="mt-6 text-body-sm text-on-surface-variant">
-          We’re reviewing your file. You’ll be notified when a quote is ready.
+          We’re reviewing your file. Check back here when a quote is ready
+          {signedIn ? " (we’ll also notify your account inbox)" : ""}.
         </p>
       ) : null}
 

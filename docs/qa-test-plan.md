@@ -815,7 +815,7 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M15b** | Cart shipping estimate preview; Stripe ETA UI | — |
 | **M12** | Notification preferences | Depends on M8a.3 |
 | **M13b** | Merchant API sync, marketing pixels, UTM on orders | M13a done §24 |
-| **M6e** (remainder) | Guest print requests | Foundation + cart verified; **guest favorites** in repo 2026-08-07 — see **§25** |
+| **M6e** (remainder) | _(none — prints in repo)_ | Foundation + cart verified; favorites + **guest prints** deploy/verify — see **§25** |
 
 **Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**, **§23 (M21/M21c)**, **§24 (M13a)**, **§25 (M6e foundation + guest cart)**.
 
@@ -844,6 +844,7 @@ Add test sections here when each **new** milestone ships.
 - [x] Signed out: remove item → cart/count updates
 - [x] Sign in → guest items merge into signed-in user cart
 - [ ] Sign in with overlapping product in both carts → user qty/price wins; count does not double (optional)
+- [ ] **Reopen:** add cart as guest → clear only `emperium-cart` in Local Storage (keep `efw_guest_*`) → reload → cart restores from `GuestCartSnapshot` (hydrate). Closing the browser should also keep cart via localStorage when storage is intact.
 
 ### Guest favorites (verify after deploy)
 
@@ -852,6 +853,14 @@ Add test sections here when each **new** milestone ships.
 - [ ] `/account/favorites` lists guest saves; remove works
 - [ ] Sign in → favorites merge; optional favorite grant if template active
 - [ ] Guest toast notes offers unlock after sign-in
+
+### Guest print requests (repo 2026-08-08 — verify after backend+storage deploy)
+
+- [ ] Signed out `/print`: contact email + upload + submit (no login wall)
+- [ ] Appears in Admin → Print requests with guest email
+- [ ] Guest `/account/print-requests` shows status
+- [ ] Admin quotes → guest can **Pay quote**
+- [ ] Sign in → request appears under account print requests
 
 ---
 

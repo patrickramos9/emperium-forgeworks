@@ -21,7 +21,7 @@ Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin gro
 
 Partner sculptor uploads use `uploadData()` under `sculptors/{slug}/…` — **`customer`** and **`authenticated`** roles need `write` on `sculptors/*` (see `amplify/storage/resource.ts`).
 
-Print service STL/ZIP uploads use `uploadData()` under `print-jobs/{identityId}/…` — the **`customer`** group role needs **`write`** on `print-jobs/{entity_id}/*`. `allow.entity("identity")` alone is **not** enough for signed-in shoppers (same group-role precedence as product images).
+Print service STL/ZIP uploads use `uploadData()` under `print-jobs/{identityId}/…` — the **`customer`** group role needs **`write`** on `print-jobs/{entity_id}/*`. `allow.entity("identity")` alone is **not** enough for signed-in shoppers (same group-role precedence as product images). **Guests** also need **`write`** on that path for M6e guest print uploads (unauthenticated identity pool `identityId`).
 
 ## Public catalog images (M13 — Google Merchant / Ads)
 

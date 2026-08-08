@@ -20,11 +20,17 @@ function cartSyncSignature(items: CartLine[]): string {
     .join("|");
 }
 
-/** Keeps server CartSnapshot / GuestCartSnapshot (and product cart counts) in sync. */
-export function useCartSnapshotSync(items: CartLine[]) {
+/**
+ * Keeps server CartSnapshot / GuestCartSnapshot (and product cart counts) in sync.
+ * `ready` must be false until guest cart hydrate finishes — otherwise an empty
+ * local cart deletes the server snapshot on reopen.
+ */
+export function useCartSnapshotSync(items: CartLine[], ready = true) {
   const cartSyncKey = useMemo(() => cartSyncSignature(items), [items]);
 
   useEffect(() => {
+    if (!ready) return;
+
     let cancelled = false;
 
     async function run() {
@@ -98,5 +104,5 @@ export function useCartSnapshotSync(items: CartLine[]) {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [cartSyncKey, items]);
+  }, [cartSyncKey, items, ready]);
 }

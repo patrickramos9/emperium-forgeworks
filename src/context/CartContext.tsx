@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from "react";
 import type { Product, ProductVariant } from "@/data/seedProducts";
+import { getGuestDataClient } from "@/lib/amplifyDataClient";
+import { hasCustomerSession } from "@/lib/customerAuth";
 import {
   CART_STORAGE_KEY,
   CART_STORAGE_VERSION,
@@ -20,6 +22,8 @@ import {
   type PrintServiceLinePayload,
 } from "@/lib/printService";
 import { useCartSnapshotSync } from "@/hooks/useCartSnapshotSync";
+import { fetchGuestCartSnapshot } from "@/services/cartSnapshotService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 
 export interface CartLine {
   key: string;
@@ -113,8 +117,63 @@ function persistItems(items: CartLine[]) {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartLine[]>(loadStoredItems);
   const [cartBadgeBumpToken, setCartBadgeBumpToken] = useState(0);
+  /** False until we finish guest server hydrate when local cart is empty. */
+  const [snapshotHydrated, setSnapshotHydrated] = useState(
+    () => loadStoredItems().length > 0,
+  );
 
-  useCartSnapshotSync(items);
+  useCartSnapshotSync(items, snapshotHydrated);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateGuestCartIfNeeded() {
+      if (loadStoredItems().length > 0) {
+        if (!cancelled) setSnapshotHydrated(true);
+        return;
+      }
+
+      const signedIn = await hasCustomerSession();
+      if (signedIn) {
+        if (!cancelled) setSnapshotHydrated(true);
+        return;
+      }
+
+      try {
+        await ensureGuestSession();
+        const client = await getGuestDataClient();
+        if (!client || cancelled) {
+          if (!cancelled) setSnapshotHydrated(true);
+          return;
+        }
+
+        const lines = await fetchGuestCartSnapshot(client);
+        if (cancelled) return;
+
+        if (lines.length > 0) {
+          setItems(
+            lines.map((line) => ({
+              key: lineKey(line.productId),
+              productId: line.productId,
+              slug: line.slug?.trim() || line.productId,
+              title: line.title?.trim() || line.slug || line.productId,
+              priceCents: line.priceCents,
+              quantity: clampQuantity(line.quantity),
+            })),
+          );
+        }
+      } catch (err) {
+        console.warn("[CartProvider] guest cart hydrate failed:", err);
+      } finally {
+        if (!cancelled) setSnapshotHydrated(true);
+      }
+    }
+
+    void hydrateGuestCartIfNeeded();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     persistItems(items);

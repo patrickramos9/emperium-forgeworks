@@ -234,9 +234,49 @@ async function mergeGuestFavoritesIntoUser(
   return favoritesMerged;
 }
 
+async function mergeGuestPrintRequestsIntoUser(
+  userId: string,
+  guestId: string,
+): Promise<number> {
+  const rows: Schema["PrintRequest"]["type"][] = [];
+  let nextToken: string | undefined;
+
+  do {
+    const response = await dataClient.models.PrintRequest.list({
+      filter: { guestId: { eq: guestId } },
+      limit: 50,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row) rows.push(row);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  let merged = 0;
+  for (const row of rows) {
+    if (!row.id) continue;
+    if (row.userId === userId && !row.guestId) continue;
+
+    const { errors } = await dataClient.models.PrintRequest.update({
+      id: row.id,
+      userId,
+      guestId: null,
+    });
+    if (errors?.length) {
+      throw new Error(errors.map((e) => e.message).join("; "));
+    }
+    merged += 1;
+  }
+
+  return merged;
+}
+
 /**
- * M6e — verify guest token + Cognito sub; merge guest cart + favorites into the user.
- * Print requests: still stub until PrintRequest supports guest ownership.
+ * M6e — verify guest token + Cognito sub; merge guest cart, favorites, and print requests.
  */
 export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
   event,
@@ -259,6 +299,10 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
 
   const cartsMerged = await mergeGuestCartIntoUser(userId, guestId);
   const favoritesMerged = await mergeGuestFavoritesIntoUser(userId, guestId);
+  const printRequestsMerged = await mergeGuestPrintRequestsIntoUser(
+    userId,
+    guestId,
+  );
 
   return {
     merged: true,
@@ -266,6 +310,6 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
     userId,
     cartsMerged,
     favoritesMerged,
-    printRequestsMerged: 0,
+    printRequestsMerged,
   };
 };

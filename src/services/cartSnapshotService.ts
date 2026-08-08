@@ -74,3 +74,48 @@ export async function syncCartSnapshot(
   }
   return data ?? { synced: false, grantIssued: false };
 }
+
+export type GuestCartSnapshotLine = {
+  productId: string;
+  slug: string;
+  quantity: number;
+  priceCents: number;
+  title?: string | null;
+};
+
+/** Load server guest cart for UI restore when localStorage is empty. */
+export async function fetchGuestCartSnapshot(
+  client: AmplifyDataClient,
+): Promise<GuestCartSnapshotLine[]> {
+  if (!client.queries.getGuestCartSnapshot) {
+    return [];
+  }
+  const session = getStoredGuestSession();
+  if (!session) return [];
+
+  const { data, errors } = await client.queries.getGuestCartSnapshot({
+    guestId: session.guestId,
+    guestToken: session.guestToken,
+  });
+  if (errors?.length) {
+    console.warn(
+      "[fetchGuestCartSnapshot]",
+      errors.map((e) => e.message).join("; "),
+    );
+    return [];
+  }
+  if (!data?.found) return [];
+
+  return (data.lineItems ?? [])
+    .filter(
+      (row): row is NonNullable<typeof row> =>
+        Boolean(row?.productId) && (row?.quantity ?? 0) > 0,
+    )
+    .map((row) => ({
+      productId: row.productId,
+      slug: row.slug,
+      quantity: row.quantity,
+      priceCents: row.priceCents,
+      title: row.title,
+    }));
+}

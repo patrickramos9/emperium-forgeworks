@@ -3,6 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { PageFeedback } from "@/components/PageFeedback";
 import { ResinColorSwatches } from "@/components/ResinColorSwatches";
 import { formatPrice } from "@/data/seedProducts";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
 import { hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintServiceMaxFileSize,
@@ -18,15 +22,15 @@ import {
   newPrintUploadId,
   uploadPrintServiceStl,
 } from "@/lib/printServiceUpload";
-import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import { fetchPrintServiceConfig } from "@/services/printServiceConfigService";
 import { submitPrintRequest } from "@/services/printRequestService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 import { useToast } from "@/context/ToastContext";
 
 const PRINT_PROCESS_STEPS = [
   {
     title: "Upload your file",
-    body: `Sign in, accept the print policy, choose resin type and color, and upload your ${PRINT_SERVICE_FILE_HINT}. Add notes if your file has multiple figures or special requests.`,
+    body: `Accept the print policy, choose resin type and color, and upload your ${PRINT_SERVICE_FILE_HINT}. Guests leave a contact email; accounts use the signed-in profile.`,
   },
   {
     title: "We review & size",
@@ -34,7 +38,7 @@ const PRINT_PROCESS_STEPS = [
   },
   {
     title: "Receive a quote",
-    body: "You’ll get a line-item quote in Account → Print requests. Nothing is charged until you accept and pay.",
+    body: "You’ll get a line-item quote under Print requests. Nothing is charged until you accept and pay.",
   },
   {
     title: "Pay & we print",
@@ -189,6 +193,7 @@ export function PrintServicePage() {
   const [resinTypeId, setResinTypeId] = useState("");
   const [resinColorId, setResinColorId] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -249,12 +254,12 @@ export function PrintServicePage() {
       setError("Printing as a Service is not available right now.");
       return;
     }
-    if (!signedIn) {
-      navigate("/account/login?redirect=/print");
-      return;
-    }
     if (!policyAccepted) {
       setError("Please accept the print policy to continue.");
+      return;
+    }
+    if (!signedIn && !guestEmail.trim().includes("@")) {
+      setError("Enter a contact email so we can reach you about your quote.");
       return;
     }
     if (!file) {
@@ -281,26 +286,55 @@ export function PrintServicePage() {
 
     setSubmitting(true);
     try {
-      const client = await requireCustomerSession(navigate, "/print");
-      if (!client) return;
-
-      const uploadId = newPrintUploadId();
-      const storagePath = await uploadPrintServiceStl(uploadId, file);
-      const printRequestId = await submitPrintRequest(client, {
-        uploadId,
-        storagePath,
-        originalFileName: file.name,
-        resinTypeId: resinType.id,
-        resinColorId: resinColor.id,
-        customerNotes: customerNotes.trim() || undefined,
-      });
-
-      showToast({
-        title: "Print request submitted",
-        description: "We’ll review your file and send a quote.",
-        tone: "success",
-      });
-      navigate(`/account/print-requests/${printRequestId}`);
+      if (signedIn) {
+        const client = await getCustomerDataClient();
+        if (!client) {
+          setError("Could not start a customer session. Try signing in again.");
+          return;
+        }
+        const uploadId = newPrintUploadId();
+        const storagePath = await uploadPrintServiceStl(uploadId, file);
+        const printRequestId = await submitPrintRequest(client, {
+          uploadId,
+          storagePath,
+          originalFileName: file.name,
+          resinTypeId: resinType.id,
+          resinColorId: resinColor.id,
+          customerNotes: customerNotes.trim() || undefined,
+        });
+        showToast({
+          title: "Print request submitted",
+          description: "We’ll review your file and send a quote.",
+          tone: "success",
+        });
+        navigate(`/account/print-requests/${printRequestId}`);
+      } else {
+        await ensureGuestSession();
+        const client = await getGuestDataClient();
+        if (!client) {
+          setError("Could not start a guest session. Reload and try again.");
+          return;
+        }
+        const uploadId = newPrintUploadId();
+        const storagePath = await uploadPrintServiceStl(uploadId, file);
+        const printRequestId = await submitPrintRequest(client, {
+          uploadId,
+          storagePath,
+          originalFileName: file.name,
+          resinTypeId: resinType.id,
+          resinColorId: resinColor.id,
+          customerNotes: customerNotes.trim() || undefined,
+          email: guestEmail.trim(),
+          asGuest: true,
+        });
+        showToast({
+          title: "Print request submitted",
+          description:
+            "We’ll review your file. Check Print requests on this device for your quote.",
+          tone: "success",
+        });
+        navigate(`/account/print-requests/${printRequestId}`);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not submit print request.",
@@ -373,13 +407,14 @@ export function PrintServicePage() {
 
       {!signedIn && (
         <PageFeedback tone="info" className="mt-6">
+          No account needed. Leave a contact email with your upload.{" "}
           <Link
             to="/account/login?redirect=/print"
             className="text-primary hover:underline"
           >
             Sign in
           </Link>{" "}
-          to submit a print request.
+          anytime to keep requests across devices.
         </PageFeedback>
       )}
 
@@ -448,6 +483,23 @@ export function PrintServicePage() {
             </div>
           </div>
 
+          {!signedIn && (
+            <label className="mt-4 block">
+              <span className="font-label-sm uppercase text-on-surface-variant">
+                Contact email
+              </span>
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
+              />
+            </label>
+          )}
+
           <label className="mt-4 block">
             <span className="font-label-sm uppercase text-on-surface-variant">
               Notes (optional)
@@ -478,21 +530,22 @@ export function PrintServicePage() {
 
           <button
             type="submit"
-            disabled={submitting || !signedIn}
+            disabled={submitting}
             className="molten-glow mt-6 w-full bg-primary px-6 py-3 font-label-md uppercase text-on-primary disabled:opacity-50"
           >
             {submitting ? "Submitting…" : "Submit print request"}
           </button>
 
           <p className="mt-3 text-body-sm text-on-surface-variant">
-            After we review, you’ll get a quote in{" "}
+            After we review, check{" "}
             <Link
               to="/account/print-requests"
               className="text-primary hover:underline"
             >
-              Account → Print requests
-            </Link>
-            .
+              Print requests
+            </Link>{" "}
+            for your quote
+            {signedIn ? "" : " on this device"}.
           </p>
         </section>
       </form>

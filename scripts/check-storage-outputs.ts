@@ -91,6 +91,16 @@ if (
 }
 
 if (
+  storageSource.includes('print-jobs/{entity_id}/*') &&
+  storageSource.includes('allow.guest.to(["read", "write", "delete"])') &&
+  !hasWrite(printJobGroupPaths.guest)
+) {
+  errors.push(
+    "print-jobs/* (outputs): guest write is in storage/resource.ts but missing in amplify_outputs.json — redeploy backend (required for M6e guest /print uploads)",
+  );
+}
+
+if (
   storageSource.includes('allow.entity("identity").to(["read", "write", "delete"])') &&
   storageSource.includes("print-jobs/{entity_id}/*") &&
   !hasWrite(printJobEntityPaths.entityidentity)

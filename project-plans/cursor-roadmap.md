@@ -30,7 +30,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M6e guest cart sync** (2026-08-07) · **M6e foundation** (2026-08-06) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
 | **Recently shipped (repo)** | **M23a (partial)** — admin assign review → product + PDP review list · **Merchant transparency** · **`/print` process + sample pricing** · **M21c** · **M13a** |
-| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **M6e** guest favorites (repo; deploy to verify) → then print requests · **ops:** Merchant Center identity verify + Misrepresentation review |
+| **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **M6e** guest prints (repo; deploy to verify) · **ops:** Merchant Center identity verify + Misrepresentation review |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -375,7 +375,7 @@ _(none)_
 - **M12** — Notification preferences _(depends on **M8a.3**)_
 - **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
 - **M9** — Polish & growth (gallery, SEO, performance)
-- **M6e** — **Guest identity parity** — foundation + cart **verified**; guest favorites in repo; next: print requests (see §4)
+- **M6e** — **Guest identity parity** — foundation + cart verified; favorites + **guest prints** in repo (see §4)
 
 **Deferred — fabrication detail / hardware**
 
@@ -533,7 +533,7 @@ _(none)_
 | **M6 (new-account)** | `useForNewAccount` template + `new_account` grant on verify/sign-in — **production verified** 2026-06-20 |
 | **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
 | **M6d** | Abandoned-cart email (with M13) |
-| **M6e** | Foundation + cart **verified**; guest favorites in repo; remaining: print requests |
+| **M6e** | Foundation + cart **verified**; favorites + guest prints in repo |
 
 **Cursor rules:**
 - Single grant per order; never stack with shipping-profile free shipping as a “promo.”
@@ -549,7 +549,7 @@ _(none)_
 
 ### M6e — Guest identity parity (in progress)
 
-**Status:** **Foundation** verified 2026-08-06. **Guest cart sync** verified 2026-08-07. **Guest favorites** shipped in repo (2026-08-07) — `GuestFavorite` model, guest `toggleProductFavorite` + `getGuestFavorites`, PDP save without login, `/account/favorites` for guests, merge-on-login + favorite grants deferred to sign-in. **Deploy backend + frontend** to verify. **Next:** guest print requests.
+**Status:** **Foundation** verified 2026-08-06. **Guest cart** verified 2026-08-07. **Guest favorites** (verify after fieldName fix). **Guest prints** shipped in repo (2026-08-08) — optional `guestId`/`email` on `PrintRequest`, guest STL upload (`print-jobs` guest write), `submitPrintRequest` + `getGuestPrintRequests` + guest pay quote, merge-on-login. **Deploy backend + frontend** (storage + data) to verify.
 
 **Today (gaps):**
 - Guest **carts** live in browser `localStorage` only; `syncCartSnapshot` requires Cognito; `Product.activeCartCount` and abandon detection see **signed-in** shoppers only.
@@ -616,7 +616,13 @@ Extend or parallel **`CartSnapshot`** (historical options):
 
 #### C — Custom print requests (M21c)
 
-**Today:** `/print` calls `requireCustomerSession`; `PrintRequest.userId` required; Account → Print requests is auth-only.
+**Shipped (repo 2026-08-08):** Widen `PrintRequest` with optional `guestId` + `email`; guest IAM write on `print-jobs/{entity_id}/*`; `submitPrintRequest` / `getGuestPrintRequests` / guest `createPrintQuoteCheckoutSession`; `/print` without login wall; `/account/print-requests` for guests; merge clears `guestId` and sets `userId`.
+
+---
+
+#### ~~C — Custom print requests (M21c)~~ _(historical notes retained above as shipped)_
+
+**Today (pre-ship):** `/print` calls `requireCustomerSession`; `PrintRequest.userId` required; Account → Print requests is auth-only.
 
 **Data model**
 - Widen **`PrintRequest`**: optional `guestId`; exactly one of `userId` \| `guestId`.
@@ -631,7 +637,7 @@ Extend or parallel **`CartSnapshot`** (historical options):
 
 **Frontend**
 - Remove login wall on `/print` submit for guests.
-- Guest status list: `/print/requests` (or similar) filtered by cookie — show status, quote breakdown, **Pay quote** when `quoted`.
+- Guest status list: `/account/print-requests` filtered by cookie — show status, quote breakdown, **Pay quote** when `quoted`.
 - Deep links from email (when SES works) can open the same page.
 - Merge on sign-in: set `userId = sub`, clear `guestId` on open requests; appear under Account → Print requests.
 

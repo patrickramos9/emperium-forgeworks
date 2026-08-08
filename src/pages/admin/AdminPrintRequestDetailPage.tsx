@@ -180,6 +180,11 @@ export function AdminPrintRequestDetailPage() {
       </h1>
       <p className="mt-2 text-on-surface-variant">
         {printRequestStatusLabel(row.status)}
+        {row.guestId
+          ? ` · Guest${row.email ? ` (${row.email})` : ""}`
+          : row.userId
+            ? " · Account"
+            : ""}
       </p>
 
       <dl className="mt-stack-lg space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">

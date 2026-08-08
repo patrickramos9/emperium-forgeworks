@@ -31,7 +31,9 @@ export type PrintFigureLine = {
 
 export type PrintRequestRecord = {
   id: string;
-  userId: string;
+  userId?: string | null;
+  guestId?: string | null;
+  email?: string | null;
   status: PrintRequestStatus;
   uploadId: string;
   storagePath: string;

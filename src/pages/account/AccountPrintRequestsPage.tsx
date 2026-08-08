@@ -1,29 +1,54 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { requireCustomerSession } from "@/lib/amplifyDataClient";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
+import { hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintFigureLinesSummary,
   printRequestStatusLabel,
   type PrintRequestRecord,
 } from "@/lib/printRequest";
 import { formatPrice } from "@/data/seedProducts";
-import { listMyPrintRequests } from "@/services/printRequestService";
+import {
+  listGuestPrintRequests,
+  listMyPrintRequests,
+} from "@/services/printRequestService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 
 export function AccountPrintRequestsPage() {
   const navigate = useNavigate();
+  const [signedIn, setSignedIn] = useState(false);
   const [rows, setRows] = useState<PrintRequestRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
-      const client = await requireCustomerSession(
-        navigate,
-        "/account/print-requests",
-      );
-      if (!client) return;
       try {
-        setRows(await listMyPrintRequests(client));
+        const session = await hasCustomerSession();
+        setSignedIn(session);
+        if (session) {
+          const client = await getCustomerDataClient();
+          if (!client) {
+            navigate(
+              `/account/login?returnTo=${encodeURIComponent("/account/print-requests")}`,
+              { replace: true },
+            );
+            return;
+          }
+          setRows(await listMyPrintRequests(client));
+        } else {
+          await ensureGuestSession();
+          const client = await getGuestDataClient();
+          if (!client?.queries.getGuestPrintRequests) {
+            throw new Error(
+              "Guest print requests are not available yet. Redeploy the Amplify backend.",
+            );
+          }
+          setRows(await listGuestPrintRequests(client));
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load requests.");
       } finally {
@@ -45,6 +70,16 @@ export function AccountPrintRequestsPage() {
           New request
         </Link>
       </div>
+
+      {!signedIn && (
+        <p className="mb-4 text-label-sm text-on-surface-variant">
+          Showing requests from this device.{" "}
+          <Link to="/account/login" className="text-primary underline">
+            Sign in
+          </Link>{" "}
+          to keep them across devices and get in-app notifications.
+        </p>
+      )}
 
       {loading && <p className="text-on-surface-variant">Loading…</p>}
       {error && <p className="text-error">{error}</p>}
