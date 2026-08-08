@@ -350,8 +350,11 @@ const schema = a.schema({
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(syncCartSnapshotFn)),
 
-  /** M6e — read guest cart for UI hydrate (GuestCartSnapshot is not client-readable). */
-  getGuestCartSnapshot: a
+  /**
+   * M6e — read guest cart for UI hydrate (GuestCartSnapshot is not client-readable).
+   * Named `loadGuestCartSnapshot` to avoid colliding with the model auto-query `getGuestCartSnapshot`.
+   */
+  loadGuestCartSnapshot: a
     .query()
     .arguments({
       guestId: a.string().required(),

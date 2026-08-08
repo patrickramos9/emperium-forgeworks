@@ -201,7 +201,7 @@ export const handler = async (event: {
   };
 }) => {
   const fieldName = event.fieldName ?? event.info?.fieldName ?? "";
-  if (fieldName === "getGuestCartSnapshot") {
+  if (fieldName === "loadGuestCartSnapshot") {
     const guestId = event.arguments.guestId?.trim() ?? "";
     const guestToken = event.arguments.guestToken?.trim() ?? "";
     if (!(await verifyGuestToken(guestId, guestToken))) {

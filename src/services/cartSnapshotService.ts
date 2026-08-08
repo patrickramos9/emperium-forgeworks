@@ -87,13 +87,13 @@ export type GuestCartSnapshotLine = {
 export async function fetchGuestCartSnapshot(
   client: AmplifyDataClient,
 ): Promise<GuestCartSnapshotLine[]> {
-  if (!client.queries.getGuestCartSnapshot) {
+  if (!client.queries.loadGuestCartSnapshot) {
     return [];
   }
   const session = getStoredGuestSession();
   if (!session) return [];
 
-  const { data, errors } = await client.queries.getGuestCartSnapshot({
+  const { data, errors } = await client.queries.loadGuestCartSnapshot({
     guestId: session.guestId,
     guestToken: session.guestToken,
   });
