@@ -126,7 +126,7 @@ export function AdminPrintRequestDetailPage() {
         `Quote saved (${formatPrice(result.quoteCents)})${
           result.notificationSent
             ? " · Customer notified."
-            : row.guestId
+            : row?.guestId
               ? " · Guest was not emailed (missing contact email or SES)."
               : ""
         }`,
@@ -154,7 +154,7 @@ export function AdminPrintRequestDetailPage() {
         `Request declined${
           result.notificationSent
             ? " · Customer notified."
-            : row.guestId
+            : row?.guestId
               ? " · Guest was not emailed (missing contact email or SES)."
               : ""
         }.`,
