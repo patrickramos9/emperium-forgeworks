@@ -4,6 +4,7 @@ import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtim
 import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import type { Schema } from "../../data/resource";
 import { sendPrintRequestDeclinedEmail } from "../order-shared/notifyPrintRequest.js";
+import { createGuestPrintNotification } from "../order-shared/guestPrintNotification.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -66,6 +67,20 @@ export const handler: Schema["adminDeclinePrintRequest"]["functionHandler"] =
         notificationSent = !result.errors?.length;
       } catch (err) {
         console.error("Decline notification failed", err);
+      }
+    }
+
+    const guestId = request.guestId?.trim();
+    if (guestId) {
+      try {
+        const created = await createGuestPrintNotification(dataClient, {
+          guestId,
+          title: "Print request declined",
+          body: `Your print request (${request.originalFileName}) could not be accepted.${notePart} Details: ${detailUrl}`,
+        });
+        if (created) notificationSent = true;
+      } catch (err) {
+        console.error("Guest decline notification failed", err);
       }
     }
 

@@ -642,7 +642,7 @@ Extend or parallel **`CartSnapshot`** (historical options):
 - Merge on sign-in: set `userId = sub`, clear `guestId` on open requests; appear under Account → Print requests.
 
 **Notifications**
-- In-app `Notification.userId` cannot target guests — **email** for guest quote/decline via SES (`admin-quote-print-request` / `admin-decline-print-request`); same-browser `/account/print-requests` remains the pay path for guests.
+- In-app `Notification.userId` cannot target guests — **`GuestNotification`** inbox (HMAC `getGuestNotifications` / `markGuestNotificationRead`); quote/decline create guest rows; merge into Cognito inbox on sign-in. SES email remains optional.
 - After merge, issue in-app notifications for subsequent events under `userId` as today.
 
 ---

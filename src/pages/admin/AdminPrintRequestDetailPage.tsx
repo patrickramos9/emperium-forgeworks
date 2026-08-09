@@ -127,7 +127,7 @@ export function AdminPrintRequestDetailPage() {
           result.notificationSent
             ? " · Customer notified."
             : row?.guestId
-              ? " · Guest was not emailed (missing contact email or SES)."
+              ? " · Guest was not notified (inbox create failed)."
               : ""
         }`,
       );
@@ -155,7 +155,7 @@ export function AdminPrintRequestDetailPage() {
           result.notificationSent
             ? " · Customer notified."
             : row?.guestId
-              ? " · Guest was not emailed (missing contact email or SES)."
+              ? " · Guest was not notified (inbox create failed)."
               : ""
         }.`,
       );

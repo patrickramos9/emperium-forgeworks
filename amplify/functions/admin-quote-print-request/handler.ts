@@ -8,6 +8,7 @@ import {
   formatPrintFigureLinesSummary,
 } from "../order-shared/printRequest.js";
 import { sendPrintQuoteReadyEmail } from "../order-shared/notifyPrintRequest.js";
+import { createGuestPrintNotification } from "../order-shared/guestPrintNotification.js";
 import {
   normalizePrintServiceConfigRow,
   PRINT_SERVICE_CONFIG_KEY,
@@ -102,6 +103,20 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
         notificationSent = !result.errors?.length;
       } catch (err) {
         console.error("Quote notification failed", err);
+      }
+    }
+
+    const guestId = request.guestId?.trim();
+    if (guestId) {
+      try {
+        const created = await createGuestPrintNotification(dataClient, {
+          guestId,
+          title: "Your print quote is ready",
+          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}. Review and pay: ${detailUrl}`,
+        });
+        if (created) notificationSent = true;
+      } catch (err) {
+        console.error("Guest quote notification failed", err);
       }
     }
 

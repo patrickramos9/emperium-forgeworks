@@ -275,8 +275,73 @@ async function mergeGuestPrintRequestsIntoUser(
   return merged;
 }
 
+async function mergeGuestNotificationsIntoUser(
+  userId: string,
+  guestId: string,
+): Promise<number> {
+  const GuestNotification = dataClient.models.GuestNotification;
+  if (!GuestNotification) return 0;
+
+  const rows: Schema["GuestNotification"]["type"][] = [];
+  let nextToken: string | undefined;
+  do {
+    const response = await GuestNotification.list({
+      filter: { guestId: { eq: guestId } },
+      limit: 100,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row) rows.push(row);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  let merged = 0;
+  for (const row of rows) {
+    if (!row.id) continue;
+
+    const createResult = await dataClient.models.Notification.create({
+      title: row.title,
+      body: row.body,
+      kind: row.kind ?? "order",
+      userId,
+      active: row.active !== false,
+      sortOrder: row.sortOrder ?? 0,
+    });
+    if (createResult.errors?.length) {
+      throw new Error(createResult.errors.map((e) => e.message).join("; "));
+    }
+
+    const newId = createResult.data?.id;
+    if (newId && row.readAt) {
+      const readResult = await dataClient.models.NotificationRead.create({
+        notificationId: newId,
+        userId,
+        readAt: row.readAt,
+      });
+      if (readResult.errors?.length) {
+        console.error(
+          "NotificationRead on merge failed",
+          readResult.errors.map((e) => e.message).join("; "),
+        );
+      }
+    }
+
+    const deleteResult = await GuestNotification.delete({ id: row.id });
+    if (deleteResult.errors?.length) {
+      throw new Error(deleteResult.errors.map((e) => e.message).join("; "));
+    }
+    merged += 1;
+  }
+
+  return merged;
+}
+
 /**
- * M6e — verify guest token + Cognito sub; merge guest cart, favorites, and print requests.
+ * M6e — verify guest token + Cognito sub; merge guest cart, favorites, prints, notifications.
  */
 export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
   event,
@@ -303,6 +368,10 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
     userId,
     guestId,
   );
+  const notificationsMerged = await mergeGuestNotificationsIntoUser(
+    userId,
+    guestId,
+  );
 
   return {
     merged: true,
@@ -311,5 +380,6 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
     cartsMerged,
     favoritesMerged,
     printRequestsMerged,
+    notificationsMerged,
   };
 };

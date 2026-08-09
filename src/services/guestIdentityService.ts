@@ -11,6 +11,7 @@ export type MergeGuestIdentityResult = {
   cartsMerged: number;
   favoritesMerged: number;
   printRequestsMerged: number;
+  notificationsMerged: number;
 };
 
 /**
@@ -59,5 +60,6 @@ export async function mergeGuestIdentityOnSignIn(): Promise<MergeGuestIdentityRe
     cartsMerged: data.cartsMerged,
     favoritesMerged: data.favoritesMerged,
     printRequestsMerged: data.printRequestsMerged,
+    notificationsMerged: data.notificationsMerged ?? 0,
   };
 }

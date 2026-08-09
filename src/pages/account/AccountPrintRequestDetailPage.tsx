@@ -130,8 +130,11 @@ export function AccountPrintRequestDetailPage() {
       {!signedIn && (
         <p className="mt-2 text-label-sm text-on-surface-variant">
           Guest request
-          {row.email ? ` · ${row.email}` : ""}. When a quote is ready we email
-          that address; you can also check this page in the same browser.
+          {row.email ? ` · ${row.email}` : ""}. When a quote is ready, check{" "}
+          <Link to="/account/notifications" className="text-primary underline">
+            Notifications
+          </Link>{" "}
+          (same browser).
         </p>
       )}
 
@@ -211,9 +214,7 @@ export function AccountPrintRequestDetailPage() {
           We’re reviewing your file. Check back here when a quote is ready
           {signedIn
             ? " (we’ll also notify your account inbox)"
-            : row.email
-              ? ` — we’ll email ${row.email} as well`
-              : ""}
+            : " — we’ll also post to Notifications on this device"}
           .
         </p>
       ) : null}

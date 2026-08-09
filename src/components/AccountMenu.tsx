@@ -2,12 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { useNotificationBadge } from "@/context/NotificationBadgeContext";
-import { getCustomerDataClient } from "@/lib/amplifyDataClient";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
 import {
   customerSignOut,
   hasCustomerSession,
 } from "@/lib/customerAuth";
-import { listCustomerNotifications, listMyNotificationReads, unreadCount } from "@/services/notificationService";
+import {
+  guestUnreadCount,
+  listCustomerNotifications,
+  listGuestNotifications,
+  listMyNotificationReads,
+  unreadCount,
+} from "@/services/notificationService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 import { hasSculptorModel } from "@/lib/dataModels";
 import { getSculptorForEditor } from "@/services/sculptorService";
 
@@ -26,31 +36,44 @@ export function AccountMenu() {
     async function loadSessionAndBadge() {
       const hasSession = await hasCustomerSession();
       setSignedIn(hasSession);
-      if (!hasSession) {
-        setUnread(0);
+      if (hasSession) {
         setHasPartnerAccess(false);
+        const client = await getCustomerDataClient();
+        if (!client) return;
+        try {
+          const [notifications, reads] = await Promise.all([
+            listCustomerNotifications(client),
+            listMyNotificationReads(client),
+          ]);
+          setUnread(unreadCount(notifications, reads));
+
+          if (hasSculptorModel(client)) {
+            const { fetchAuthSession } = await import("aws-amplify/auth");
+            const session = await fetchAuthSession();
+            const sub = session.tokens?.idToken?.payload?.sub;
+            if (typeof sub === "string") {
+              const row = await getSculptorForEditor(client, sub);
+              setHasPartnerAccess(Boolean(row));
+            }
+          }
+        } catch {
+          // Ignore badge load errors in nav.
+        }
         return;
       }
-      const client = await getCustomerDataClient();
-      if (!client) return;
-      try {
-        const [notifications, reads] = await Promise.all([
-          listCustomerNotifications(client),
-          listMyNotificationReads(client),
-        ]);
-        setUnread(unreadCount(notifications, reads));
 
-        if (hasSculptorModel(client)) {
-          const { fetchAuthSession } = await import("aws-amplify/auth");
-          const session = await fetchAuthSession();
-          const sub = session.tokens?.idToken?.payload?.sub;
-          if (typeof sub === "string") {
-            const row = await getSculptorForEditor(client, sub);
-            setHasPartnerAccess(Boolean(row));
-          }
+      setHasPartnerAccess(false);
+      try {
+        await ensureGuestSession();
+        const client = await getGuestDataClient();
+        if (!client?.queries.getGuestNotifications) {
+          setUnread(0);
+          return;
         }
+        const rows = await listGuestNotifications(client);
+        setUnread(guestUnreadCount(rows));
       } catch {
-        // Ignore badge load errors in nav.
+        setUnread(0);
       }
     }
     void loadSessionAndBadge();
@@ -63,20 +86,34 @@ export function AccountMenu() {
 
     async function refreshUnread() {
       const hasSession = await hasCustomerSession();
-      if (!hasSession || cancelled) {
-        if (!hasSession) setUnread(0);
+      if (cancelled) return;
+
+      if (hasSession) {
+        const client = await getCustomerDataClient();
+        if (!client || cancelled) return;
+        try {
+          const [notifications, reads] = await Promise.all([
+            listCustomerNotifications(client),
+            listMyNotificationReads(client),
+          ]);
+          if (!cancelled) setUnread(unreadCount(notifications, reads));
+        } catch {
+          // Ignore badge load errors in nav.
+        }
         return;
       }
-      const client = await getCustomerDataClient();
-      if (!client || cancelled) return;
+
       try {
-        const [notifications, reads] = await Promise.all([
-          listCustomerNotifications(client),
-          listMyNotificationReads(client),
-        ]);
-        if (!cancelled) setUnread(unreadCount(notifications, reads));
+        await ensureGuestSession();
+        const client = await getGuestDataClient();
+        if (!client?.queries.getGuestNotifications || cancelled) {
+          if (!cancelled) setUnread(0);
+          return;
+        }
+        const rows = await listGuestNotifications(client);
+        if (!cancelled) setUnread(guestUnreadCount(rows));
       } catch {
-        // Ignore badge load errors in nav.
+        if (!cancelled) setUnread(0);
       }
     }
 
@@ -121,12 +158,12 @@ export function AccountMenu() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="relative p-2 text-on-surface-variant transition-colors hover:text-primary active:scale-95"
-        aria-label={signedIn && unread > 0 ? `Account, ${unread} unread notifications` : "Account"}
+        aria-label={unread > 0 ? `Account, ${unread} unread notifications` : "Account"}
         aria-expanded={open}
         aria-haspopup="menu"
       >
         <Icon name="person" />
-        {signedIn && unread > 0 && (
+        {unread > 0 && (
           <span
             className={`absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center bg-primary px-1 text-label-sm text-on-primary ${badgeBump ? "cart-badge-bump" : ""}`}
           >
@@ -203,6 +240,14 @@ export function AccountMenu() {
             </>
           ) : (
             <>
+              <Link
+                role="menuitem"
+                to="/account/notifications"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Notifications{unread > 0 ? ` (${unread})` : ""}
+              </Link>
               <Link
                 role="menuitem"
                 to="/account/favorites"

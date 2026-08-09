@@ -28,6 +28,7 @@ import { adminDeclinePrintRequest } from "./functions/admin-decline-print-reques
 import { createPrintQuoteCheckout } from "./functions/create-print-quote-checkout/resource";
 import { ensureGuestSession } from "./functions/ensure-guest-session/resource";
 import { mergeGuestIdentity } from "./functions/merge-guest-identity/resource";
+import { guestNotifications } from "./functions/guest-notifications/resource";
 
 const backend = defineBackend({
   auth,
@@ -47,6 +48,7 @@ const backend = defineBackend({
   issueNewAccountGrant,
   mergeGuestIdentity,
   ensureGuestSession,
+  guestNotifications,
   createStripeRefund,
   submitReturnRequest,
   updateReturnRequest,
@@ -147,6 +149,10 @@ backend.submitPrintRequest.addEnvironment(
   guestSessionSecret,
 );
 backend.createPrintQuoteCheckout.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
+);
+backend.guestNotifications.addEnvironment(
   "GUEST_SESSION_SECRET",
   guestSessionSecret,
 );

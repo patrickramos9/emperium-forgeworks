@@ -77,7 +77,7 @@ export function AccountPrintRequestsPage() {
           <Link to="/account/login" className="text-primary underline">
             Sign in
           </Link>{" "}
-          to keep them across devices and get in-app notifications.
+          to keep them across devices and get inbox notifications.
         </p>
       )}
 

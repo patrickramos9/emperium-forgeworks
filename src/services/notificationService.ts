@@ -191,3 +191,150 @@ export function unreadCount(
     0,
   );
 }
+
+/** Unified inbox row for signed-in + guest UIs. */
+export type InboxNotification = {
+  id: string;
+  title: string;
+  body: string;
+  kind: string;
+  createdAt?: string | null;
+  startsAt?: string | null;
+  read: boolean;
+};
+
+export function guestRowsToInbox(
+  rows: {
+    id: string;
+    title: string;
+    body: string;
+    kind: string;
+    createdAt?: string | null;
+    readAt?: string | null;
+  }[],
+): InboxNotification[] {
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    body: row.body,
+    kind: row.kind,
+    createdAt: row.createdAt,
+    read: Boolean(row.readAt),
+  }));
+}
+
+export function customerRowsToInbox(
+  notifications: NotificationRecord[],
+  reads: NotificationReadRecord[],
+): InboxNotification[] {
+  const readSet = new Set(reads.map((r) => r.notificationId));
+  return notifications.map((row) => ({
+    id: row.id,
+    title: row.title,
+    body: row.body,
+    kind: row.kind ?? "system",
+    createdAt: row.createdAt,
+    startsAt: row.startsAt,
+    read: readSet.has(row.id),
+  }));
+}
+
+export function inboxTimestampMs(row: InboxNotification): number {
+  const created = row.createdAt ? Date.parse(row.createdAt) : Number.NaN;
+  if (Number.isFinite(created)) return created;
+  const starts = row.startsAt ? Date.parse(row.startsAt) : Number.NaN;
+  if (Number.isFinite(starts)) return starts;
+  return 0;
+}
+
+export function formatInboxDateTime(row: InboxNotification): string | null {
+  const ms = inboxTimestampMs(row);
+  if (!ms) return null;
+  return new Date(ms).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export function sortInboxByDate(
+  rows: InboxNotification[],
+  order: NotificationSortOrder = "newest",
+): InboxNotification[] {
+  const sorted = [...rows].sort(
+    (a, b) => inboxTimestampMs(b) - inboxTimestampMs(a),
+  );
+  return order === "newest" ? sorted : sorted.reverse();
+}
+
+export function guestUnreadCount(rows: InboxNotification[]): number {
+  return rows.reduce((count, row) => count + (row.read ? 0 : 1), 0);
+}
+
+export async function listGuestNotifications(
+  client: AmplifyDataClient,
+): Promise<InboxNotification[]> {
+  if (!client.queries.getGuestNotifications) {
+    throw new Error(
+      "Guest notifications are not available yet. Redeploy the Amplify backend.",
+    );
+  }
+  const { getStoredGuestSession } = await import(
+    "@/services/guestSessionService"
+  );
+  const session = getStoredGuestSession();
+  if (!session) {
+    throw new Error("Guest session not ready — reload and try again.");
+  }
+
+  const { data, errors } = await client.queries.getGuestNotifications({
+    guestId: session.guestId,
+    guestToken: session.guestToken,
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+
+  const rows = (data?.notifications ?? []).filter(
+    (row): row is NonNullable<typeof row> => Boolean(row?.id && row.title),
+  );
+  return guestRowsToInbox(
+    rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      kind: row.kind,
+      createdAt: row.createdAt,
+      readAt: row.readAt,
+    })),
+  );
+}
+
+export async function markGuestNotificationRead(
+  client: AmplifyDataClient,
+  notificationId: string,
+): Promise<void> {
+  if (!client.mutations.markGuestNotificationRead) {
+    throw new Error(
+      "Guest notifications are not available yet. Redeploy the Amplify backend.",
+    );
+  }
+  const { getStoredGuestSession } = await import(
+    "@/services/guestSessionService"
+  );
+  const session = getStoredGuestSession();
+  if (!session) {
+    throw new Error("Guest session not ready — reload and try again.");
+  }
+
+  const { errors } = await client.mutations.markGuestNotificationRead({
+    guestId: session.guestId,
+    guestToken: session.guestToken,
+    notificationId,
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+}

@@ -1,40 +1,66 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useNotificationBadge } from "@/context/NotificationBadgeContext";
-import { requireCustomerSession } from "@/lib/amplifyDataClient";
 import {
-  formatNotificationDateTime,
+  getCustomerDataClient,
+  getGuestDataClient,
+  requireCustomerSession,
+} from "@/lib/amplifyDataClient";
+import { hasCustomerSession } from "@/lib/customerAuth";
+import {
+  customerRowsToInbox,
+  formatInboxDateTime,
   listCustomerNotifications,
+  listGuestNotifications,
   listMyNotificationReads,
+  markGuestNotificationRead,
   markNotificationRead,
-  sortNotificationsByDate,
-  type NotificationRecord,
+  sortInboxByDate,
+  type InboxNotification,
   type NotificationSortOrder,
 } from "@/services/notificationService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 import { PageFeedback } from "@/components/PageFeedback";
 
 export function AccountNotificationsPage() {
   const navigate = useNavigate();
   const { refreshNotificationBadge } = useNotificationBadge();
-  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
-  const [readIds, setReadIds] = useState<string[]>([]);
+  const [signedIn, setSignedIn] = useState(false);
+  const [notifications, setNotifications] = useState<InboxNotification[]>([]);
   const [sortOrder, setSortOrder] = useState<NotificationSortOrder>("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const client = await requireCustomerSession(navigate, "/account/notifications");
-      if (!client) return;
       try {
-        const [rows, readRows] = await Promise.all([
-          listCustomerNotifications(client),
-          listMyNotificationReads(client),
-        ]);
-        setNotifications(rows);
-        setReadIds(readRows.map((row) => row.notificationId));
+        const session = await hasCustomerSession();
+        setSignedIn(session);
+        if (session) {
+          const client = await requireCustomerSession(
+            navigate,
+            "/account/notifications",
+          );
+          if (!client) return;
+          const [rows, readRows] = await Promise.all([
+            listCustomerNotifications(client),
+            listMyNotificationReads(client),
+          ]);
+          setNotifications(customerRowsToInbox(rows, readRows));
+        } else {
+          await ensureGuestSession();
+          const client = await getGuestDataClient();
+          if (!client?.queries.getGuestNotifications) {
+            throw new Error(
+              "Guest notifications are not available yet. Redeploy the Amplify backend.",
+            );
+          }
+          setNotifications(await listGuestNotifications(client));
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not load notifications");
+        setError(
+          err instanceof Error ? err.message : "Could not load notifications",
+        );
       } finally {
         setLoading(false);
       }
@@ -42,19 +68,28 @@ export function AccountNotificationsPage() {
     void load();
   }, [navigate]);
 
-  const readSet = useMemo(() => new Set(readIds), [readIds]);
-
   const sortedNotifications = useMemo(
-    () => sortNotificationsByDate(notifications, sortOrder),
+    () => sortInboxByDate(notifications, sortOrder),
     [notifications, sortOrder],
   );
 
   async function handleMarkRead(notificationId: string) {
-    const client = await requireCustomerSession(navigate, "/account/notifications");
-    if (!client) return;
     try {
-      await markNotificationRead(client, notificationId);
-      setReadIds((prev) => (prev.includes(notificationId) ? prev : [...prev, notificationId]));
+      if (signedIn) {
+        const client = await getCustomerDataClient();
+        if (!client) return;
+        await markNotificationRead(client, notificationId);
+      } else {
+        await ensureGuestSession();
+        const client = await getGuestDataClient();
+        if (!client) return;
+        await markGuestNotificationRead(client, notificationId);
+      }
+      setNotifications((prev) =>
+        prev.map((row) =>
+          row.id === notificationId ? { ...row, read: true } : row,
+        ),
+      );
       refreshNotificationBadge();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to mark as read");
@@ -76,12 +111,22 @@ export function AccountNotificationsPage() {
           Notifications
         </h1>
         <Link
-          to="/account"
+          to={signedIn ? "/account" : "/shop"}
           className="font-label-sm uppercase text-on-surface-variant hover:text-primary"
         >
-          ← Account
+          {signedIn ? "← Account" : "← Shop"}
         </Link>
       </div>
+
+      {!signedIn && (
+        <p className="mb-4 text-label-sm text-on-surface-variant">
+          Guest inbox for this device.{" "}
+          <Link to="/account/login" className="text-primary underline">
+            Sign in
+          </Link>{" "}
+          to keep messages across browsers.
+        </p>
+      )}
 
       {notifications.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -120,8 +165,7 @@ export function AccountNotificationsPage() {
       ) : (
         <ul className="space-y-4">
           {sortedNotifications.map((note) => {
-            const isRead = readSet.has(note.id);
-            const sentAt = formatNotificationDateTime(note);
+            const sentAt = formatInboxDateTime(note);
             return (
               <li
                 key={note.id}
@@ -129,13 +173,15 @@ export function AccountNotificationsPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-headline-md text-on-surface">{note.title}</p>
+                    <p className="font-headline-md text-on-surface">
+                      {note.title}
+                    </p>
                     <p className="text-label-sm uppercase text-on-surface-variant">
-                      {note.kind ?? "system"} · {isRead ? "Read" : "Unread"}
+                      {note.kind} · {note.read ? "Read" : "Unread"}
                       {sentAt ? ` · ${sentAt}` : ""}
                     </p>
                   </div>
-                  {!isRead && (
+                  {!note.read && (
                     <button
                       type="button"
                       onClick={() => void handleMarkRead(note.id)}
@@ -145,7 +191,9 @@ export function AccountNotificationsPage() {
                     </button>
                   )}
                 </div>
-                <p className="mt-3 whitespace-pre-wrap text-on-surface-variant">{note.body}</p>
+                <p className="mt-3 whitespace-pre-wrap text-on-surface-variant">
+                  {note.body}
+                </p>
                 {note.kind === "order" && (
                   <>
                     <OrderNotificationLink body={note.body} />

@@ -23,6 +23,7 @@ backend:
         - npm ci --prefix amplify/functions/create-print-quote-checkout --cache .npm-fn-print-quote-checkout --prefer-offline
         - npm ci --prefix amplify/functions/ensure-guest-session --cache .npm-fn-ensure-guest --prefer-offline
         - npm ci --prefix amplify/functions/merge-guest-identity --cache .npm-fn-merge-guest --prefer-offline
+        - npm ci --prefix amplify/functions/guest-notifications --cache .npm-fn-guest-notifications --prefer-offline
         - export CI=1
         - echo "pipeline-deploy branch=$AWS_BRANCH app-id=$AWS_APP_ID"
         - |
@@ -71,6 +72,8 @@ backend:
       - .npm-fn-ensure-guest/**/*
       - amplify/functions/merge-guest-identity/node_modules/**/*
       - .npm-fn-merge-guest/**/*
+      - amplify/functions/guest-notifications/node_modules/**/*
+      - .npm-fn-guest-notifications/**/*
 frontend:
   phases:
     preBuild:

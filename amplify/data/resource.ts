@@ -21,6 +21,7 @@ import { adminQuotePrintRequest as adminQuotePrintRequestFn } from "../functions
 import { adminDeclinePrintRequest as adminDeclinePrintRequestFn } from "../functions/admin-decline-print-request/resource";
 import { createPrintQuoteCheckout as createPrintQuoteCheckoutFn } from "../functions/create-print-quote-checkout/resource";
 import { mergeGuestIdentity as mergeGuestIdentityFn } from "../functions/merge-guest-identity/resource";
+import { guestNotifications as guestNotificationsFn } from "../functions/guest-notifications/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -125,6 +126,26 @@ const schema = a.schema({
     cartsMerged: a.integer().required(),
     favoritesMerged: a.integer().required(),
     printRequestsMerged: a.integer().required(),
+    notificationsMerged: a.integer().required(),
+  }),
+
+  GuestNotificationItem: a.customType({
+    id: a.id().required(),
+    guestId: a.string().required(),
+    title: a.string().required(),
+    body: a.string().required(),
+    kind: a.string().required(),
+    readAt: a.datetime(),
+    createdAt: a.datetime(),
+    sortOrder: a.integer(),
+  }),
+
+  GuestNotificationListResult: a.customType({
+    notifications: a.ref("GuestNotificationItem").array().required(),
+  }),
+
+  MarkGuestNotificationReadResult: a.customType({
+    success: a.boolean().required(),
   }),
 
   SyncCartSnapshotResult: a.customType({
@@ -320,6 +341,31 @@ const schema = a.schema({
     .returns(a.ref("GuestFavoriteListResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(toggleProductFavoriteFn)),
+
+  /**
+   * M6e — guest inbox (GuestNotification is not client-readable).
+   * Named getGuestNotifications to avoid colliding with auto listGuestNotifications.
+   */
+  getGuestNotifications: a
+    .query()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+    })
+    .returns(a.ref("GuestNotificationListResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestNotificationsFn)),
+
+  markGuestNotificationRead: a
+    .mutation()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      notificationId: a.id().required(),
+    })
+    .returns(a.ref("MarkGuestNotificationReadResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestNotificationsFn)),
 
   issueNewAccountWelcomeGrant: a
     .mutation()
@@ -821,6 +867,23 @@ const schema = a.schema({
     .identifier(["guestId"])
     .authorization((allow) => [allow.group("admin").to(["read"])]),
 
+  /**
+   * M6e — guest inbox (parallel to Notification; Cognito owner auth cannot target guests).
+   * Written via admin quote/decline (+ merge); listed via getGuestNotifications.
+   */
+  GuestNotification: a
+    .model({
+      guestId: a.string().required(),
+      title: a.string().required(),
+      body: a.string().required(),
+      kind: a.enum(["system", "order", "marketing"]),
+      active: a.boolean().default(true),
+      sortOrder: a.integer().default(0),
+      /** Set when guest marks the message read (no separate read table). */
+      readAt: a.datetime(),
+    })
+    .authorization((allow) => [allow.group("admin").to(["read"])]),
+
   Notification: a
     .model({
       title: a.string().required(),
@@ -1002,6 +1065,7 @@ const schema = a.schema({
   allow.resource(adminQuotePrintRequestFn),
   allow.resource(adminDeclinePrintRequestFn),
   allow.resource(createPrintQuoteCheckoutFn),
+  allow.resource(guestNotificationsFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;
