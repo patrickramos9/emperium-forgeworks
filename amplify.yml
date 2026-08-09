@@ -25,7 +25,9 @@ backend:
         - npm ci --prefix amplify/functions/merge-guest-identity --cache .npm-fn-merge-guest --prefer-offline
         - npm ci --prefix amplify/functions/guest-notifications --cache .npm-fn-guest-notifications --prefer-offline
         - export CI=1
-        - echo "pipeline-deploy branch=$AWS_BRANCH app-id=$AWS_APP_ID"
+        # ampx CDK synth/typecheck OOMs on default Amplify build heap as the backend grows
+        - export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=8192"
+        - echo "pipeline-deploy branch=$AWS_BRANCH app-id=$AWS_APP_ID NODE_OPTIONS=$NODE_OPTIONS"
         - |
           if [ -z "$AWS_BRANCH" ] || [ -z "$AWS_APP_ID" ]; then
             echo "ERROR: AWS_BRANCH and AWS_APP_ID must be set (Amplify Hosting provides these on fullstack builds)."
