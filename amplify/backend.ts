@@ -168,7 +168,17 @@ backend.updatePrintLineReview.addEnvironment(
 backend.updatePrintLineReview.addEnvironment("SITE_URL", siteUrl);
 
 backend.adminQuotePrintRequest.addEnvironment("SITE_URL", siteUrl);
+backend.adminQuotePrintRequest.addEnvironment(
+  "ORDER_NOTIFICATION_FROM_EMAIL",
+  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
+    "melissa@emperiumforgeworks.com",
+);
 backend.adminDeclinePrintRequest.addEnvironment("SITE_URL", siteUrl);
+backend.adminDeclinePrintRequest.addEnvironment(
+  "ORDER_NOTIFICATION_FROM_EMAIL",
+  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
+    "melissa@emperiumforgeworks.com",
+);
 
 backend.createPrintQuoteCheckout.addEnvironment(
   "STRIPE_SECRET_KEY",
@@ -229,6 +239,8 @@ const sesSendPolicy = new PolicyStatement({
 backend.stripeWebhook.resources.lambda.addToRolePolicy(sesSendPolicy);
 backend.notifyOrderPlaced.resources.lambda.addToRolePolicy(sesSendPolicy);
 backend.updateOrderFulfillment.resources.lambda.addToRolePolicy(sesSendPolicy);
+backend.adminQuotePrintRequest.resources.lambda.addToRolePolicy(sesSendPolicy);
+backend.adminDeclinePrintRequest.resources.lambda.addToRolePolicy(sesSendPolicy);
 
 const stripeWebhookUrl = backend.stripeWebhook.resources.lambda.addFunctionUrl({
   authType: FunctionUrlAuthType.NONE,

@@ -3,6 +3,7 @@ import { generateClient } from "aws-amplify/data";
 import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import type { Schema } from "../../data/resource";
+import { sendPrintRequestDeclinedEmail } from "../order-shared/notifyPrintRequest.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -45,18 +46,18 @@ export const handler: Schema["adminDeclinePrintRequest"]["functionHandler"] =
     }
 
     let notificationSent = false;
+    const siteUrl = (
+      process.env.SITE_URL ?? "https://emperiumforgeworks.com"
+    ).replace(/\/$/, "");
+    const detailUrl = `${siteUrl}/account/print-requests/${printRequestId}`;
+    const notePart = adminNotes ? ` Note: ${adminNotes}` : "";
+
     const userId = request.userId?.trim();
     if (userId) {
       try {
-        const siteUrl = (
-          process.env.SITE_URL ?? "https://emperiumforgeworks.com"
-        ).replace(/\/$/, "");
-        const notePart = adminNotes
-          ? ` Note: ${adminNotes}`
-          : "";
         const result = await dataClient.models.Notification.create({
           title: "Print request declined",
-          body: `Your print request (${request.originalFileName}) could not be accepted.${notePart} Details: ${siteUrl}/account/print-requests/${printRequestId}`,
+          body: `Your print request (${request.originalFileName}) could not be accepted.${notePart} Details: ${detailUrl}`,
           kind: "order",
           userId,
           active: true,
@@ -65,6 +66,21 @@ export const handler: Schema["adminDeclinePrintRequest"]["functionHandler"] =
         notificationSent = !result.errors?.length;
       } catch (err) {
         console.error("Decline notification failed", err);
+      }
+    }
+
+    const email = request.email?.trim();
+    if (email) {
+      try {
+        const emailed = await sendPrintRequestDeclinedEmail({
+          email,
+          printRequestId,
+          originalFileName: request.originalFileName,
+          adminNotes,
+        });
+        if (emailed) notificationSent = true;
+      } catch (err) {
+        console.error("Decline email failed", err);
       }
     }
 

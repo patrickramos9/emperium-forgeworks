@@ -168,6 +168,14 @@ export function AccountMenu() {
               </Link>
               <Link
                 role="menuitem"
+                to="/account/favorites"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Saved favorites
+              </Link>
+              <Link
+                role="menuitem"
                 to="/account/print-requests"
                 onClick={() => setOpen(false)}
                 className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
@@ -195,6 +203,26 @@ export function AccountMenu() {
             </>
           ) : (
             <>
+              <Link
+                role="menuitem"
+                to="/account/favorites"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Saved favorites
+              </Link>
+              <Link
+                role="menuitem"
+                to="/account/print-requests"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Print requests
+              </Link>
+              <div
+                className="my-1 border-t border-outline-variant/20"
+                role="separator"
+              />
               <Link
                 role="menuitem"
                 to="/account/login"

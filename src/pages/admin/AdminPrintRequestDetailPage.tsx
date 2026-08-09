@@ -124,7 +124,11 @@ export function AdminPrintRequestDetailPage() {
       if (refreshed) setRow(refreshed);
       setMessage(
         `Quote saved (${formatPrice(result.quoteCents)})${
-          result.notificationSent ? " · Customer notified." : ""
+          result.notificationSent
+            ? " · Customer notified."
+            : row.guestId
+              ? " · Guest was not emailed (missing contact email or SES)."
+              : ""
         }`,
       );
     } catch (err) {
@@ -147,7 +151,13 @@ export function AdminPrintRequestDetailPage() {
       const refreshed = await getPrintRequestById(client, id);
       if (refreshed) setRow(refreshed);
       setMessage(
-        `Request declined${result.notificationSent ? " · Customer notified." : ""}.`,
+        `Request declined${
+          result.notificationSent
+            ? " · Customer notified."
+            : row.guestId
+              ? " · Guest was not emailed (missing contact email or SES)."
+              : ""
+        }.`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not decline.");

@@ -7,6 +7,7 @@ import {
   buildQuotedFigureLines,
   formatPrintFigureLinesSummary,
 } from "../order-shared/printRequest.js";
+import { sendPrintQuoteReadyEmail } from "../order-shared/notifyPrintRequest.js";
 import {
   normalizePrintServiceConfigRow,
   PRINT_SERVICE_CONFIG_KEY,
@@ -81,16 +82,18 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
     }
 
     let notificationSent = false;
+    const siteUrl = (
+      process.env.SITE_URL ?? "https://emperiumforgeworks.com"
+    ).replace(/\/$/, "");
+    const summary = formatPrintFigureLinesSummary(figureLines);
+    const detailUrl = `${siteUrl}/account/print-requests/${printRequestId}`;
+
     const userId = request.userId?.trim();
     if (userId) {
       try {
-        const siteUrl = (
-          process.env.SITE_URL ?? "https://emperiumforgeworks.com"
-        ).replace(/\/$/, "");
-        const summary = formatPrintFigureLinesSummary(figureLines);
         const result = await dataClient.models.Notification.create({
           title: "Your print quote is ready",
-          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}. Review and pay: ${siteUrl}/account/print-requests/${printRequestId}`,
+          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}. Review and pay: ${detailUrl}`,
           kind: "order",
           userId,
           active: true,
@@ -99,6 +102,22 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
         notificationSent = !result.errors?.length;
       } catch (err) {
         console.error("Quote notification failed", err);
+      }
+    }
+
+    const email = request.email?.trim();
+    if (email) {
+      try {
+        const emailed = await sendPrintQuoteReadyEmail({
+          email,
+          printRequestId,
+          originalFileName: request.originalFileName,
+          summary,
+          quoteCents,
+        });
+        if (emailed) notificationSent = true;
+      } catch (err) {
+        console.error("Quote email failed", err);
       }
     }
 

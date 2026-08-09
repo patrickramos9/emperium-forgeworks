@@ -130,8 +130,8 @@ export function AccountPrintRequestDetailPage() {
       {!signedIn && (
         <p className="mt-2 text-label-sm text-on-surface-variant">
           Guest request
-          {row.email ? ` · ${row.email}` : ""}. Status updates appear here on
-          this device (no account inbox yet).
+          {row.email ? ` · ${row.email}` : ""}. When a quote is ready we email
+          that address; you can also check this page in the same browser.
         </p>
       )}
 
@@ -209,7 +209,12 @@ export function AccountPrintRequestDetailPage() {
       {row.status === "submitted" || row.status === "in_review" ? (
         <p className="mt-6 text-body-sm text-on-surface-variant">
           We’re reviewing your file. Check back here when a quote is ready
-          {signedIn ? " (we’ll also notify your account inbox)" : ""}.
+          {signedIn
+            ? " (we’ll also notify your account inbox)"
+            : row.email
+              ? ` — we’ll email ${row.email} as well`
+              : ""}
+          .
         </p>
       ) : null}
 

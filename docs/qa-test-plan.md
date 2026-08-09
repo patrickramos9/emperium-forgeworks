@@ -856,10 +856,12 @@ Add test sections here when each **new** milestone ships.
 
 ### Guest print requests (repo 2026-08-08 — verify after backend+storage deploy)
 
+- [ ] Guest account menu (person icon) lists **Saved favorites** + **Print requests** without signing in
 - [ ] Signed out `/print`: contact email + upload + submit (no login wall)
 - [ ] Appears in Admin → Print requests with guest email
 - [ ] Guest `/account/print-requests` shows status
-- [ ] Admin quotes → guest can **Pay quote**
+- [ ] Admin quotes → SES email to guest contact address + admin shows “Customer notified”
+- [ ] Guest opens email link (same browser) → **Pay quote** works
 - [ ] Sign in → request appears under account print requests
 
 ---
