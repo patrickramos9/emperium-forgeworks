@@ -114,8 +114,10 @@ async function deleteGuestSnapshot(
 ): Promise<void> {
   const lines = parseLineItems(row.lineItems);
   try {
+    // Function-local aws-amplify vs shared helper types resolve from different
+    // node_modules copies during ampx typecheck — cast across that boundary.
     await applyProductCartCountDelta(
-      dataClient,
+      dataClient as never,
       productIdsInCartLines(lines),
       new Set(),
     );
@@ -136,7 +138,7 @@ async function deleteUserSnapshot(
   const lines = parseLineItems(row.lineItems);
   try {
     await applyProductCartCountDelta(
-      dataClient,
+      dataClient as never,
       productIdsInCartLines(lines),
       new Set(),
     );
@@ -146,7 +148,10 @@ async function deleteUserSnapshot(
 
   let revoked = 0;
   try {
-    revoked = await revokeOpenAbandonedCartGrants(dataClient, row.userId);
+    revoked = await revokeOpenAbandonedCartGrants(
+      dataClient as never,
+      row.userId,
+    );
   } catch (err) {
     console.error("Abandon grant revoke failed", row.userId, err);
   }
