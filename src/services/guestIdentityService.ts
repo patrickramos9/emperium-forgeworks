@@ -1,5 +1,6 @@
 import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import {
+  clearStoredGuestSession,
   ensureGuestSession,
   getStoredGuestSession,
 } from "@/services/guestSessionService";
@@ -52,6 +53,8 @@ export async function mergeGuestIdentityOnSignIn(): Promise<MergeGuestIdentityRe
   }
 
   if (!data) return null;
+
+  clearStoredGuestSession();
 
   return {
     merged: data.merged,

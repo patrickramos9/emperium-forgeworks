@@ -101,7 +101,13 @@ export function AdminCustomerActivitySection() {
       const hasActivity = row.favorites.length > 0 || row.cartLines.length > 0;
       if (onlyActive && !hasActivity) return false;
       if (!query) return true;
-      const haystack = [row.email, row.name ?? "", row.userId]
+      const haystack = [
+        row.email,
+        row.name ?? "",
+        row.userId,
+        row.guestId ?? "",
+        row.kind,
+      ]
         .join(" ")
         .toLowerCase();
       return haystack.includes(query);
@@ -111,6 +117,7 @@ export function AdminCustomerActivitySection() {
   const activeCount = rows.filter(
     (row) => row.favorites.length > 0 || row.cartLines.length > 0,
   ).length;
+  const guestCount = rows.filter((row) => row.kind === "guest").length;
 
   return (
     <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
@@ -120,12 +127,13 @@ export function AdminCustomerActivitySection() {
             Customer carts &amp; favorites
           </h2>
           <p className="mt-1 text-body-sm text-on-surface-variant">
-            Signed-in accounts from Cognito. Carts reflect server snapshots
-            (guest carts are not included until M6e).
+            Signed-in Cognito accounts plus active guest sessions (cart /
+            favorites). Guests disappear from this list after sign-in merge.
           </p>
         </div>
         <p className="text-label-sm text-on-surface-variant">
-          {activeCount} with cart or favorites · {rows.length} accounts
+          {activeCount} with cart or favorites · {guestCount} guest
+          {guestCount === 1 ? "" : "s"} · {rows.length} total
         </p>
       </div>
 
@@ -136,7 +144,7 @@ export function AdminCustomerActivitySection() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search email or name"
+            placeholder="Search email, name, or guest id"
             className="w-full max-w-md border border-outline-variant/30 bg-surface-container px-3 py-2 text-on-surface"
           />
         </label>
@@ -172,16 +180,25 @@ export function AdminCustomerActivitySection() {
             <tbody>
               {filteredRows.map((row) => (
                 <tr
-                  key={row.userId}
+                  key={`${row.kind}:${row.userId}`}
                   className="border-t border-outline-variant/10 align-top"
                 >
                   <td className="p-3 text-on-surface">
                     <div className="font-medium">{row.email}</div>
-                    {row.name && (
+                    {row.kind === "guest" ? (
+                      <div className="text-body-sm text-on-surface-variant">
+                        Guest session
+                        {row.guestId ? (
+                          <span className="ml-1 font-mono text-label-sm">
+                            {row.guestId}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : row.name ? (
                       <div className="text-body-sm text-on-surface-variant">
                         {row.name}
                       </div>
-                    )}
+                    ) : null}
                   </td>
                   <td className="p-3">
                     <ProductLinks items={row.favorites} emptyLabel="—" />

@@ -373,6 +373,15 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
     guestId,
   );
 
+  // Belt-and-suspenders: never leave a guest cart row after merge.
+  if (dataClient.models.GuestCartSnapshot) {
+    try {
+      await dataClient.models.GuestCartSnapshot.delete({ guestId });
+    } catch {
+      /* already deleted or missing */
+    }
+  }
+
   return {
     merged: true,
     guestId,

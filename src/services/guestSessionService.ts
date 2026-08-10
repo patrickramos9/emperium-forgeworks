@@ -45,6 +45,16 @@ function storeGuestSession(guestId: string, guestToken: string): void {
   }
 }
 
+/** Clear local guest credentials after a successful sign-in merge. */
+export function clearStoredGuestSession(): void {
+  try {
+    localStorage.removeItem(GUEST_ID_STORAGE_KEY);
+    localStorage.removeItem(GUEST_TOKEN_STORAGE_KEY);
+  } catch {
+    /* private mode */
+  }
+}
+
 /**
  * M6e — ensure HttpOnly guest cookie (Function URL) + local HMAC token mirror.
  * Safe to call repeatedly; no-ops when backend URL is not in amplify_outputs yet.
