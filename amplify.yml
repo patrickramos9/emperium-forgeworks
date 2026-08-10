@@ -24,6 +24,7 @@ backend:
         - npm ci --prefix amplify/functions/ensure-guest-session --cache .npm-fn-ensure-guest --prefer-offline
         - npm ci --prefix amplify/functions/merge-guest-identity --cache .npm-fn-merge-guest --prefer-offline
         - npm ci --prefix amplify/functions/guest-notifications --cache .npm-fn-guest-notifications --prefer-offline
+        - npm ci --prefix amplify/functions/cleanup-idle-carts --cache .npm-fn-cleanup-idle-carts --prefer-offline
         - export CI=1
         # ampx CDK synth/typecheck OOMs on default Amplify build heap as the backend grows
         - export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=8192"
@@ -76,6 +77,8 @@ backend:
       - .npm-fn-merge-guest/**/*
       - amplify/functions/guest-notifications/node_modules/**/*
       - .npm-fn-guest-notifications/**/*
+      - amplify/functions/cleanup-idle-carts/node_modules/**/*
+      - .npm-fn-cleanup-idle-carts/**/*
 frontend:
   phases:
     preBuild:

@@ -1,0 +1,8 @@
+{
+  "name": "cleanup-idle-carts",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "aws-amplify": "^6.12.0"
+  }
+}

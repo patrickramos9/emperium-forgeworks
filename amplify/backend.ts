@@ -29,6 +29,7 @@ import { createPrintQuoteCheckout } from "./functions/create-print-quote-checkou
 import { ensureGuestSession } from "./functions/ensure-guest-session/resource";
 import { mergeGuestIdentity } from "./functions/merge-guest-identity/resource";
 import { guestNotifications } from "./functions/guest-notifications/resource";
+import { cleanupIdleCarts } from "./functions/cleanup-idle-carts/resource";
 
 const backend = defineBackend({
   auth,
@@ -49,6 +50,7 @@ const backend = defineBackend({
   mergeGuestIdentity,
   ensureGuestSession,
   guestNotifications,
+  cleanupIdleCarts,
   createStripeRefund,
   submitReturnRequest,
   updateReturnRequest,

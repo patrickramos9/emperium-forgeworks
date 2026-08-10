@@ -24,7 +24,6 @@ import { AdminProductEditPage } from "@/pages/admin/AdminProductEditPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { AdminOrderDetailPage } from "@/pages/admin/AdminOrderDetailPage";
 import { AdminReturnsPage } from "@/pages/admin/AdminReturnsPage";
-import { AdminComingSoonPage } from "@/pages/admin/AdminComingSoonPage";
 import { AdminPromoTemplatesPage } from "@/pages/admin/AdminPromoTemplatesPage";
 import { AdminPromoTemplateEditPage } from "@/pages/admin/AdminPromoTemplateEditPage";
 import { AccountLoginPage } from "@/pages/account/AccountLoginPage";
@@ -57,6 +56,7 @@ import { AdminSculptorEditPage } from "@/pages/admin/AdminSculptorEditPage";
 import { AdminPrintServicePage } from "@/pages/admin/AdminPrintServicePage";
 import { AdminPrintRequestsPage } from "@/pages/admin/AdminPrintRequestsPage";
 import { AdminPrintRequestDetailPage } from "@/pages/admin/AdminPrintRequestDetailPage";
+import { AdminSettingsPage } from "@/pages/admin/AdminSettingsPage";
 import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayout";
 import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage";
 import { TrustedSiteScript } from "@/components/TrustedSiteScript";
@@ -180,16 +180,7 @@ export default function App() {
             <Route path="promos" element={<AdminPromoTemplatesPage />} />
             <Route path="promos/:id" element={<AdminPromoTemplateEditPage />} />
             <Route path="vault" element={<AdminVaultPage />} />
-            <Route
-              path="settings"
-              element={
-                <AdminComingSoonPage
-                  title="Settings"
-                  milestone="Soon"
-                  description="Store configuration and operational settings."
-                />
-              }
-            />
+            <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
             </Routes>
           </BrowserRouter>

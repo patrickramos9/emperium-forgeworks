@@ -20,7 +20,7 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-07
+**Last updated:** 2026-08-09
 
 | Item | State |
 |------|--------|
@@ -29,8 +29,9 @@ Cursor should treat this file as the **source of truth** for:
 | **Then** | **M19** — Catalog sales & bundles → **M18** cart price-change |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M6e guest identity parity** (2026-08-09) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M23a (partial)** — admin assign review → product + PDP review list · **Merchant transparency** · **`/print` process + sample pricing** · **M21c** · **M13a** |
+| **Recently shipped (repo)** | **M6f** idle cart TTL cleanup (admin Settings) · **M23a (partial)** — admin assign review → product + PDP review list · **Merchant transparency** · **`/print` process + sample pricing** · **M21c** · **M13a** |
 | **In progress** | **M23** — trust strip / cart / FAQ / chrome still open · **ops:** Merchant Center identity verify + Misrepresentation review |
+| **In test** | **M6f** — Idle cart TTL cleanup (Admin → Settings; daily job + Run now) |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) — smoke/regression on demand; §6–§20 retained as checklists |
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
@@ -376,6 +377,7 @@ _(none)_
 - **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
 - **M9** — Polish & growth (gallery, SEO, performance)
 - **M6e** — **Guest identity parity** — **production verified** 2026-08-09 (cart, favorites, prints, guest inbox, merge)
+- **M6f** — **Idle cart TTL cleanup** — **in test** (Admin → Settings; guest / signed-in / both)
 
 **Deferred — fabrication detail / hardware**
 
@@ -534,6 +536,7 @@ _(none)_
 | **M6c** | Server `CartSnapshot`, abandon detection, grant + in-system notify on return |
 | **M6d** | Abandoned-cart email (with M13) |
 | **M6e** | **Production verified** 2026-08-09 — guest cart, favorites, prints, inbox, merge |
+| **M6f** | **In test** — idle cart TTL cleanup (Admin → Settings; guest / signed-in / both) |
 
 **Cursor rules:**
 - Single grant per order; never stack with shipping-profile free shipping as a “promo.”
@@ -573,7 +576,7 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 
 **Yes — this requires persisting that id in the database** keyed by the cookie value, analogous to `CartSnapshot.userId` / `Favorite.userId` / `PrintRequest.userId` today.
 
-**`guestId`:** opaque UUID v4; no PII. TTL / cleanup job for idle rows > N days (e.g. 90) so counts and storage do not grow forever. Print-request rows with open quotes may use a longer TTL or "keep until paid/declined/cancelled."
+**`guestId`:** opaque UUID v4; no PII. Idle **cart** TTL cleanup is **M6f**. Print-request rows with open quotes may use a longer TTL or "keep until paid/declined/cancelled" (not in M6f v1).
 
 #### Shared identity rules
 
@@ -644,6 +647,36 @@ Cart / favorites / prints / guest inbox / merge verified in production testing. 
 - Never accept arbitrary `guestId` without HMAC verify.
 - Merge-on-login must cover **cart + favorites + print requests + notifications**.
 - Do not weaken M6: no promo grants keyed only by `guestId`.
+
+---
+
+### M6f — Idle cart TTL cleanup
+
+**Status:** **In test** (2026-08-09) — repo + Settings UI shipped; verify after backend deploy.
+
+**Goal:** Keep `GuestCartSnapshot` / `CartSnapshot` (and product `activeCartCount`) from growing forever by deleting idle server carts past an admin-configured threshold.
+
+**Admin → Settings (`/admin/settings`)**
+- Idle threshold in **days** (default **90** when unset).
+- Scope: **guest** · **signed-in** · **both**.
+- **Enable daily automatic cleanup** (off by default) — scheduled Lambda reads saved `CatalogSettings`.
+- **Run cleanup now** — admin mutation uses current form values (works even when daily job is disabled).
+
+**Backend**
+- `CatalogSettings`: `cartCleanupEnabled`, `cartCleanupIdleDays`, `cartCleanupScope`.
+- `cleanup-idle-carts` Lambda (`schedule: every day`) + `runIdleCartCleanup` mutation (admin).
+- Deletes by snapshot `updatedAt`; adjusts `activeCartCount`; signed-in deletes also revoke open `abandoned_cart` grants.
+
+**Out of scope (v1)**
+- Guest favorites / notifications / print-request TTL (cart snapshots only).
+- Dynamo TTL attribute (job-based delete so counts stay consistent).
+
+**Acceptance**
+- Save settings → reload Settings shows same days / scope / enabled.
+- Run now with a short threshold deletes matching idle rows; admin carts & favorites / product cart counts update.
+- With enabled off, daily job no-ops; with enabled on, job uses saved settings.
+
+**Deploy:** Backend (schema + Lambda + `amplify.yml` lockfile) + frontend Settings page.
 
 ---
 

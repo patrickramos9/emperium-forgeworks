@@ -22,6 +22,7 @@ import { adminDeclinePrintRequest as adminDeclinePrintRequestFn } from "../funct
 import { createPrintQuoteCheckout as createPrintQuoteCheckoutFn } from "../functions/create-print-quote-checkout/resource";
 import { mergeGuestIdentity as mergeGuestIdentityFn } from "../functions/merge-guest-identity/resource";
 import { guestNotifications as guestNotificationsFn } from "../functions/guest-notifications/resource";
+import { cleanupIdleCarts as cleanupIdleCartsFn } from "../functions/cleanup-idle-carts/resource";
 
 const schema = a.schema({
   CustomerListItem: a.customType({
@@ -152,6 +153,15 @@ const schema = a.schema({
     synced: a.boolean().required(),
     grantIssued: a.boolean().required(),
     grantsRevoked: a.boolean().required(),
+  }),
+
+  IdleCartCleanupResult: a.customType({
+    ran: a.boolean().required(),
+    skipped: a.boolean().required(),
+    guestDeleted: a.integer().required(),
+    signedInDeleted: a.integer().required(),
+    grantsRevoked: a.integer().required(),
+    message: a.string().required(),
   }),
 
   /** M6e — restore guest cart UI from server when localStorage is empty. */
@@ -409,6 +419,21 @@ const schema = a.schema({
     .returns(a.ref("GuestCartSnapshotResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(syncCartSnapshotFn)),
+
+  /**
+   * M6e — delete idle CartSnapshot / GuestCartSnapshot rows older than N days.
+   * Optional args override saved CatalogSettings for a one-off admin run.
+   * Daily schedule uses saved settings and skips when cartCleanupEnabled is false.
+   */
+  runIdleCartCleanup: a
+    .mutation()
+    .arguments({
+      idleDays: a.integer(),
+      scope: a.enum(["guest", "signed_in", "both"]),
+    })
+    .returns(a.ref("IdleCartCleanupResult"))
+    .authorization((allow) => [allow.group("admin")])
+    .handler(a.handler.function(cleanupIdleCartsFn)),
 
   notifyOrderPlaced: a
     .mutation()
@@ -941,7 +966,7 @@ const schema = a.schema({
       allow.group("admin"),
     ]),
 
-  /** Singleton store catalog config (category filter chips for shop + admin). */
+  /** Singleton store catalog + ops config (category filters, idle cart TTL). */
   CatalogSettings: a
     .model({
       /** Always `store`. */
@@ -950,6 +975,12 @@ const schema = a.schema({
       categoryFilters: a.string().array(),
       /** Shared HTML template for new product descriptions (admin). */
       productDescriptionTemplate: a.string(),
+      /** When true, daily cleanup deletes idle cart snapshots past cartCleanupIdleDays. */
+      cartCleanupEnabled: a.boolean().default(false),
+      /** Idle threshold in days (based on snapshot updatedAt). Default 90 when unset. */
+      cartCleanupIdleDays: a.integer(),
+      /** Which snapshots the cleanup job targets. */
+      cartCleanupScope: a.enum(["guest", "signed_in", "both"]),
     })
     .identifier(["settingsKey"])
     .authorization((allow) => [
@@ -1066,6 +1097,7 @@ const schema = a.schema({
   allow.resource(adminDeclinePrintRequestFn),
   allow.resource(createPrintQuoteCheckoutFn),
   allow.resource(guestNotificationsFn),
+  allow.resource(cleanupIdleCartsFn),
 ]);
 
 export type Schema = ClientSchema<typeof schema>;
