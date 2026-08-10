@@ -815,17 +815,17 @@ Full happy-path and vault checks live in **§6 Saved favorites**. In this sectio
 | **M15b** | Cart shipping estimate preview; Stripe ETA UI | — |
 | **M12** | Notification preferences | Depends on M8a.3 |
 | **M13b** | Merchant API sync, marketing pixels, UTM on orders | M13a done §24 |
-| **M6e** (remainder) | _(none — prints in repo)_ | Foundation + cart verified; favorites + **guest prints** deploy/verify — see **§25** |
+| **M6e** | Guest identity parity | **Verified** §25 (2026-08-09) |
 
-**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**, **§23 (M21/M21c)**, **§24 (M13a)**, **§25 (M6e foundation + guest cart)**.
+**Production-verified sections (regression optional):** §6 (favorites), §17 (M6b/c + new-account), §17b (M17), §18a (go-live polish), §19 (M11), §20 (M9a), **§21 (M16)**, **§22 (M22)**, **§23 (M21/M21c)**, **§24 (M13a)**, **§25 (M6e guest identity parity)**.
 
 Add test sections here when each **new** milestone ships.
 
 ---
 
-## §25 — Guest identity + cart + favorites (M6e)
+## §25 — Guest identity parity (M6e)
 
-**Status:** **Foundation** verified 2026-08-06. **Guest cart** verified 2026-08-07. **Guest favorites** in repo 2026-08-07 — verify after deploy. Print ownership still open.
+**Status:** **Production verified** 2026-08-09 (foundation 2026-08-06 · cart 2026-08-07 · favorites / prints / guest inbox 2026-08-09).
 
 ### Bootstrap (signed out)
 
@@ -844,26 +844,30 @@ Add test sections here when each **new** milestone ships.
 - [x] Signed out: remove item → cart/count updates
 - [x] Sign in → guest items merge into signed-in user cart
 - [ ] Sign in with overlapping product in both carts → user qty/price wins; count does not double (optional)
-- [ ] **Reopen:** add cart as guest → clear only `emperium-cart` in Local Storage (keep `efw_guest_*`) → reload → cart restores from `GuestCartSnapshot` (hydrate). Closing the browser should also keep cart via localStorage when storage is intact.
+- [x] **Hydrate / reopen:** cart restores from `GuestCartSnapshot` when local cart empty but guest id intact (normal browser; incognito clears storage)
 
-### Guest favorites (verify after deploy)
+### Guest favorites
 
-- [ ] Signed out: **Save to favorites** on PDP (no login wall)
-- [ ] Admin product favorite count increases
-- [ ] `/account/favorites` lists guest saves; remove works
-- [ ] Sign in → favorites merge; optional favorite grant if template active
-- [ ] Guest toast notes offers unlock after sign-in
+- [x] Signed out: **Save to favorites** on PDP (no login wall)
+- [x] Admin product favorite count increases
+- [x] `/account/favorites` lists guest saves; remove works
+- [x] Sign in → favorites merge; optional favorite grant if template active
+- [x] Guest toast notes offers unlock after sign-in
 
-### Guest print requests (repo 2026-08-08 — verify after backend+storage deploy)
+### Guest print requests + inbox
 
-- [ ] Guest account menu (person icon) lists **Notifications**, **Saved favorites** + **Print requests** without signing in
-- [ ] Admin quotes guest print → guest **Notifications** inbox + person-icon badge (same browser); Pay quote from message link
-- [ ] Signed out `/print`: contact email + upload + submit (no login wall)
-- [ ] Appears in Admin → Print requests with guest email
-- [ ] Guest `/account/print-requests` shows status
-- [ ] Admin quotes → SES email to guest contact address + admin shows “Customer notified”
-- [ ] Guest opens email link (same browser) → **Pay quote** works
-- [ ] Sign in → request appears under account print requests
+- [x] Guest account menu lists **Notifications**, **Saved favorites** + **Print requests** without signing in
+- [x] Signed out `/print`: contact email + upload + submit (no login wall)
+- [x] Appears in Admin → Print requests with guest email
+- [x] Guest `/account/print-requests` shows status
+- [x] Admin quotes → guest **Notifications** inbox + person-icon badge (same browser); **Pay quote** works
+- [x] Sign in → request appears under account print requests
+
+### Admin carts & favorites
+
+- [x] Active guests listed as `Guest · {shortId}` (cart / favorites visible)
+- [x] After merge, guest row should drop; activity under customer email
+- [ ] Optional: hide admin-only Cognito cart rows / resolve admin email by `sub` (edge case when shopping as admin)
 
 ---
 

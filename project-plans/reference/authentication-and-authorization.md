@@ -26,12 +26,12 @@ Separate from Cognito IAM “guest” auth mode: a **stable shopper `guestId`** 
 |-------|------|
 | **`ensure-guest-session`** Function URL | Sets HttpOnly `efw_guest_id` cookie; returns `{ guestId, guestToken }` |
 | **`guestToken`** | HMAC of `guestId` (`GUEST_SESSION_SECRET`) so AppSync mutations can verify identity (Function URL cookies are not sent to AppSync) |
-| **`mergeGuestIdentity`** mutation | Authenticated; verifies token; merges guest rows into Cognito `sub` (stub until models have `guestId`) |
-| **SPA** | Calls ensure on bootstrap; stores id/token in `localStorage`; merge on login/register |
+| **`mergeGuestIdentity`** mutation | Authenticated; verifies token; merges guest cart, favorites, prints, notifications into Cognito `sub` |
+| **SPA** | Calls ensure on bootstrap; stores id/token in `localStorage`; merge on login/register; clears local guest credentials after merge |
 
 Set **`GUEST_SESSION_SECRET`** in Amplify Hosting / pipeline env for production (do not rely on the dev fallback).
 
-**Foundation verified** 2026-08-06. **Guest cart sync verified** 2026-08-07. **Guest favorites** + **guest prints** in repo (deploy/verify).
+**Production verified** 2026-08-09 — guest cart, favorites, prints, `GuestNotification` inbox, admin guest activity list.
 
 ---
 
