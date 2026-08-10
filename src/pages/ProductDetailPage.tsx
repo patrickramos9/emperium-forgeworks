@@ -27,6 +27,7 @@ import type { CatalogMode } from "@/lib/catalogFilter";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 import { useProductShippingDisplay } from "@/hooks/useProductShippingDisplay";
 import { ProductShippingInfo } from "@/components/ProductShippingInfo";
+import { CheckoutTrustStrip } from "@/components/CheckoutTrustStrip";
 import { ProductFavoriteButton } from "@/components/ProductFavoriteButton";
 import { ProductStarRating } from "@/components/ProductStarRating";
 import { ReviewCard } from "@/components/ReviewCard";
@@ -569,6 +570,7 @@ export function ProductDetailPage({
               {addToCartHelper && (
                 <p className="text-body-sm text-on-surface-variant">{addToCartHelper}</p>
               )}
+              <CheckoutTrustStrip />
               <ProductFavoriteButton
                 productId={product.id}
                 productSlug={product.slug}

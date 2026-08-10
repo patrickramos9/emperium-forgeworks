@@ -23,6 +23,7 @@ import { getCustomerDataClient } from "@/lib/amplifyDataClient";
 import { Link } from "react-router-dom";
 import { PageFeedback } from "@/components/PageFeedback";
 import { PoweredByStripeBadge } from "@/components/PoweredByStripeBadge";
+import { CheckoutTrustStrip } from "@/components/CheckoutTrustStrip";
 
 export function CartPage() {
   const {
@@ -409,7 +410,7 @@ export function CartPage() {
         <p className="mt-1 text-right text-label-sm text-on-surface-variant">
           {IS_LOCAL
             ? "Mock checkout locally — no charge."
-            : "Secure checkout via Stripe (cards, Apple Pay, Google Pay). Shipping and sales tax calculated at checkout from your address."}
+            : "Shipping and sales tax are calculated at Stripe Checkout from your address."}
         </p>
         {checkingOut && (
           <PageFeedback tone="info" className="mt-4 text-left">
@@ -422,7 +423,8 @@ export function CartPage() {
           </PageFeedback>
         )}
         <div className="mt-4 flex justify-end">
-          <div className="flex w-fit flex-col items-stretch gap-4">
+          <div className="flex w-full max-w-md flex-col items-stretch gap-4 sm:w-fit sm:min-w-[20rem]">
+            <CheckoutTrustStrip compact className="text-left" />
             <div className="flex flex-wrap justify-end gap-4">
               <button
                 type="button"

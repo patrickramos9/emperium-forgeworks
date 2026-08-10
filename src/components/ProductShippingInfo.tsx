@@ -8,6 +8,16 @@ type ProductShippingInfoProps = {
   emptyMessage?: string | null;
 };
 
+function ShippingReturnsLink() {
+  return (
+    <p className="mt-2 text-[11px] text-on-surface-variant/70">
+      <Link to="/shipping-returns" className="hover:text-primary">
+        Shipping &amp; returns
+      </Link>
+    </p>
+  );
+}
+
 export function ProductShippingInfo({
   shipping,
   loading = false,
@@ -19,6 +29,7 @@ export function ProductShippingInfo({
         <p className="font-label-sm text-on-surface-variant">
           Loading shipping…
         </p>
+        <ShippingReturnsLink />
       </div>
     );
   }
@@ -29,11 +40,7 @@ export function ProductShippingInfo({
         <p className="font-body-sm text-on-surface-variant">
           {emptyMessage ?? "Shipping details are not available for this item yet."}
         </p>
-        <p className="mt-2 text-[11px] text-on-surface-variant/70">
-          <Link to="/shipping-returns" className="hover:text-primary">
-            Shipping &amp; returns
-          </Link>
-        </p>
+        <ShippingReturnsLink />
       </div>
     );
   }
@@ -60,6 +67,7 @@ export function ProductShippingInfo({
           )}
         </div>
       </div>
+      <ShippingReturnsLink />
     </div>
   );
 }

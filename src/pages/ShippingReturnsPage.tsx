@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CONTACT_EMAIL, CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL } from "@/lib/config";
+import { SHIPPING_DISPATCH_POLICY } from "@/lib/shippingPromise";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 
 const linkClassName =
@@ -19,7 +20,7 @@ const SECTIONS: {
       },
       {
         heading: "Processing & dispatch",
-        body: "We usually ship the same day we receive your order. Orders placed after 6:00 PM Eastern are processed on the next business day.",
+        body: SHIPPING_DISPATCH_POLICY,
       },
       {
         heading: "Tracking",
