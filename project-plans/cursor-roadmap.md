@@ -1429,7 +1429,7 @@ On each fulfillment transition (when `userId` is set):
 4. **No FAQ** page
 5. Disabled **Newsletter** + disabled **Gallery** read unfinished
 6. **Mobile header** hides Shop/About/Contact (`nav` is `hidden md:flex`)
-7. ~~Shipping promise **inconsistent** — shop banner “1–3 business days” vs policy “usually same day”~~ — **done** (`src/lib/shippingPromise.ts`)
+7. ~~Shipping promise **inconsistent**~~ — **done** (`src/lib/shippingPromise.ts`; canonical: ships in 1–3 business days)
 8. Contact says hours are listed; **hours missing**
 9. No brand **social / Etsy** links in footer/header (Etsy only on reviews surfaces)
 10. Homepage reviews section **hides entirely** when no approved reviews — social proof vanishes

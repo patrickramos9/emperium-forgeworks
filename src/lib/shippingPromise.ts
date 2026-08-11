@@ -1,14 +1,14 @@
 /**
  * Canonical dispatch promise — keep shop banner, PDP/cart trust strip, and
- * `/shipping-returns` in sync (M23b). Ops: same-day when ordered by 6 PM ET.
+ * `/shipping-returns` in sync (M23b).
  */
 export const SHIPPING_DISPATCH_POLICY =
-  "We usually ship the same day we receive your order. Orders placed after 6:00 PM Eastern are processed on the next business day.";
+  "Orders usually ship in 1–3 business days from when ordered.";
 
 /** Short form for banners and trust strips. */
 export const SHIPPING_DISPATCH_SHORT =
-  "Usually ships same day — orders after 6:00 PM Eastern go out the next business day.";
+  "Usually ships in 1–3 business days.";
 
 /** Shop catalog banner (one sentence + contact CTA lives in the page). */
 export const SHIPPING_DISPATCH_SHOP_BANNER =
-  "We usually ship the same day we receive your order (after 6:00 PM Eastern → next business day).";
+  "Orders usually ship in 1–3 business days from when ordered.";
