@@ -28,7 +28,7 @@ Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin gro
 | `products/*` | yes (+ public bucket policy URLs) | yes |
 | `sculptors/*` | yes | yes |
 | `reviews/*` | yes | yes |
-| `gallery/*` | yes | yes |
+| `gallery/*` | yes (+ public bucket policy URLs) | yes |
 | `print-jobs/{entity_id}/*` | yes (also guest write for uploads) | yes |
 
 Partner sculptor uploads use `uploadData()` under `sculptors/{slug}/…` — **`customer`** and **`authenticated`** roles need `write` on `sculptors/*` (see `amplify/storage/resource.ts`).
@@ -37,15 +37,16 @@ Print service STL/ZIP uploads use `uploadData()` under `print-jobs/{identityId}/
 
 ## Public catalog images (M13 — Google Merchant / Ads)
 
-**`products/*`** objects are anonymously readable via S3 bucket policy (see `amplify/backend.ts`). Stable URL shape:
+**`products/*`** and **`gallery/*`** objects are anonymously readable via S3 bucket policy (see `amplify/backend.ts`). Stable URL shape:
 
 ```
 https://{bucket}.s3.{region}.amazonaws.com/products/{slug}/{file}.jpg
+https://{bucket}.s3.{region}.amazonaws.com/gallery/{file}.jpg
 ```
 
-Built in `src/lib/publicProductImageUrl.ts`. Used by the storefront and `npm run export:merchant-feed`.
+Built in `src/lib/publicProductImageUrl.ts`. Used by the storefront, customer Gallery, and `npm run export:merchant-feed`.
 
-**Not public:** `print-jobs/*`, `reviews/*` (still IAM/presigned as before).
+**Not public:** `print-jobs/*`, `reviews/*`, `sculptors/*` (still IAM/presigned as before).
 
 See [merchant-center-feed.md](./merchant-center-feed.md).
 

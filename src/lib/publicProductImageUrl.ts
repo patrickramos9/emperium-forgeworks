@@ -33,19 +33,21 @@ export function encodeS3ObjectKey(key: string): string {
     .join("/");
 }
 
-/** True when the ref resolves to a catalog image under products/*. */
+/** True when the ref resolves to a publicly readable catalog/gallery object. */
 export function isPublicProductImagePath(ref: string): boolean {
   const path = normalizeImageRef(ref);
-  return path.startsWith("products/");
+  return path.startsWith("products/") || path.startsWith("gallery/");
 }
 
 /**
- * Stable, anonymously readable URL for catalog images (products/* only).
- * Requires S3 bucket policy from amplify/backend.ts (M13).
+ * Stable, anonymously readable URL for catalog + customer gallery images.
+ * Requires S3 bucket policy from amplify/backend.ts (M13 / M23c).
  */
 export function buildPublicProductImageUrl(ref: string): string | undefined {
   const path = normalizeImageRef(ref);
-  if (!path.startsWith("products/")) return undefined;
+  if (!path.startsWith("products/") && !path.startsWith("gallery/")) {
+    return undefined;
+  }
 
   const config = getProductImageBucketConfig();
   if (!config) return undefined;

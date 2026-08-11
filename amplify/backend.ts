@@ -226,7 +226,11 @@ new s3.BucketPolicy(productImagesBucket.stack!, "PublicProductCatalogImagesPolic
         effect: Effect.ALLOW,
         principals: [new AnyPrincipal()],
         actions: ["s3:GetObject"],
-        resources: [`${storageBucketArn}/products/*`],
+        resources: [
+          `${storageBucketArn}/products/*`,
+          /** M23c — customer gallery photos on /gallery */
+          `${storageBucketArn}/gallery/*`,
+        ],
       }),
     ],
   }),
