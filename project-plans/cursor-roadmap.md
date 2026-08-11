@@ -25,8 +25,8 @@ Cursor should treat this file as the **source of truth** for:
 | Item | State |
 |------|--------|
 | **Phase** | **M23** — trust & conversion (in progress) |
-| **Next** | **M23d–e** — FAQ → contact hours / socials · mobile nav still open in M23c remainder |
-| **Then** | **M19** — Catalog sales & bundles → **M18** cart price-change |
+| **Next** | **M16e** — Guest pre-ship cancel (+ update `/shipping-returns` policy text) |
+| **Then** | **M23d–f** — FAQ → contact hours + **Settings social links** → reviews seed · mobile nav · then **M19** → **M18** |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M6e guest identity parity** (2026-08-09) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
 | **Recently shipped (repo)** | **M23c Gallery** + **Newsletter hidden** (2026-08-10) · **M23a/b trust** · **M6f** idle cart TTL · Merchant transparency · **M21c** · **M13a** |
@@ -39,7 +39,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M21** / **M21b** / **M21c** (done) → **M13a** (done) → Merchant transparency + `/print` UX polish (done) → **M23a** + **M23b** trust (**done**) → **M23c** Gallery + hide Newsletter (**done, repo**; mobile nav open) → **M23d–f** → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
+… → **M23c** Gallery + hide Newsletter (**done, repo**) → **M16e** guest pre-ship cancel → **M23d–f** / mobile nav → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -299,6 +299,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | **M16b** | `ReturnRequest`; `submitReturnRequest` / `adminUpdateReturnRequest`; customer + admin return UI |
 | **M16c** | Exchange reason + admin case-by-case copy |
 | **M16d** | `cancelCustomerOrder` — customer cancel before ship, full Stripe refund |
+| **M16e** | **Planned (next)** — guest pre-ship cancel + `/shipping-returns` policy copy update |
 | **UI polish** | Admin **Payment** + **Fulfillment** columns; `paymentStatusDetail` on customer order list/detail |
 
 **Deploy:** Backend (schema, Lambdas) + frontend.
@@ -372,13 +373,17 @@ _(none)_
 
 ### Planned (not started)
 
-**Next (priority — conversion) — M23 remainder**
+**Next — M16e guest pre-ship cancel**
+
+- **M16e** — Guests can cancel paid, not-yet-shipped orders (HMAC `guestId` + `guestToken`); reuse `issueOrderRefund` / M16d rules. **When shipped:** update `/shipping-returns` “Cancellations before shipment” so it is not signed-in-only.
+
+**Then (priority — conversion) — M23 remainder**
 
 - **M23a** — PDP trust strip (returns / shipping / Stripe) + always-on `/shipping-returns` link _(review assign + PDP list + trust strip **done**)_
 - **M23b** — Cart trust line + align shipping promise copy site-wide _(done)_
 - **M23c** — Hide unfinished Newsletter; enable **customer Gallery** — **done (repo 2026-08-10)** except **mobile nav** still open. Newsletter **implementation deferred to M13b**.
 - **M23d** — FAQ page
-- **M23e** — Contact hours + optional form; footer Etsy/socials
+- **M23e** — Contact **business hours** (ET); optional contact form; **store social links** via Admin → Settings (network dropdown + URL → icons in footer/shop chrome)
 - **M23f** — Seed/import reviews for social proof; optional payment logos
 
 **Core + polish (after M23)**
@@ -580,7 +585,7 @@ _(none)_
 - **Inbox** — `GuestNotification` + account menu badge; quote/decline notify guests in-app (SES optional / unavailable).
 - **Admin** — carts & favorites table lists guests as `Guest · {shortId}` (+ print email when known); guest rows drop after merge.
 
-**Still account-only (by design):** promo redemption at checkout, thank-you grants on guest-paid orders, returns portal, cross-device without cookie.
+**Still account-only (by design today):** promo redemption at checkout, thank-you grants on guest-paid orders, returns portal, cross-device without cookie. **Pre-ship cancel for guests** is planned as **M16e** (not yet shipped).
 
 #### Why a cookie (or equivalent)
 
@@ -640,6 +645,7 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 | **Thank-you grant** | Needs `userId` on paid order — guest paid orders skip unless account linked |
 | **Print request submit / pay quote** | Yes — cookie + contact email |
 | **Print quote in-app inbox** | Yes — `GuestNotification` (same browser / guest id) |
+| **Pre-ship order cancel** | **Planned — M16e** (today: signed-in only via M16d) |
 | **M18 price-change alerts** | Can key off guest snapshot until login, then migrate to user |
 
 #### Admin
@@ -651,7 +657,7 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 #### Out of scope (v1) — unchanged
 
 - Guest **promo redemption** without account.
-- Guest **returns** portal without sign-in.
+- Guest **returns** portal without sign-in _(pre-ship **cancel** is **M16e**, separate from returns)_.
 - Cross-device guest sync without cookie (incognito close = new guest).
 - Guest account inbox for broadcast/marketing (order/print only via `GuestNotification`).
 
@@ -790,7 +796,7 @@ Cart / favorites / prints / guest inbox / merge verified in production testing. 
 
 ### M16 — Returns, refunds & exchanges
 
-**Status:** **Production verified** (2026-06-24) — admin refunds (**M16a**), return requests (**M16b**), exchange notes (**M16c**), pre-ship cancel (**M16d**). Policy at `/shipping-returns`.
+**Status:** **Production verified** (2026-06-24) — admin refunds (**M16a**), return requests (**M16b**), exchange notes (**M16c**), pre-ship cancel (**M16d**). **M16e** (guest pre-ship cancel) — **planned next**. Policy at `/shipping-returns`.
 
 **Goal:** Support your published policy (30-day returns on new products, buyer pays return shipping, refund within ~2 days of receipt) with admin tools and optional customer self-service — without building a full RMA/ERP.
 
@@ -863,6 +869,35 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 **Policy:** `/shipping-returns` — cancellations before shipment; returns after ship.
 
 **Acceptance:** Customer cancels while order is in Received/Processing → refunded in Stripe + order shows **Cancelled**; after ship, cancel UI hidden, return flow only.
+
+#### Phase E — Guest pre-ship cancellation (M16e) — **planned (next)**
+
+**Status:** **Planned** — next build item (ahead of remaining M23 slices). Extends **M16d** to guest-paid orders under M6e identity.
+
+**Goal:** A guest who paid without Cognito can cancel any **paid, not-yet-shipped** order owned by their `guestId`, with the same full automatic refund as signed-in customers.
+
+**Today (gap):** `cancelCustomerOrder` is `authenticated` only; Lambda requires Cognito `sub`; Account → Orders requires sign-in. `/shipping-returns` correctly says signed-in only.
+
+**Backend**
+- Extend `cancelCustomerOrder` (or sibling mutation) with optional `guestId` + `guestToken`; authorize `allow.guest()` + `allow.authenticated()`.
+- Verify HMAC guest token; assert order `guestId` matches (exactly one of `userId` | `guestId`); reuse `assertCustomerCanCancelOrder` / `issueOrderRefund` eligibility (paid, not shipped, refundable balance).
+- Do not weaken ownership checks — never cancel by `orderId` alone.
+
+**Frontend**
+- Guest path to view/cancel the order (thank-you / order lookup with guest session, or Account-equivalent guest order detail already used for prints — prefer extending customer order detail for guest-owned rows when signed out with valid guest session).
+- Same cancel confirm UX and success copy as M16d.
+
+**Policy (required when shipping M16e)**
+- Update `/shipping-returns` → **Cancellations before shipment** from “Signed-in customers may…” to cover **guests and signed-in customers** (or “Anyone who placed the order may cancel…”), and point guests at the in-app order/cancel surface you ship.
+- Keep post-ship language unchanged (returns, not self-service cancel).
+
+**Acceptance**
+- Guest pays → cancels before ship → Stripe full refund + order cancelled; second cancel fails cleanly.
+- Wrong/missing `guestToken` cannot cancel another guest’s order.
+- After ship, cancel hidden; returns still account-only unless a later milestone expands them.
+- `/shipping-returns` text matches live behavior.
+
+**Out of scope (M16e):** Guest returns portal; guest thank-you promo grants; email cancel links.
 
 #### Out of scope (v1)
 
@@ -1450,7 +1485,7 @@ On each fulfillment transition (when `userId` is set):
 6. **Mobile header** hides Shop/About/Contact (`nav` is `hidden md:flex`)
 7. ~~Shipping promise **inconsistent**~~ — **done** (`src/lib/shippingPromise.ts`; canonical: usually ships in 1–3 business days)
 8. Contact says hours are listed; **hours missing**
-9. No brand **social / Etsy** links in footer/header (Etsy only on reviews surfaces)
+9. ~~No brand **social / Etsy** links in footer/header~~ — **planned M23e**: Admin → Settings manages links (network + URL); storefront shows matching icons (Etsy reviews URL alone is not enough)
 10. Homepage reviews section **hides entirely** when no approved reviews — social proof vanishes
 
 #### Build order (ship in slices)
@@ -1461,8 +1496,32 @@ On each fulfillment transition (when `userId` is set):
 | **M23b** | Cart trust line (returns + Stripe + TrustedSite or short secure copy); align shipping promise copy site-wide (one canonical window) | **Highest** | **Done** (repo 2026-08-09) — `CheckoutTrustStrip` on cart; shop banner / policy / strip share `shippingPromise` |
 | **M23c** | Hide disabled Newsletter; enable customer Gallery (`GalleryEntry` + admin + `/gallery` + `gallery/*`); **mobile nav** for Shop / About / Contact | High | **Partial** — Newsletter **hidden** + Gallery **shipped** (repo 2026-08-10, §3.10); newsletter **implement later in M13b**; mobile nav **open** |
 | **M23d** | **FAQ** page (`/faq`) — resin, scale, supports, shipping, returns, licensed art, made-to-order variance; footer + PDP links | High | Open |
-| **M23e** | Contact **business hours** (ET); optional simple contact form; footer **Etsy** (+ real brand socials if URLs exist in config) | Medium | Open |
+| **M23e** | Contact **business hours** (ET); optional simple contact form; **brand social links** (Admin → Settings) | Medium | Open — see social links spec below |
 | **M23f** | Ops/content: seed/import enough approved reviews (incl. Etsy) so home + PDP social proof is never empty; optional payment-method logos on PDP/cart (Visa/MC/Amex/Apple Pay/Google Pay) | Medium | Open |
+
+##### M23e — Brand social links (Admin → Settings)
+
+**Goal:** Admins add the store’s social profiles in **Admin → Settings** (same panel as cart cleanup). Each row: choose the **network** from a dropdown + paste the **profile URL**. The public shop shows the correct **icon** for that network wherever socials are displayed (footer first; optional header/home later).
+
+**Admin UX**
+- Settings section: **Social media** — list of links; Add / Edit / Remove / reorder (sortOrder).
+- Fields per link: `network` (enum dropdown), `url` (https), optional `label` (defaults to network name), `active`.
+- Supported networks (v1 dropdown): **Etsy**, **Instagram**, **Facebook**, **X (Twitter)**, **YouTube**, **TikTok**, **Pinterest**, **Discord** (extend enum later if needed).
+- Validate URL is http(s); optionally warn if hostname doesn’t match the chosen network.
+
+**Data**
+- Prefer JSON on `CatalogSettings` (e.g. `socialLinks: a.json()`) **or** a small `StoreSocialLink` model — Settings singleton is enough for v1.
+- Do **not** hardcode brand social URLs only in `src/lib/config.ts` once this ships (Etsy **reviews** deep-link may remain separate).
+
+**Storefront**
+- Footer (and any dedicated “find us” strip) renders active links with network icons (`Icon` / brand SVG set — one icon per enum value).
+- Icons are decorative beside accessible link text or `aria-label` with the network name.
+- Empty list → render nothing (no broken placeholders).
+
+**Acceptance**
+- Admin saves Instagram + Etsy URLs → footer shows both icons linking correctly after refresh.
+- Removing or deactivating a link hides it on the shop.
+- Wrong/empty URL fails validation in Settings; no blank icon row on the storefront.
 
 #### Frontend (expected touch points)
 
@@ -1474,7 +1533,8 @@ On each fulfillment transition (when `userId` is set):
 - New `GalleryPage.tsx` + `AdminGalleryPage.tsx` + `GalleryEntry` + `gallery/*` — **done** (M23c / §3.10)
 - New `FaqPage.tsx` + route in `App.tsx`; footer link in `Footer.tsx`
 - `ContactPage.tsx` — concrete hours; optional form (mailto or thin Dynamo model — prefer mailto / existing email first)
-- `src/lib/config.ts` — optional `ETSY_SHOP_URL` / social URLs for footer (reviews URL already exists)
+- `AdminSettingsPage.tsx` + `CatalogSettings` (or small model) — **social links** editor (network dropdown + URL); `Footer.tsx` (and shop chrome) render icons from active links
+- `src/lib/config.ts` — stop being the only source for brand socials once M23e ships (Etsy reviews URL may stay)
 
 #### Out of scope (M23)
 
@@ -1503,6 +1563,7 @@ On each fulfillment transition (when `userId` is set):
 - No disabled Newsletter/Gallery controls that look like broken features. ~~Newsletter hidden; Gallery live.~~ **Partial** — mobile nav still open.
 - ~~Shop banner and Shipping & Returns use the **same** ship-timing language.~~ **Met** (2026-08-09).
 - Contact page lists concrete business hours.
+- Admin can add/edit social links in Settings (network + URL); footer/shop shows the matching icons for active links.
 
 ---
 

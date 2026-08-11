@@ -180,7 +180,16 @@ export async function updateGalleryEntry(
   input: Partial<GalleryEntryInput> & { active?: boolean },
 ): Promise<GalleryEntryRecord> {
   const model = requireGalleryEntryModel(client);
-  const payload: Record<string, unknown> = { id };
+  const payload: {
+    id: string;
+    imagePath?: string;
+    artistName?: string;
+    artistUrl?: string | null;
+    productSlug?: string;
+    receivedAt?: string;
+    active?: boolean;
+    sortOrder?: number;
+  } = { id };
 
   if (input.imagePath != null) payload.imagePath = input.imagePath.trim();
   if (input.artistName != null) payload.artistName = input.artistName.trim();

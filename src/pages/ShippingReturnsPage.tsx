@@ -24,7 +24,20 @@ const SECTIONS: {
       },
       {
         heading: "Tracking",
-        body: "When your order ships, you will receive tracking information by email if one was provided at checkout.",
+        body: (
+          <>
+            When your order ships, we post tracking in your{" "}
+            <Link to="/account/notifications" className={linkClassName}>
+              in-app notifications
+            </Link>{" "}
+            (Account → Notifications). You can also open the order under{" "}
+            <Link to="/account/orders" className={linkClassName}>
+              Account → Orders
+            </Link>{" "}
+            for carrier and tracking details. We do not send shipping tracking by
+            email.
+          </>
+        ),
       },
       {
         heading: "Cancellations before shipment",
