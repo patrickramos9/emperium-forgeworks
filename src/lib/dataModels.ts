@@ -112,3 +112,15 @@ export function hasFavoriteModel(client: AmplifyDataClient): boolean {
 export function hasCartSnapshotModel(client: AmplifyDataClient): boolean {
   return Boolean(client.models.CartSnapshot);
 }
+
+export function requireGalleryEntryModel(client: AmplifyDataClient) {
+  const model = client.models.GalleryEntry;
+  if (!model) {
+    throw new Error(`Gallery is not available in this environment. ${DEPLOY_HINT}`);
+  }
+  return model;
+}
+
+export function hasGalleryEntryModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.GalleryEntry);
+}

@@ -57,6 +57,8 @@ import { AdminPrintServicePage } from "@/pages/admin/AdminPrintServicePage";
 import { AdminPrintRequestsPage } from "@/pages/admin/AdminPrintRequestsPage";
 import { AdminPrintRequestDetailPage } from "@/pages/admin/AdminPrintRequestDetailPage";
 import { AdminSettingsPage } from "@/pages/admin/AdminSettingsPage";
+import { AdminGalleryPage } from "@/pages/admin/AdminGalleryPage";
+import { GalleryPage } from "@/pages/GalleryPage";
 import { SculptorPartnerLayout } from "@/components/partner/SculptorPartnerLayout";
 import { PartnerSculptorEditPage } from "@/pages/partner/PartnerSculptorEditPage";
 import { TrustedSiteScript } from "@/components/TrustedSiteScript";
@@ -108,6 +110,7 @@ export default function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/forge-terms" element={<ForgeTermsPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/sculptors/:slug" element={<SculptorDetailPage />} />
             <Route path="/print" element={<PrintServicePage />} />
             <Route path="/cart" element={<CartPage />} />
@@ -175,6 +178,7 @@ export default function App() {
               element={<AdminNotificationEditPage />}
             />
             <Route path="reviews" element={<AdminReviewsPage />} />
+            <Route path="gallery" element={<AdminGalleryPage />} />
             <Route path="sculptors" element={<AdminSculptorsPage />} />
             <Route path="sculptors/:slug" element={<AdminSculptorEditPage />} />
             <Route path="promos" element={<AdminPromoTemplatesPage />} />

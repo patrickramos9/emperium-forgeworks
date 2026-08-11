@@ -53,9 +53,9 @@ export function Header() {
             <NavLink to="/shop" className={navLinkClass}>
               Shop
             </NavLink>
-            <span className="cursor-not-allowed font-display-lg text-headline-md uppercase tracking-widest text-on-surface-variant/40">
+            <NavLink to="/gallery" className={navLinkClass}>
               Gallery
-            </span>
+            </NavLink>
             {showVaultNav && (
               <NavLink to="/vault" className={navLinkClass}>
                 Vault

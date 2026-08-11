@@ -665,6 +665,31 @@ const schema = a.schema({
       allow.group("admin"),
     ]),
 
+  /**
+   * Customer-painted work for the public Gallery (trust / social proof).
+   * Admin-curated; image under `gallery/*` storage.
+   */
+  GalleryEntry: a
+    .model({
+      /** S3 path under `gallery/…`. */
+      imagePath: a.string().required(),
+      /** Display name (typically Etsy shop / account name). */
+      artistName: a.string().required(),
+      /** Optional link to the artist's other work (Etsy shop, portfolio, etc.). */
+      artistUrl: a.url(),
+      /** Catalog product that was painted (`/shop/:slug`). */
+      productSlug: a.string().required(),
+      /** When the photo was received (for display + sort). */
+      receivedAt: a.datetime().required(),
+      active: a.boolean().default(true),
+      sortOrder: a.integer().default(0),
+    })
+    .authorization((allow) => [
+      allow.guest().to(["read"]),
+      allow.authenticated().to(["read"]),
+      allow.group("admin"),
+    ]),
+
   ShippingProfile: a
     .model({
       name: a.string().required(),

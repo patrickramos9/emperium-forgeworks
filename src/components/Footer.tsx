@@ -16,6 +16,7 @@ type FooterLink =
 const FOOTER_LINKS: FooterLink[] = [
   { label: "Contact", to: "/contact" },
   { label: "About", to: "/about" },
+  { label: "Gallery", to: "/gallery" },
   { label: "Reviews", to: "/reviews" },
   { label: "Shipping & Returns", to: "/shipping-returns" },
   { label: "Privacy Policy", to: "/privacy-policy" },

@@ -17,7 +17,19 @@ If `products/*` only allows `guest` + `admin`, signed-in customers load products
 
 **All storefront reads** of `products/*` go through `getPublicCatalogImageUrl()` in `src/lib/storefrontStorage.ts` (wraps Amplify `getUrl`). Do **not** import `@aws-sdk/credential-providers` in the frontend — it is Node-only and breaks the Vite build.
 
-Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin group needs `write` on `products/*`).
+Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin group needs `write` on `products/*`). Gallery uploads use `galleryImageUpload.ts` (`gallery/*`, admin write).
+
+---
+
+## Path summary
+
+| Prefix | Guest / customer read | Admin write |
+|--------|----------------------|-------------|
+| `products/*` | yes (+ public bucket policy URLs) | yes |
+| `sculptors/*` | yes | yes |
+| `reviews/*` | yes | yes |
+| `gallery/*` | yes | yes |
+| `print-jobs/{entity_id}/*` | yes (also guest write for uploads) | yes |
 
 Partner sculptor uploads use `uploadData()` under `sculptors/{slug}/…` — **`customer`** and **`authenticated`** roles need `write` on `sculptors/*` (see `amplify/storage/resource.ts`).
 

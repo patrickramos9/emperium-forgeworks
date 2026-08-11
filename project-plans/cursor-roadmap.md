@@ -20,17 +20,18 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-10
 
 | Item | State |
 |------|--------|
 | **Phase** | **M23** — trust & conversion (in progress) |
-| **Next** | **M23c–e** — unfinished chrome + mobile nav → FAQ → contact hours / socials |
+| **Next** | **M23d–e** — FAQ → contact hours / socials · mobile nav still open in M23c remainder |
 | **Then** | **M19** — Catalog sales & bundles → **M18** cart price-change |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M6e guest identity parity** (2026-08-09) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M23a/b trust** — PDP + cart Stripe/returns/shipping strip · **M6f** idle cart TTL · **M23a (partial)** reviews · Merchant transparency · **`/print` UX** · **M21c** · **M13a** |
-| **In progress** | **M23** — FAQ / chrome / contact hours still open |
+| **Recently shipped (repo)** | **M23c Gallery** + **Newsletter hidden** (2026-08-10) · **M23a/b trust** · **M6f** idle cart TTL · Merchant transparency · **M21c** · **M13a** |
+| **In progress** | **M23** — FAQ / contact hours / mobile nav still open |
+| **Deferred (feature)** | **Newsletter subscribe** — home form removed; implement under **M13b** (provider or `NewsletterSubscriber`) then restore UI |
 | **In test** | **M6f** — Idle cart TTL cleanup (Admin → Settings; daily job + Run now) |
 | **Ops** | Merchant Center **identity verify** — done |
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
@@ -38,7 +39,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M21** / **M21b** / **M21c** (done) → **M13a** (done) → Merchant transparency + `/print` UX polish (done) → **M23a** + **M23b** trust (**done, repo**) → **M23c–f** → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** → **M9** → **M11a** → M11b → M14
+… → **M21** / **M21b** / **M21c** (done) → **M13a** (done) → Merchant transparency + `/print` UX polish (done) → **M23a** + **M23b** trust (**done**) → **M23c** Gallery + hide Newsletter (**done, repo**; mobile nav open) → **M23d–f** → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -189,6 +190,22 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
 - **Merchant transparency (Misrepresentation)** — street address, phone, `/contact`, Organization JSON-LD, footer/About/Shipping contact details — **shipped** (repo 2026-08-02); **ops:** Merchant Center identity **done**; keep MC business info matched to live site
 - **M23a + M23b** — PDP/cart trust strip (Stripe / returns / dispatch), always-on shipping-returns link, aligned ship copy — **shipped** (repo 2026-08-09); review assign + PDP list earlier (2026-08-02)
+- **M23c (partial)** — Customer **Gallery** + hide home Newsletter — **shipped** (repo 2026-08-10); see **§3.10**. Mobile nav still open.
+
+### 3.10 M23c — Customer Gallery + Newsletter hide (2026-08-10)
+
+| Area | What shipped |
+|------|----------------|
+| **Newsletter** | Home “Join the Forge” subscribe block **removed** so a disabled form does not look broken |
+| **Still to build** | Wire newsletter for real (**M13b**): Mailchimp (or similar) **or** `NewsletterSubscriber` model (email only) + welcome flow; **then restore** the home form (and optional footer CTA) |
+| **Gallery model** | `GalleryEntry` — `imagePath`, `artistName`, optional `artistUrl`, `productSlug`, `receivedAt`, `active`, `sortOrder` |
+| **Storage** | `gallery/*` — guest/customer read; admin write/delete (`amplify/storage/resource.ts`) |
+| **Admin** | Admin → Gallery — upload photo, Etsy/artist name, optional artist link, catalog product, received date, active/sort |
+| **Storefront** | `/gallery` grid; header + footer links; caption shows artist (linked if URL set), product link, received date |
+
+**Deploy:** Backend (`GalleryEntry` + `gallery/*` IAM) + frontend. Uploads fail with S3 `PutObject` deny until storage access is deployed.
+
+**Ops:** Curate customer-painted photos in Admin → Gallery after deploy.
 
 ### 3.9 M23a — Product-linked reviews (2026-08-02)
 
@@ -343,9 +360,9 @@ _(none)_
 
 ### In progress
 
-**M23** — Storefront trust & legitimacy (**M23a** + **M23b** shipped in repo; **M23c–f** remain).
+**M23** — Storefront trust & legitimacy (**M23a** + **M23b** + **M23c Gallery/Newsletter-hide** shipped in repo; **M23c mobile nav** + **M23d–f** remain).
 
-**Ops follow-up (not a coding milestone):** Google Merchant Center — confirm live site shows address/phone/contact → match MC business info → Verify identity → request Misrepresentation review.
+**Ops follow-up (not a coding milestone):** Google Merchant Center — keep MC business info matched to live site; Misrepresentation review if still pending.
 
 ### Resolved bugs
 
@@ -359,7 +376,7 @@ _(none)_
 
 - **M23a** — PDP trust strip (returns / shipping / Stripe) + always-on `/shipping-returns` link _(review assign + PDP list + trust strip **done**)_
 - **M23b** — Cart trust line + align shipping promise copy site-wide _(done)_
-- **M23c** — Hide unfinished Newsletter/Gallery; mobile nav
+- **M23c** — Hide unfinished Newsletter; enable **customer Gallery** — **done (repo 2026-08-10)** except **mobile nav** still open. Newsletter **implementation deferred to M13b**.
 - **M23d** — FAQ page
 - **M23e** — Contact hours + optional form; footer Etsy/socials
 - **M23f** — Seed/import reviews for social proof; optional payment logos
@@ -374,8 +391,8 @@ _(none)_
 
 - **M10** — Admin–customer chat
 - **M12** — Notification preferences _(depends on **M8a.3**)_
-- **M13** — Marketing & growth engine (+ **M6d** abandoned-cart email)
-- **M9** — Polish & growth (gallery, SEO, performance)
+- **M13b** — Marketing remainder: Merchant API sync, pixels, **newsletter subscribe** (restore home form), M6d abandoned-cart email
+- **M9** — Polish & growth remainder (SEO / meta / performance — **Gallery shipped under M23c**)
 - **M6e** — **Guest identity parity** — **production verified** 2026-08-09 (cart, favorites, prints, guest inbox, merge)
 - **M6f** — **Idle cart TTL cleanup** — **in test** (Admin → Settings; guest / signed-in / both)
 
@@ -1094,16 +1111,19 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 
 ### M9 — Polish & growth
 
-**Goal:** SEO, gallery, performance — **after M9a** and core milestones; not a substitute for cart/PDP micro-interactions.
+**Status:** **Partial** — customer **Gallery** shipped under **M23c** (2026-08-10). SEO / meta / performance remain. Newsletter **not** in M9 anymore — see **M13b**.
+
+**Goal:** SEO, performance, and (historically) gallery — **after M9a** and core milestones; not a substitute for cart/PDP micro-interactions.
 
 **Scope:**
-- **Gallery page**:
-  - `/gallery` route.
-  - Uses existing product images and/or curated gallery entries (v1 can reuse `Product`).
-- **SEO / meta tags / structured data**:
+- **Gallery page (done — M23c):**
+  - `/gallery` + Admin → Gallery + `GalleryEntry` + `gallery/*` storage.
+  - Per entry: image, Etsy/artist account name, optional artist URL (name becomes hyperlink), catalog product link (`productSlug`), date photo received.
+  - Header + footer nav enabled (no longer a disabled placeholder).
+- **SEO / meta tags / structured data** _(open)_:
   - Add per-route `<title>` and meta description.
   - OG tags for key pages (home, PDP).
-  - **`sitemap.xml`** — public routes + `/shop/:slug` PDP URLs (exclude vault unless public).
+  - **`sitemap.xml`** — public routes + `/shop/:slug` PDP URLs (exclude vault unless public); include `/gallery`.
   - **Canonical URLs** on PDP and key landing pages.
   - **Schema.org JSON-LD** (Google structured data for product discovery):
     - **`Product`** on each public PDP — `name`, `description`, absolute `image`, `sku` (slug or id), `brand`, `offers` (`price`, `priceCurrency`, `availability` from `inStock`, `url`).
@@ -1112,11 +1132,10 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
   - Validate with Google Rich Results Test + Search Console after deploy.
   - **Public shop catalog only** — do not emit Product JSON-LD for vault-gated PDPs.
   - When **M19** catalog sales ship, JSON-LD `offers.price` must match the **live sale price** on PDP/checkout.
-- **Performance**:
+- **Performance** _(open)_:
   - Ensure images use appropriate sizes and lazy loading.
   - Confirm CDN usage via Amplify (no code change needed, but ensure URLs are correct).
-- **Newsletter**:
-  - Wire home page newsletter form to a provider (Mailchimp, etc.) or create a simple DynamoDB-backed `NewsletterSubscriber` model (minimal PII: email only).
+- **Newsletter** — **moved to M13b** (intentionally hidden on home until then; do not re-add a disabled form).
 
 **Not in M9 (see M13):** Google Merchant Center **product feed** (XML/TSV/API) for Shopping listings — separate from on-page JSON-LD. JSON-LD is sufficient for crawl/rich-result signals; Merchant feed is optional later if you want Shopping ads / free listings.
 
@@ -1427,9 +1446,9 @@ On each fulfillment transition (when `userId` is set):
 2. ~~No returns / guarantee / secure-checkout strip near **Add to cart**** — **done** (`CheckoutTrustStrip`)
 3. ~~Cart has thin pre-Stripe reassurance~~ — **done** (trust strip above Checkout + Stripe badge)
 4. **No FAQ** page
-5. Disabled **Newsletter** + disabled **Gallery** read unfinished
+5. ~~Disabled **Newsletter** + disabled **Gallery** read unfinished~~ — Newsletter **hidden**; Gallery **enabled** (customer work)
 6. **Mobile header** hides Shop/About/Contact (`nav` is `hidden md:flex`)
-7. ~~Shipping promise **inconsistent**~~ — **done** (`src/lib/shippingPromise.ts`; canonical: ships in 1–3 business days)
+7. ~~Shipping promise **inconsistent**~~ — **done** (`src/lib/shippingPromise.ts`; canonical: usually ships in 1–3 business days)
 8. Contact says hours are listed; **hours missing**
 9. No brand **social / Etsy** links in footer/header (Etsy only on reviews surfaces)
 10. Homepage reviews section **hides entirely** when no approved reviews — social proof vanishes
@@ -1440,7 +1459,7 @@ On each fulfillment transition (when `userId` is set):
 |-------|---------|----------|--------|
 | **M23a** | Admin: assign existing reviews to a product (`productSlug` dropdown); PDP review list + photos; trust strip next to Add to cart; always-on `/shipping-returns` link | **Highest** | **Done** (repo 2026-08-09) — assign + PDP list (2026-08-02); trust strip + shipping-returns link |
 | **M23b** | Cart trust line (returns + Stripe + TrustedSite or short secure copy); align shipping promise copy site-wide (one canonical window) | **Highest** | **Done** (repo 2026-08-09) — `CheckoutTrustStrip` on cart; shop banner / policy / strip share `shippingPromise` |
-| **M23c** | Unfinished chrome: hide or remove disabled Newsletter + Gallery until ready; **mobile nav** for Shop / About / Contact | High | Open |
+| **M23c** | Hide disabled Newsletter; enable customer Gallery (`GalleryEntry` + admin + `/gallery` + `gallery/*`); **mobile nav** for Shop / About / Contact | High | **Partial** — Newsletter **hidden** + Gallery **shipped** (repo 2026-08-10, §3.10); newsletter **implement later in M13b**; mobile nav **open** |
 | **M23d** | **FAQ** page (`/faq`) — resin, scale, supports, shipping, returns, licensed art, made-to-order variance; footer + PDP links | High | Open |
 | **M23e** | Contact **business hours** (ET); optional simple contact form; footer **Etsy** (+ real brand socials if URLs exist in config) | Medium | Open |
 | **M23f** | Ops/content: seed/import enough approved reviews (incl. Etsy) so home + PDP social proof is never empty; optional payment-method logos on PDP/cart (Visa/MC/Amex/Apple Pay/Google Pay) | Medium | Open |
@@ -1450,9 +1469,9 @@ On each fulfillment transition (when `userId` is set):
 - `ProductDetailPage.tsx` — ~~render review list~~ (**done**); ~~trust strip near CTA~~ (**done** — `CheckoutTrustStrip`)
 - `AdminReviewsPage.tsx` / `reviewService.setReviewProductSlug` — ~~product assign~~ (**done**)
 - `CartPage.tsx` — ~~reassurance above Checkout CTA~~ (**done**)
-- `Header.tsx` — mobile navigation; stop linking disabled Gallery (or remove until **M9**)
-- `HomePage.tsx` — newsletter: hide CTA until **M13b** wires it, or clearly “coming soon” without looking broken
-- `ShopPage.tsx` + `ShippingReturnsPage.tsx` + PDP shipping copy — ~~**one** ready-to-ship promise~~ (**done** — `shippingPromise.ts`)
+- `Header.tsx` — ~~stop linking disabled Gallery~~ (**done** → `/gallery`); mobile navigation still open
+- `HomePage.tsx` — ~~newsletter hidden~~ (**done** M23c) — **restore after M13b** wires subscribe (Mailchimp or `NewsletterSubscriber`); do not re-add a disabled form
+- New `GalleryPage.tsx` + `AdminGalleryPage.tsx` + `GalleryEntry` + `gallery/*` — **done** (M23c / §3.10)
 - New `FaqPage.tsx` + route in `App.tsx`; footer link in `Footer.tsx`
 - `ContactPage.tsx` — concrete hours; optional form (mailto or thin Dynamo model — prefer mailto / existing email first)
 - `src/lib/config.ts` — optional `ETSY_SHOP_URL` / social URLs for footer (reviews URL already exists)
@@ -1461,8 +1480,8 @@ On each fulfillment transition (when `userId` is set):
 
 - Trustpilot / new third-party review networks (TrustedSite + Etsy bridge is enough)
 - Redesign / light-mode theme
-- Full newsletter provider (**M13b** / **M9**)
-- Gallery page (**M9**)
+- Full newsletter provider / subscribe — **M13b** (UI intentionally hidden until then; see §3.10)
+- Gallery page — **shipped under M23c**; M9 SEO/performance remainder still open
 - Admin–customer chat (**M10**)
 - Catalog sales (**M19**)
 
@@ -1481,7 +1500,7 @@ On each fulfillment transition (when `userId` is set):
 - ~~Cart Checkout CTA has visible returns + Stripe reassurance.~~ **Met** (2026-08-09).
 - `/faq` loads and is linked from footer; key answers match `/shipping-returns` and Forge Terms.
 - Mobile can reach Shop, About, Contact from header.
-- No disabled Newsletter/Gallery controls that look like broken features.
+- No disabled Newsletter/Gallery controls that look like broken features. ~~Newsletter hidden; Gallery live.~~ **Partial** — mobile nav still open.
 - ~~Shop banner and Shipping & Returns use the **same** ship-timing language.~~ **Met** (2026-08-09).
 - Contact page lists concrete business hours.
 
@@ -1766,11 +1785,14 @@ Reuse existing cart/checkout — no separate payment path.
      - TikTok pixel
    - Keep them behind config flags/env vars.
 
-3. **Email capture**
-   - Wire newsletter form to:
-     - A provider (Mailchimp, etc.), or
+3. **Email capture / newsletter** _(required — home form currently hidden)_
+   - **Context (M23c):** Disabled “Join the Forge” block was **removed** from `HomePage` so unfinished chrome does not hurt trust. Do **not** ship a disabled form again.
+   - **Implement** subscribe against:
+     - A provider (Mailchimp, etc.), **or**
      - A simple `NewsletterSubscriber` model (email only).
    - Add a basic welcome flow (even if manual at first).
+   - **Then restore** the home newsletter UI (and optional footer CTA) wired to the real backend.
+   - Acceptance: valid email submits successfully; invalid/duplicate handled; no disabled placeholder on home.
 
 4. **Retargeting readiness**
    - Ensure UTM parameters are preserved through checkout.

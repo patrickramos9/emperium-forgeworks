@@ -258,35 +258,7 @@ export function HomePage() {
         </section>
       )}
 
-      {/* Newsletter */}
-      <section className="mx-auto max-w-container-max px-margin-mobile md:px-margin-desktop">
-        <div className="border border-outline-variant/10 bg-surface-container-low p-stack-lg text-center iron-bevel md:p-margin-desktop">
-          <h2 className="font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
-            Join the Forge
-          </h2>
-          <p className="mt-2 font-body-md text-on-surface-variant">
-            No spam. Only artifacts of power.
-          </p>
-          <form
-            className="mx-auto mt-stack-lg flex max-w-md flex-col gap-stack-sm sm:flex-row"
-            onSubmit={(e) => e.preventDefault()}
-          >
-            <input
-              type="email"
-              disabled
-              placeholder="Enter your email"
-              className="flex-grow border border-outline-variant/30 bg-surface-container-high px-4 py-3 text-body-md text-on-surface opacity-50"
-            />
-            <button
-              type="submit"
-              disabled
-              className="cursor-not-allowed bg-primary-container px-6 py-3 font-label-md uppercase tracking-widest text-on-primary opacity-50"
-            >
-              Subscribe
-            </button>
-          </form>
-        </div>
-      </section>
+      {/* Newsletter intentionally omitted until M13b / provider is ready */}
     </main>
   );
 }

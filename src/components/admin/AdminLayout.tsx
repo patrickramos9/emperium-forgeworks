@@ -22,6 +22,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Announcements", to: "/admin/announcements" },
   { label: "Notifications", to: "/admin/notifications" },
   { label: "Reviews", to: "/admin/reviews" },
+  { label: "Gallery", to: "/admin/gallery" },
   { label: "Sculptors", to: "/admin/sculptors" },
   { label: "Promo codes", to: "/admin/promos" },
   { label: "Vault", to: "/admin/vault" },
