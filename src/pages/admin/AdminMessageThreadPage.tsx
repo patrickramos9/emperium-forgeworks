@@ -1,11 +1,13 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { MessageAttachmentGallery } from "@/components/MessageAttachmentGallery";
 import { MessageImagePicker } from "@/components/MessageImagePicker";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { hasConversationModel } from "@/lib/dataModels";
 import { uploadMessageAttachments } from "@/lib/messageAttachmentUpload";
 import {
+  deleteConversationAsAdmin,
   formatMessageTime,
   getConversationById,
   listMessagesForConversation,
@@ -27,6 +29,8 @@ export function AdminMessageThreadPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -85,6 +89,24 @@ export function AdminMessageThreadPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!conversationId) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const client = await requireAdminSession(navigate);
+      if (!client) return;
+      await deleteConversationAsAdmin(client, conversationId);
+      navigate("/admin/messages");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete conversation.",
+      );
+      setDeleting(false);
+      setPendingDelete(false);
+    }
+  }
+
   if (loading) {
     return <p className="text-on-surface-variant">Loading conversation…</p>;
   }
@@ -125,12 +147,22 @@ export function AdminMessageThreadPage() {
             ) : null}
           </p>
         </div>
-        <Link
-          to="/admin/messages"
-          className="font-label-sm uppercase text-on-surface-variant hover:text-primary"
-        >
-          ← Messages
-        </Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <ConfirmDeleteActions
+            itemLabel={conversation?.subject ?? "conversation"}
+            pending={pendingDelete}
+            busy={deleting}
+            onBegin={() => setPendingDelete(true)}
+            onCancel={() => setPendingDelete(false)}
+            onConfirm={() => void handleDelete()}
+          />
+          <Link
+            to="/admin/messages"
+            className="font-label-sm uppercase text-on-surface-variant hover:text-primary"
+          >
+            ← Messages
+          </Link>
+        </div>
       </div>
 
       {error && <p className="mb-4 text-error">{error}</p>}

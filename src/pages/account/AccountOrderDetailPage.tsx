@@ -286,7 +286,7 @@ export function AccountOrderDetailPage() {
             Questions about this order?
           </h2>
           <p className="mt-2 text-body-sm text-on-surface-variant">
-            Message the shop — we&apos;ll reply in your account inbox.
+            Message the shop — we usually respond within a couple of hours.
           </p>
           <Link
             to={`/account/messages?compose=1&orderId=${encodeURIComponent(order.id)}`}

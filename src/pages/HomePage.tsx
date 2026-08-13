@@ -198,7 +198,7 @@ export function HomePage() {
             </h2>
             <p className="mt-3 font-body-md text-on-surface-variant">
               Questions about an order, a sculpt, or printing? Leave a note —
-              we reply in your inbox when we&apos;re at the forge.
+              we usually respond within a couple of hours.
             </p>
           </div>
           <Link

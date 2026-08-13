@@ -30,8 +30,8 @@ export function ContactPage() {
                 Message the shop
               </h2>
               <p className="mt-2 max-w-xl font-body-md text-on-surface-variant">
-                Start a thread in your account inbox — same pattern as Etsy.
-                Sign in if needed; we reply when we&apos;re available.
+                Start a thread in your inbox — we usually respond within a
+                couple of hours.
               </p>
             </div>
             <Link

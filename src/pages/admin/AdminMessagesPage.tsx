@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { hasConversationModel } from "@/lib/dataModels";
 import {
+  deleteConversationAsAdmin,
   formatMessageTime,
   listAdminConversations,
   type ConversationRecord,
@@ -15,6 +17,8 @@ export function AdminMessagesPage() {
   const [rows, setRows] = useState<ConversationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -41,6 +45,24 @@ export function AdminMessagesPage() {
     }
     void load();
   }, [navigate, filterOrderId]);
+
+  async function handleDelete(conversationId: string) {
+    setDeleting(true);
+    setError(null);
+    try {
+      const client = await requireAdminSession(navigate);
+      if (!client) return;
+      await deleteConversationAsAdmin(client, conversationId);
+      setRows((prev) => prev.filter((row) => row.id !== conversationId));
+      setPendingDeleteId(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete conversation.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div>
@@ -73,29 +95,38 @@ export function AdminMessagesPage() {
 
       <ul className="mt-stack-lg divide-y divide-outline-variant/20 border border-outline-variant/20">
         {rows.map((row) => (
-          <li key={row.id}>
+          <li
+            key={row.id}
+            className="flex flex-wrap items-start justify-between gap-3 p-4 hover:bg-surface-container-high"
+          >
             <Link
               to={`/admin/messages/${row.id}`}
-              className="flex flex-wrap items-start justify-between gap-2 p-4 hover:bg-surface-container-high"
+              className="min-w-0 flex-1"
             >
-              <div>
-                <p className="font-label-md text-on-surface">
-                  {row.unreadForAdmin ? (
-                    <span className="mr-2 inline-block bg-primary px-2 py-0.5 text-label-sm uppercase text-on-primary">
-                      Unread
-                    </span>
-                  ) : null}
-                  {row.subject}
-                </p>
-                <p className="mt-1 text-label-sm text-on-surface-variant">
-                  {row.customerEmail ?? "Customer"}
-                  {row.orderId ? ` · Order ${row.orderId.slice(0, 8)}…` : ""}
-                </p>
-              </div>
-              <p className="text-label-sm text-on-surface-variant">
+              <p className="font-label-md text-on-surface">
+                {row.unreadForAdmin ? (
+                  <span className="mr-2 inline-block bg-primary px-2 py-0.5 text-label-sm uppercase text-on-primary">
+                    Unread
+                  </span>
+                ) : null}
+                {row.subject}
+              </p>
+              <p className="mt-1 text-label-sm text-on-surface-variant">
+                {row.customerEmail ?? "Customer"}
+                {row.orderId ? ` · Order ${row.orderId.slice(0, 8)}…` : ""}
+              </p>
+              <p className="mt-1 text-label-sm text-on-surface-variant">
                 {formatMessageTime(row.lastMessageAt)}
               </p>
             </Link>
+            <ConfirmDeleteActions
+              itemLabel={row.subject}
+              pending={pendingDeleteId === row.id}
+              busy={deleting && pendingDeleteId === row.id}
+              onBegin={() => setPendingDeleteId(row.id)}
+              onCancel={() => setPendingDeleteId(null)}
+              onConfirm={() => void handleDelete(row.id)}
+            />
           </li>
         ))}
       </ul>

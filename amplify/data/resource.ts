@@ -193,6 +193,10 @@ const schema = a.schema({
     success: a.boolean().required(),
   }),
 
+  DeleteGuestConversationResult: a.customType({
+    success: a.boolean().required(),
+  }),
+
   SyncCartSnapshotResult: a.customType({
     synced: a.boolean().required(),
     grantIssued: a.boolean().required(),
@@ -517,6 +521,17 @@ const schema = a.schema({
       conversationId: a.id().required(),
     })
     .returns(a.ref("MarkGuestConversationReadResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestMessagesFn)),
+
+  deleteGuestConversation: a
+    .mutation()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      conversationId: a.id().required(),
+    })
+    .returns(a.ref("DeleteGuestConversationResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(guestMessagesFn)),
 
@@ -1283,8 +1298,8 @@ const schema = a.schema({
       allow
         .ownerDefinedIn("userId")
         .identityClaim("sub")
-        .to(["create", "read", "update"]),
-      allow.group("admin").to(["read", "update"]),
+        .to(["create", "read", "update", "delete"]),
+      allow.group("admin").to(["read", "update", "delete"]),
     ]),
 
   /** M10 — message within a Conversation. */
@@ -1306,8 +1321,8 @@ const schema = a.schema({
       allow
         .ownerDefinedIn("conversationUserId")
         .identityClaim("sub")
-        .to(["create", "read"]),
-      allow.group("admin").to(["create", "read", "update"]),
+        .to(["create", "read", "delete"]),
+      allow.group("admin").to(["create", "read", "update", "delete"]),
     ]),
 })
 .authorization((allow) => [

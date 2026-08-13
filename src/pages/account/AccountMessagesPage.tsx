@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { MessageImagePicker } from "@/components/MessageImagePicker";
 import {
   getCustomerDataClient,
@@ -9,6 +10,8 @@ import { hasCustomerSession } from "@/lib/customerAuth";
 import { hasConversationModel } from "@/lib/dataModels";
 import { uploadMessageAttachments } from "@/lib/messageAttachmentUpload";
 import {
+  deleteConversationAsCustomer,
+  deleteConversationAsGuest,
   formatMessageTime,
   listCustomerConversations,
   listGuestConversations,
@@ -36,6 +39,8 @@ export function AccountMessagesPage() {
   const [email, setEmail] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -122,6 +127,30 @@ export function AccountMessagesPage() {
     }
   }
 
+  async function handleDelete(conversationId: string) {
+    setDeleting(true);
+    setError(null);
+    try {
+      if (signedIn) {
+        const client = await getCustomerDataClient();
+        if (!client) throw new Error("Sign in to delete a conversation.");
+        await deleteConversationAsCustomer(client, conversationId);
+      } else {
+        const client = await getGuestDataClient();
+        if (!client) throw new Error("Could not start guest session.");
+        await deleteConversationAsGuest(client, conversationId);
+      }
+      setRows((prev) => prev.filter((row) => row.id !== conversationId));
+      setPendingDeleteId(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete conversation.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="mx-auto min-h-screen max-w-container-max px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
@@ -154,8 +183,8 @@ export function AccountMessagesPage() {
       </div>
 
       <p className="mb-6 max-w-2xl text-body-sm text-on-surface-variant">
-        Message the shop about an order or a product question. We reply here
-        when available — not live chat. You can attach photos
+        Message the shop about an order or a product question. We usually
+        respond within a couple of hours. You can attach photos
         {!signedIn
           ? ". Guests: include your email so we can reach you; create an account anytime to keep your threads."
           : "."}
@@ -252,12 +281,15 @@ export function AccountMessagesPage() {
       ) : (
         <ul className="space-y-3">
           {rows.map((row) => (
-            <li key={row.id}>
-              <Link
-                to={`/account/messages/${row.id}`}
-                className="block border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel hover:border-primary/40"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
+            <li
+              key={row.id}
+              className="border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <Link
+                  to={`/account/messages/${row.id}`}
+                  className="min-w-0 flex-1 hover:text-primary"
+                >
                   <p className="font-label-md text-on-surface">
                     {row.unreadForCustomer ? (
                       <span className="mr-2 inline-block bg-primary px-2 py-0.5 text-label-sm uppercase text-on-primary">
@@ -266,11 +298,19 @@ export function AccountMessagesPage() {
                     ) : null}
                     {row.subject}
                   </p>
-                  <p className="text-label-sm text-on-surface-variant">
+                  <p className="mt-1 text-label-sm text-on-surface-variant">
                     {formatMessageTime(row.lastMessageAt)}
                   </p>
-                </div>
-              </Link>
+                </Link>
+                <ConfirmDeleteActions
+                  itemLabel={row.subject}
+                  pending={pendingDeleteId === row.id}
+                  busy={deleting && pendingDeleteId === row.id}
+                  onBegin={() => setPendingDeleteId(row.id)}
+                  onCancel={() => setPendingDeleteId(null)}
+                  onConfirm={() => void handleDelete(row.id)}
+                />
+              </div>
             </li>
           ))}
         </ul>

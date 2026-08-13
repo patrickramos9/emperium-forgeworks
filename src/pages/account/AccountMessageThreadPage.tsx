@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { MessageAttachmentGallery } from "@/components/MessageAttachmentGallery";
 import { MessageImagePicker } from "@/components/MessageImagePicker";
 import {
@@ -10,6 +11,8 @@ import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import { hasConversationModel } from "@/lib/dataModels";
 import { uploadMessageAttachments } from "@/lib/messageAttachmentUpload";
 import {
+  deleteConversationAsCustomer,
+  deleteConversationAsGuest,
   formatMessageTime,
   getConversationById,
   getGuestConversationById,
@@ -37,6 +40,8 @@ export function AccountMessageThreadPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -132,6 +137,30 @@ export function AccountMessageThreadPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!conversationId) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      if (signedIn) {
+        const client = await getCustomerDataClient();
+        if (!client) return;
+        await deleteConversationAsCustomer(client, conversationId);
+      } else {
+        const client = await getGuestDataClient();
+        if (!client) return;
+        await deleteConversationAsGuest(client, conversationId);
+      }
+      navigate("/account/messages");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not delete conversation.",
+      );
+      setDeleting(false);
+      setPendingDelete(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="mx-auto min-h-screen max-w-container-max px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
@@ -160,12 +189,22 @@ export function AccountMessageThreadPage() {
         <h1 className="font-display-lg text-headline-lg uppercase text-primary">
           {conversation?.subject ?? "Conversation"}
         </h1>
-        <Link
-          to="/account/messages"
-          className="font-label-sm uppercase text-on-surface-variant hover:text-primary"
-        >
-          ← Messages
-        </Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <ConfirmDeleteActions
+            itemLabel={conversation?.subject ?? "conversation"}
+            pending={pendingDelete}
+            busy={deleting}
+            onBegin={() => setPendingDelete(true)}
+            onCancel={() => setPendingDelete(false)}
+            onConfirm={() => void handleDelete()}
+          />
+          <Link
+            to="/account/messages"
+            className="font-label-sm uppercase text-on-surface-variant hover:text-primary"
+          >
+            ← Messages
+          </Link>
+        </div>
       </div>
 
       {conversation?.orderId && (

@@ -339,6 +339,75 @@ export async function markConversationReadByAdmin(
   }
 }
 
+async function deleteMessagesForConversation(
+  client: AmplifyDataClient,
+  conversationId: string,
+): Promise<void> {
+  const Message = requireMessageModel(client);
+  const messageIds: string[] = [];
+  let nextToken: string | undefined;
+  do {
+    const response = await Message.list({
+      filter: { conversationId: { eq: conversationId } },
+      limit: 100,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row?.id) messageIds.push(row.id);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  for (const id of messageIds) {
+    const { errors } = await Message.delete({ id });
+    if (errors?.length) {
+      throw new Error(errors.map((e) => e.message).join("; "));
+    }
+  }
+}
+
+/** Delete a signed-in customer's conversation and all messages in it. */
+export async function deleteConversationAsCustomer(
+  client: AmplifyDataClient,
+  conversationId: string,
+): Promise<void> {
+  const userId = await getCustomerUserId();
+  if (!userId) throw new Error("Sign in to delete a conversation.");
+
+  const conversation = await getConversationById(client, conversationId);
+  if (!conversation || conversation.userId !== userId) {
+    throw new Error("Conversation not found.");
+  }
+
+  await deleteMessagesForConversation(client, conversationId);
+  const Conversation = requireConversationModel(client);
+  const { errors } = await Conversation.delete({ id: conversationId });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+}
+
+/** Delete any conversation as admin (including guest threads). */
+export async function deleteConversationAsAdmin(
+  client: AmplifyDataClient,
+  conversationId: string,
+): Promise<void> {
+  const conversation = await getConversationById(client, conversationId);
+  if (!conversation) {
+    throw new Error("Conversation not found.");
+  }
+
+  await deleteMessagesForConversation(client, conversationId);
+  const Conversation = requireConversationModel(client);
+  const { errors } = await Conversation.delete({ id: conversationId });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+}
+
 export function formatMessageTime(
   value: string | null | undefined,
 ): string {
@@ -520,6 +589,26 @@ export async function markConversationReadByGuest(
   if (!client.mutations.markGuestConversationRead) return;
   const session = await requireGuestSessionArgs();
   const { errors } = await client.mutations.markGuestConversationRead({
+    guestId: session.guestId,
+    guestToken: session.guestToken,
+    conversationId,
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+}
+
+export async function deleteConversationAsGuest(
+  client: AmplifyDataClient,
+  conversationId: string,
+): Promise<void> {
+  if (!client.mutations.deleteGuestConversation) {
+    throw new Error(
+      "Guest messages are not available yet. Redeploy the Amplify backend.",
+    );
+  }
+  const session = await requireGuestSessionArgs();
+  const { errors } = await client.mutations.deleteGuestConversation({
     guestId: session.guestId,
     guestToken: session.guestToken,
     conversationId,

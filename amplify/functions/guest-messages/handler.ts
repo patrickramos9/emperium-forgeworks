@@ -315,6 +315,57 @@ async function handleMarkGuestConversationRead(event: AppSyncEvent) {
   return { success: true };
 }
 
+async function deleteMessagesForConversation(conversationId: string) {
+  const Message = dataClient.models.Message;
+  if (!Message) {
+    throw new Error("Messages are not available yet.");
+  }
+
+  const messageIds: string[] = [];
+  let nextToken: string | undefined;
+  do {
+    const response = await Message.list({
+      filter: { conversationId: { eq: conversationId } },
+      limit: 100,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row?.id) messageIds.push(row.id);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  for (const id of messageIds) {
+    const { errors } = await Message.delete({ id });
+    if (errors?.length) {
+      throw new Error(errors.map((e) => e.message).join("; "));
+    }
+  }
+}
+
+async function handleDeleteGuestConversation(event: AppSyncEvent) {
+  const guestId = await requireGuestId(event);
+  const conversationId = event.arguments.conversationId?.trim() ?? "";
+  if (!conversationId) throw new Error("Conversation id is required.");
+
+  await requireGuestConversation(guestId, conversationId);
+  await deleteMessagesForConversation(conversationId);
+
+  const Conversation = dataClient.models.Conversation;
+  if (!Conversation) {
+    throw new Error("Messages are not available yet.");
+  }
+
+  const { errors } = await Conversation.delete({ id: conversationId });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  return { success: true };
+}
+
 export const handler = async (event: AppSyncEvent) => {
   const fieldName = resolveFieldName(event);
   switch (fieldName) {
@@ -326,6 +377,8 @@ export const handler = async (event: AppSyncEvent) => {
       return handleReplyGuestConversation(event);
     case "markGuestConversationRead":
       return handleMarkGuestConversationRead(event);
+    case "deleteGuestConversation":
+      return handleDeleteGuestConversation(event);
     case "getGuestConversations":
     default:
       return handleGetGuestConversations(event);
