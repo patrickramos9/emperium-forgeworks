@@ -340,8 +340,49 @@ async function mergeGuestNotificationsIntoUser(
   return merged;
 }
 
+async function mergeGuestOrdersIntoUser(
+  userId: string,
+  guestId: string,
+): Promise<number> {
+  const rows: Schema["Order"]["type"][] = [];
+  let nextToken: string | undefined;
+
+  do {
+    const response = await dataClient.models.Order.list({
+      filter: { guestId: { eq: guestId } },
+      limit: 50,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row) rows.push(row);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  let merged = 0;
+  for (const row of rows) {
+    if (!row.id) continue;
+    if (row.userId === userId && !row.guestId) continue;
+
+    const { errors } = await dataClient.models.Order.update({
+      id: row.id,
+      userId,
+      guestId: null,
+    });
+    if (errors?.length) {
+      throw new Error(errors.map((e) => e.message).join("; "));
+    }
+    merged += 1;
+  }
+
+  return merged;
+}
+
 /**
- * M6e — verify guest token + Cognito sub; merge guest cart, favorites, prints, notifications.
+ * M6e — verify guest token + Cognito sub; merge guest cart, favorites, prints, notifications, orders.
  */
 export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
   event,
@@ -372,6 +413,7 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
     userId,
     guestId,
   );
+  const ordersMerged = await mergeGuestOrdersIntoUser(userId, guestId);
 
   // Belt-and-suspenders: never leave a guest cart row after merge.
   if (dataClient.models.GuestCartSnapshot) {
@@ -390,5 +432,6 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
     favoritesMerged,
     printRequestsMerged,
     notificationsMerged,
+    ordersMerged,
   };
 };

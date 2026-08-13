@@ -1,4 +1,5 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
+import { getStoredGuestSession } from "@/services/guestSessionService";
 
 export type CancelCustomerOrderResult = {
   success: boolean;
@@ -10,6 +11,7 @@ export type CancelCustomerOrderResult = {
 export async function cancelCustomerOrder(
   client: AmplifyDataClient,
   orderId: string,
+  options?: { asGuest?: boolean },
 ): Promise<CancelCustomerOrderResult> {
   if (!client.mutations.cancelCustomerOrder) {
     throw new Error(
@@ -17,8 +19,20 @@ export async function cancelCustomerOrder(
     );
   }
 
+  let guestArgs: { guestId: string; guestToken: string } | undefined;
+  if (options?.asGuest) {
+    const session = getStoredGuestSession();
+    if (!session) {
+      throw new Error("Guest session not ready — reload and try again.");
+    }
+    guestArgs = session;
+  }
+
   const { data, errors } = await client.mutations.cancelCustomerOrder({
     orderId,
+    ...(guestArgs
+      ? { guestId: guestArgs.guestId, guestToken: guestArgs.guestToken }
+      : {}),
   });
 
   if (errors?.length) {

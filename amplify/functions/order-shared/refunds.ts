@@ -151,9 +151,13 @@ export function canCustomerCancelOrder(order: OrderRecord): boolean {
 
 export function assertCustomerCanCancelOrder(
   order: OrderRecord,
-  userId: string,
+  identity: { userId?: string; guestId?: string },
 ): void {
-  if (order.userId !== userId) {
+  const userId = identity.userId?.trim();
+  const guestId = identity.guestId?.trim();
+  const ownsAsUser = Boolean(userId && order.userId === userId);
+  const ownsAsGuest = Boolean(guestId && order.guestId === guestId);
+  if (!ownsAsUser && !ownsAsGuest) {
     throw new Error("Order not found.");
   }
   if (!canCustomerCancelOrder(order)) {

@@ -128,6 +128,7 @@ const schema = a.schema({
     favoritesMerged: a.integer().required(),
     printRequestsMerged: a.integer().required(),
     notificationsMerged: a.integer().required(),
+    ordersMerged: a.integer().required(),
   }),
 
   GuestNotificationItem: a.customType({
@@ -203,6 +204,41 @@ const schema = a.schema({
     refundId: a.string(),
     refundedCents: a.integer().required(),
     orderStatus: a.string().required(),
+  }),
+
+  /** M16e — guest-safe order fields (Order owner rules are Cognito-only). */
+  GuestOrderItem: a.customType({
+    id: a.id().required(),
+    guestId: a.string(),
+    externalSessionId: a.string().required(),
+    paymentProvider: a.string(),
+    status: a.string().required(),
+    email: a.string(),
+    customerName: a.string(),
+    shippingAddress: a.json(),
+    subtotalCents: a.integer(),
+    shippingCents: a.integer(),
+    shippingLabel: a.string(),
+    taxCents: a.integer(),
+    lineItems: a.json(),
+    totalCents: a.integer().required(),
+    discountCents: a.integer(),
+    promoLabel: a.string(),
+    fulfillmentStatus: a.string(),
+    fulfillmentUpdatedAt: a.datetime(),
+    carrier: a.string(),
+    trackingNumber: a.string(),
+    trackingUrl: a.string(),
+    shippedAt: a.datetime(),
+    deliveredAt: a.datetime(),
+    refundedCents: a.integer(),
+    refundNotes: a.string(),
+    createdAt: a.datetime(),
+    updatedAt: a.datetime(),
+  }),
+
+  GuestOrderListResult: a.customType({
+    orders: a.ref("GuestOrderItem").array().required(),
   }),
 
   SubmitReturnRequestResult: a.customType({
@@ -315,6 +351,9 @@ const schema = a.schema({
       promoGrantId: a.id(),
       successUrl: a.string(),
       cancelUrl: a.string(),
+      /** M16e — required with guestToken when calling as guest (IAM). Ignored when Cognito `sub` is present. */
+      guestId: a.string(),
+      guestToken: a.string(),
     })
     .returns(a.ref("CheckoutSessionResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
@@ -554,9 +593,27 @@ const schema = a.schema({
 
   cancelCustomerOrder: a
     .mutation()
-    .arguments({ orderId: a.id().required() })
+    .arguments({
+      orderId: a.id().required(),
+      /** M16e — required with guestToken when calling as guest (IAM). Ignored when Cognito `sub` is present. */
+      guestId: a.string(),
+      guestToken: a.string(),
+    })
     .returns(a.ref("CancelCustomerOrderResult"))
-    .authorization((allow) => [allow.authenticated()])
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(cancelCustomerOrderFn)),
+
+  /** M16e — list/get guest orders (Order owner rules are Cognito-only). */
+  getGuestOrders: a
+    .query()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      /** When set, return only this order (still must belong to guestId). */
+      orderId: a.id(),
+    })
+    .returns(a.ref("GuestOrderListResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(cancelCustomerOrderFn)),
 
   submitReturnRequest: a
@@ -734,6 +791,8 @@ const schema = a.schema({
       paymentProvider: a.enum(["mock", "stripe"]),
       status: a.enum(["pending", "paid", "failed", "cancelled", "refunded"]),
       userId: a.string(),
+      /** M16e — opaque guest id; exactly one of userId | guestId for storefront-owned orders. */
+      guestId: a.string(),
       email: a.string(),
       customerName: a.string(),
       customerPhone: a.string(),

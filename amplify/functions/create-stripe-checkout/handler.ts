@@ -26,6 +26,7 @@ import {
   formatPrintServiceVariantLabel,
   withPendingPrintReview,
 } from "../order-shared/printService.js";
+import { verifyGuestToken } from "../guest-shared/cookie.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -261,12 +262,13 @@ async function attachOrderIdToStripeSession(
   stripe: Stripe,
   session: Stripe.Checkout.Session,
   orderId: string,
-  userId?: string,
+  owner?: { userId?: string; guestId?: string },
 ) {
   await stripe.checkout.sessions.update(session.id, {
     metadata: {
       orderId,
-      ...(userId ? { userId } : {}),
+      ...(owner?.userId ? { userId: owner.userId } : {}),
+      ...(owner?.guestId ? { guestId: owner.guestId } : {}),
     },
   });
 
@@ -310,6 +312,16 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       event.identity && "sub" in event.identity
         ? (event.identity.sub as string | undefined)
         : undefined;
+
+    let verifiedGuestId: string | undefined;
+    if (!userId) {
+      const guestIdArg = event.arguments.guestId?.trim() ?? "";
+      const guestTokenArg = event.arguments.guestToken?.trim() ?? "";
+      if (!(await verifyGuestToken(guestIdArg, guestTokenArg))) {
+        throw new Error("Invalid or missing guest session.");
+      }
+      verifiedGuestId = guestIdArg;
+    }
 
     const productById = await loadProductsForLineItems(lineItems);
 
@@ -429,7 +441,11 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     );
 
     if (userId) {
-      await cancelSupersededPendingOrders(dataClient, userId);
+      await cancelSupersededPendingOrders(dataClient, { userId });
+    } else if (verifiedGuestId) {
+      await cancelSupersededPendingOrders(dataClient, {
+        guestId: verifiedGuestId,
+      });
     }
 
     const snapshots = lineItems.map((item) => snapshotForLineItem(item));
@@ -447,7 +463,11 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
         {
           successUrl,
           cancelUrl,
-          ...(userId ? { metadata: { userId } } : {}),
+          ...(userId
+            ? { metadata: { userId } }
+            : verifiedGuestId
+              ? { metadata: { guestId: verifiedGuestId } }
+              : {}),
           ...(discountCents > 0 && promo
             ? {
                 promoLabel: promo.label,
@@ -475,6 +495,7 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
             }
           : {}),
         ...(userId ? { userId } : {}),
+        ...(verifiedGuestId ? { guestId: verifiedGuestId } : {}),
       });
 
       if (createResult.errors?.length) {
@@ -485,12 +506,10 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
       }
 
       orderId = createResult.data.id;
-      await attachOrderIdToStripeSession(
-        stripe,
-        checkoutSession,
-        orderId,
-        userId,
-      );
+      await attachOrderIdToStripeSession(stripe, checkoutSession, orderId, {
+        ...(userId ? { userId } : {}),
+        ...(verifiedGuestId ? { guestId: verifiedGuestId } : {}),
+      });
 
       return {
         sessionId: sessionResult.sessionId,

@@ -216,7 +216,11 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
     );
 
     if (userId) {
-      await cancelSupersededPendingOrders(dataClient, userId);
+      await cancelSupersededPendingOrders(dataClient, { userId });
+    } else if (verifiedGuestId) {
+      await cancelSupersededPendingOrders(dataClient, {
+        guestId: verifiedGuestId,
+      });
     }
 
     const stripe = new Stripe(secretKey);
@@ -310,6 +314,7 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
         subtotalCents: request.quoteCents,
         totalCents: request.quoteCents,
         ...(userId ? { userId } : {}),
+        ...(verifiedGuestId ? { guestId: verifiedGuestId } : {}),
         ...(request.email?.trim() ? { email: request.email.trim() } : {}),
       });
       if (createResult.errors?.length) {

@@ -158,6 +158,14 @@ backend.guestNotifications.addEnvironment(
   "GUEST_SESSION_SECRET",
   guestSessionSecret,
 );
+backend.createStripeCheckout.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
+);
+backend.cancelCustomerOrder.addEnvironment(
+  "GUEST_SESSION_SECRET",
+  guestSessionSecret,
+);
 
 backend.createStripeRefund.addEnvironment(
   "STRIPE_SECRET_KEY",

@@ -2,6 +2,7 @@ import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import type { Schema } from "../../amplify/data/resource";
 import type { OrderLineItemSnapshot } from "@/lib/orderLineItems";
 import { formatPrice } from "@/data/seedProducts";
+import { getStoredGuestSession } from "@/services/guestSessionService";
 
 export type OrderRecord = Schema["Order"]["type"];
 
@@ -171,6 +172,119 @@ export async function getOrderById(
     throw new Error(errors.map((e) => e.message).join("; "));
   }
   return data ?? null;
+}
+
+function mapGuestOrderItem(row: {
+  id?: string | null;
+  guestId?: string | null;
+  externalSessionId: string;
+  paymentProvider?: string | null;
+  status: string;
+  email?: string | null;
+  customerName?: string | null;
+  shippingAddress?: unknown;
+  subtotalCents?: number | null;
+  shippingCents?: number | null;
+  shippingLabel?: string | null;
+  taxCents?: number | null;
+  lineItems?: unknown;
+  totalCents: number;
+  discountCents?: number | null;
+  promoLabel?: string | null;
+  fulfillmentStatus?: string | null;
+  fulfillmentUpdatedAt?: string | null;
+  carrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+  refundedCents?: number | null;
+  refundNotes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}): OrderRecord | null {
+  if (!row?.id) return null;
+  return {
+    id: row.id,
+    guestId: row.guestId ?? null,
+    userId: null,
+    externalSessionId: row.externalSessionId,
+    paymentProvider: (row.paymentProvider as OrderRecord["paymentProvider"]) ?? null,
+    status: (row.status as OrderRecord["status"]) ?? "pending",
+    email: row.email ?? null,
+    customerName: row.customerName ?? null,
+    customerPhone: null,
+    shippingAddress: row.shippingAddress ?? null,
+    subtotalCents: row.subtotalCents ?? null,
+    shippingCents: row.shippingCents ?? null,
+    shippingLabel: row.shippingLabel ?? null,
+    taxCents: row.taxCents ?? null,
+    lineItems: row.lineItems ?? null,
+    totalCents: row.totalCents,
+    discountCents: row.discountCents ?? null,
+    promoGrantId: null,
+    promoSource: null,
+    promoLabel: row.promoLabel ?? null,
+    promoExpiresAt: null,
+    supportNotifiedAt: null,
+    stripePaymentIntentId: null,
+    adminAcknowledgedAt: null,
+    fulfillmentStatus:
+      (row.fulfillmentStatus as OrderRecord["fulfillmentStatus"]) ?? null,
+    fulfillmentUpdatedAt: row.fulfillmentUpdatedAt ?? null,
+    carrier: row.carrier ?? null,
+    trackingNumber: row.trackingNumber ?? null,
+    trackingUrl: row.trackingUrl ?? null,
+    shippedAt: row.shippedAt ?? null,
+    deliveredAt: row.deliveredAt ?? null,
+    refundedCents: row.refundedCents ?? null,
+    refundNotes: row.refundNotes ?? null,
+    refunds: null,
+    createdAt: row.createdAt ?? null,
+    updatedAt: row.updatedAt ?? null,
+  } as OrderRecord;
+}
+
+/** M16e — list/get orders for the current guest session (HMAC). */
+export async function listGuestOrders(
+  client: AmplifyDataClient,
+  orderId?: string,
+): Promise<OrderRecord[]> {
+  if (!client.queries.getGuestOrders) {
+    throw new Error(
+      "Guest orders are not available yet. Redeploy the Amplify backend.",
+    );
+  }
+
+  const session = getStoredGuestSession();
+  if (!session) {
+    throw new Error("Guest session not ready — reload and try again.");
+  }
+
+  const { data, errors } = await client.queries.getGuestOrders({
+    guestId: session.guestId,
+    guestToken: session.guestToken,
+    ...(orderId ? { orderId } : {}),
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+
+  const rows: OrderRecord[] = [];
+  for (const row of data?.orders ?? []) {
+    if (!row) continue;
+    const mapped = mapGuestOrderItem(row);
+    if (mapped) rows.push(mapped);
+  }
+  return rows;
+}
+
+export async function getGuestOrderById(
+  client: AmplifyDataClient,
+  id: string,
+): Promise<OrderRecord | null> {
+  const rows = await listGuestOrders(client, id);
+  return rows[0] ?? null;
 }
 
 export async function updateOrderStatus(

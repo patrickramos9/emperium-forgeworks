@@ -3,11 +3,16 @@ import { Link, useNavigate } from "react-router-dom";
 import { OrderLineItemRow } from "@/components/OrderLineItemRow";
 import { useProducts } from "@/hooks/useProducts";
 import { formatPrice } from "@/data/seedProducts";
-import { requireCustomerSession } from "@/lib/amplifyDataClient";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
+import { hasCustomerSession } from "@/lib/customerAuth";
 import { hasReviewModel } from "@/lib/dataModels";
 import {
   formatOrderDate,
   listCustomerOrders,
+  listGuestOrders,
   orderLineItemsSummary,
   parseOrderLineItems,
   type OrderRecord,
@@ -21,9 +26,11 @@ import {
   showFulfillmentProgress,
 } from "@/lib/orderRefunds";
 import { listMyReviews, type ReviewRecord } from "@/services/reviewService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 
 export function AccountOrdersPage() {
   const navigate = useNavigate();
+  const [signedIn, setSignedIn] = useState(false);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
   const [reviewsEnabled, setReviewsEnabled] = useState(false);
@@ -38,16 +45,34 @@ export function AccountOrdersPage() {
 
   useEffect(() => {
     async function load() {
-      const client = await requireCustomerSession(navigate, "/account/orders");
-      if (!client) return;
-
       try {
-        const orderRows = await listCustomerOrders(client);
-        setOrders(orderRows);
+        const session = await hasCustomerSession();
+        setSignedIn(session);
+        if (session) {
+          const client = await getCustomerDataClient();
+          if (!client) {
+            navigate(
+              `/account/login?returnTo=${encodeURIComponent("/account/orders")}`,
+              { replace: true },
+            );
+            return;
+          }
+          const orderRows = await listCustomerOrders(client);
+          setOrders(orderRows);
 
-        if (hasReviewModel(client)) {
-          setReviewsEnabled(true);
-          setReviews(await listMyReviews(client));
+          if (hasReviewModel(client)) {
+            setReviewsEnabled(true);
+            setReviews(await listMyReviews(client));
+          }
+        } else {
+          await ensureGuestSession();
+          const client = await getGuestDataClient();
+          if (!client?.queries.getGuestOrders) {
+            throw new Error(
+              "Guest orders are not available yet. Redeploy the Amplify backend.",
+            );
+          }
+          setOrders(await listGuestOrders(client));
         }
       } catch (err) {
         setError(
@@ -75,12 +100,23 @@ export function AccountOrdersPage() {
           Order History
         </h1>
         <Link
-          to="/account"
+          to={signedIn ? "/account" : "/shop"}
           className="font-label-sm uppercase text-on-surface-variant hover:text-primary"
         >
-          ← Account
+          {signedIn ? "← Account" : "← Shop"}
         </Link>
       </div>
+
+      {!signedIn && (
+        <p className="mb-4 text-label-sm text-on-surface-variant">
+          Showing orders from this device.{" "}
+          <Link to="/account/login" className="text-primary underline">
+            Sign in
+          </Link>{" "}
+          to keep them across devices. You can cancel unshipped orders here for
+          a full refund.
+        </p>
+      )}
 
       {error && <p className="text-error">{error}</p>}
 
@@ -98,7 +134,7 @@ export function AccountOrdersPage() {
           const items = parseOrderLineItems(order.lineItems);
           const review = reviewByOrderId.get(order.id);
           const canReview =
-            reviewsEnabled && order.status === "paid" && !review;
+            signedIn && reviewsEnabled && order.status === "paid" && !review;
           const fulfillment = displayFulfillmentStatus(order);
           return (
             <li

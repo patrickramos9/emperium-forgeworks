@@ -20,16 +20,16 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-11
 
 | Item | State |
 |------|--------|
 | **Phase** | **M23** — trust & conversion (in progress) |
-| **Next** | **M16e** — Guest pre-ship cancel (+ update `/shipping-returns` policy text) |
+| **Next** | **M23d–f** / mobile nav (after M16e guest cancel) |
 | **Then** | **M23d–f** — FAQ → contact hours + **Settings social links** → reviews seed · mobile nav · then **M19** → **M18** |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
-| **Recently verified** | **M6e guest identity parity** (2026-08-09) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M23c Gallery** + **Newsletter hidden** (2026-08-10) · **M23a/b trust** · **M6f** idle cart TTL · Merchant transparency · **M21c** · **M13a** |
+| **Recently verified** | **M23c Gallery** (2026-08-11) · **M6e guest identity parity** (2026-08-09) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
+| **Recently shipped (repo)** | **M23c** Newsletter hidden · **M23a/b trust** · **M6f** idle cart TTL · Merchant transparency · **M21c** · **M13a** |
 | **In progress** | **M23** — FAQ / contact hours / mobile nav still open |
 | **Deferred (feature)** | **Newsletter subscribe** — home form removed; implement under **M13b** (provider or `NewsletterSubscriber`) then restore UI |
 | **In test** | **M6f** — Idle cart TTL cleanup (Admin → Settings; daily job + Run now) |
@@ -39,7 +39,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M23c** Gallery + hide Newsletter (**done, repo**) → **M16e** guest pre-ship cancel → **M23d–f** / mobile nav → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
+… → **M23c** Gallery (**production verified** 2026-08-11) + hide Newsletter (**done**) → **M16e** guest pre-ship cancel (**shipped**) → **M23d–f** / mobile nav → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -190,22 +190,24 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
 - **Merchant transparency (Misrepresentation)** — street address, phone, `/contact`, Organization JSON-LD, footer/About/Shipping contact details — **shipped** (repo 2026-08-02); **ops:** Merchant Center identity **done**; keep MC business info matched to live site
 - **M23a + M23b** — PDP/cart trust strip (Stripe / returns / dispatch), always-on shipping-returns link, aligned ship copy — **shipped** (repo 2026-08-09); review assign + PDP list earlier (2026-08-02)
-- **M23c (partial)** — Customer **Gallery** + hide home Newsletter — **shipped** (repo 2026-08-10); see **§3.10**. Mobile nav still open.
+- **M23c (partial)** — Customer **Gallery** — **production verified** (2026-08-11); hide home Newsletter — **shipped** (repo 2026-08-10); see **§3.10**. Mobile nav still open.
 
 ### 3.10 M23c — Customer Gallery + Newsletter hide (2026-08-10)
+
+**Gallery status:** **Production verified** 2026-08-11 (admin upload + `/gallery` display, including public `gallery/*` image URLs).
 
 | Area | What shipped |
 |------|----------------|
 | **Newsletter** | Home “Join the Forge” subscribe block **removed** so a disabled form does not look broken |
 | **Still to build** | Wire newsletter for real (**M13b**): Mailchimp (or similar) **or** `NewsletterSubscriber` model (email only) + welcome flow; **then restore** the home form (and optional footer CTA) |
 | **Gallery model** | `GalleryEntry` — `imagePath`, `artistName`, optional `artistUrl`, `productSlug`, `receivedAt`, `active`, `sortOrder` |
-| **Storage** | `gallery/*` — guest/customer read; admin write/delete (`amplify/storage/resource.ts`) |
+| **Storage** | `gallery/*` — admin write; public read via bucket policy (same pattern as `products/*`); `gallery/` recognized in `productImageRefs` / public URL helper |
 | **Admin** | Admin → Gallery — upload photo, Etsy/artist name, optional artist link, catalog product, received date, active/sort |
 | **Storefront** | `/gallery` grid; header + footer links; caption shows artist (linked if URL set), product link, received date |
 
-**Deploy:** Backend (`GalleryEntry` + `gallery/*` IAM) + frontend. Uploads fail with S3 `PutObject` deny until storage access is deployed.
+**Deploy:** Backend (`GalleryEntry` + `gallery/*` IAM + public GetObject) + frontend — **done**.
 
-**Ops:** Curate customer-painted photos in Admin → Gallery after deploy.
+**Ops:** Keep curating customer-painted photos in Admin → Gallery.
 
 ### 3.9 M23a — Product-linked reviews (2026-08-02)
 
@@ -299,7 +301,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | **M16b** | `ReturnRequest`; `submitReturnRequest` / `adminUpdateReturnRequest`; customer + admin return UI |
 | **M16c** | Exchange reason + admin case-by-case copy |
 | **M16d** | `cancelCustomerOrder` — customer cancel before ship, full Stripe refund |
-| **M16e** | **Planned (next)** — guest pre-ship cancel + `/shipping-returns` policy copy update |
+| **M16e** | **Shipped** — guest pre-ship cancel + `/shipping-returns` policy copy update |
 | **UI polish** | Admin **Payment** + **Fulfillment** columns; `paymentStatusDetail` on customer order list/detail |
 
 **Deploy:** Backend (schema, Lambdas) + frontend.
@@ -361,7 +363,7 @@ _(none)_
 
 ### In progress
 
-**M23** — Storefront trust & legitimacy (**M23a** + **M23b** + **M23c Gallery/Newsletter-hide** shipped in repo; **M23c mobile nav** + **M23d–f** remain).
+**M23** — Storefront trust & legitimacy (**M23a** + **M23b** + **M23c Gallery** production verified; Newsletter hide shipped; **M23c mobile nav** + **M23d–f** remain).
 
 **Ops follow-up (not a coding milestone):** Google Merchant Center — keep MC business info matched to live site; Misrepresentation review if still pending.
 
@@ -373,15 +375,15 @@ _(none)_
 
 ### Planned (not started)
 
-**Next — M16e guest pre-ship cancel**
+**Next — M23d–f trust / mobile nav**
 
-- **M16e** — Guests can cancel paid, not-yet-shipped orders (HMAC `guestId` + `guestToken`); reuse `issueOrderRefund` / M16d rules. **When shipped:** update `/shipping-returns` “Cancellations before shipment” so it is not signed-in-only.
+- **M16e** — **Shipped** — Guests can cancel paid, not-yet-shipped orders (HMAC `guestId` + `guestToken`); reuse `issueOrderRefund` / M16d rules. `/shipping-returns` “Cancellations before shipment” covers guests and signed-in customers via Account → Orders.
 
 **Then (priority — conversion) — M23 remainder**
 
 - **M23a** — PDP trust strip (returns / shipping / Stripe) + always-on `/shipping-returns` link _(review assign + PDP list + trust strip **done**)_
 - **M23b** — Cart trust line + align shipping promise copy site-wide _(done)_
-- **M23c** — Hide unfinished Newsletter; enable **customer Gallery** — **done (repo 2026-08-10)** except **mobile nav** still open. Newsletter **implementation deferred to M13b**.
+- **M23c** — Hide unfinished Newsletter; enable **customer Gallery** — Gallery **production verified** (2026-08-11); Newsletter hide **done**; **mobile nav** still open. Newsletter **implementation deferred to M13b**.
 - **M23d** — FAQ page
 - **M23e** — Contact **business hours** (ET); optional contact form; **store social links** via Admin → Settings (network dropdown + URL → icons in footer/shop chrome)
 - **M23f** — Seed/import reviews for social proof; optional payment logos
@@ -394,10 +396,10 @@ _(none)_
 
 **Later**
 
-- **M10** — Admin–customer chat
+- **M10** — Customer ↔ shop **message inbox** (Etsy-style threads; not live tech-support chat)
 - **M12** — Notification preferences _(depends on **M8a.3**)_
 - **M13b** — Marketing remainder: Merchant API sync, pixels, **newsletter subscribe** (restore home form), M6d abandoned-cart email
-- **M9** — Polish & growth remainder (SEO / meta / performance — **Gallery shipped under M23c**)
+- **M9** — Polish & growth remainder (SEO / meta / performance — **Gallery production verified under M23c**)
 - **M6e** — **Guest identity parity** — **production verified** 2026-08-09 (cart, favorites, prints, guest inbox, merge)
 - **M6f** — **Idle cart TTL cleanup** — **in test** (Admin → Settings; guest / signed-in / both)
 
@@ -585,7 +587,7 @@ _(none)_
 - **Inbox** — `GuestNotification` + account menu badge; quote/decline notify guests in-app (SES optional / unavailable).
 - **Admin** — carts & favorites table lists guests as `Guest · {shortId}` (+ print email when known); guest rows drop after merge.
 
-**Still account-only (by design today):** promo redemption at checkout, thank-you grants on guest-paid orders, returns portal, cross-device without cookie. **Pre-ship cancel for guests** is planned as **M16e** (not yet shipped).
+**Still account-only (by design today):** promo redemption at checkout, thank-you grants on guest-paid orders, returns portal, cross-device without cookie. **Pre-ship cancel for guests** is **M16e** (**shipped**).
 
 #### Why a cookie (or equivalent)
 
@@ -645,7 +647,7 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 | **Thank-you grant** | Needs `userId` on paid order — guest paid orders skip unless account linked |
 | **Print request submit / pay quote** | Yes — cookie + contact email |
 | **Print quote in-app inbox** | Yes — `GuestNotification` (same browser / guest id) |
-| **Pre-ship order cancel** | **Planned — M16e** (today: signed-in only via M16d) |
+| **Pre-ship order cancel** | **Done — M16e** (guest + signed-in via M16d/e) |
 | **M18 price-change alerts** | Can key off guest snapshot until login, then migrate to user |
 
 #### Admin
@@ -657,7 +659,7 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 #### Out of scope (v1) — unchanged
 
 - Guest **promo redemption** without account.
-- Guest **returns** portal without sign-in _(pre-ship **cancel** is **M16e**, separate from returns)_.
+- Guest **returns** portal without sign-in _(pre-ship **cancel** is **M16e**, shipped)_.
 - Cross-device guest sync without cookie (incognito close = new guest).
 - Guest account inbox for broadcast/marketing (order/print only via `GuestNotification`).
 
@@ -796,7 +798,7 @@ Cart / favorites / prints / guest inbox / merge verified in production testing. 
 
 ### M16 — Returns, refunds & exchanges
 
-**Status:** **Production verified** (2026-06-24) — admin refunds (**M16a**), return requests (**M16b**), exchange notes (**M16c**), pre-ship cancel (**M16d**). **M16e** (guest pre-ship cancel) — **planned next**. Policy at `/shipping-returns`.
+**Status:** **Production verified** (2026-06-24) — admin refunds (**M16a**), return requests (**M16b**), exchange notes (**M16c**), pre-ship cancel (**M16d**). **M16e** (guest pre-ship cancel) — **shipped**. Policy at `/shipping-returns`.
 
 **Goal:** Support your published policy (30-day returns on new products, buyer pays return shipping, refund within ~2 days of receipt) with admin tools and optional customer self-service — without building a full RMA/ERP.
 
@@ -870,26 +872,17 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 **Acceptance:** Customer cancels while order is in Received/Processing → refunded in Stripe + order shows **Cancelled**; after ship, cancel UI hidden, return flow only.
 
-#### Phase E — Guest pre-ship cancellation (M16e) — **planned (next)**
+#### Phase E — Guest pre-ship cancellation (M16e) — **shipped**
 
-**Status:** **Planned** — next build item (ahead of remaining M23 slices). Extends **M16d** to guest-paid orders under M6e identity.
+**Status:** **Shipped** — extends **M16d** to guest-paid orders under M6e identity. Deploy + verify on Amplify before marking production-verified.
 
 **Goal:** A guest who paid without Cognito can cancel any **paid, not-yet-shipped** order owned by their `guestId`, with the same full automatic refund as signed-in customers.
 
-**Today (gap):** `cancelCustomerOrder` is `authenticated` only; Lambda requires Cognito `sub`; Account → Orders requires sign-in. `/shipping-returns` correctly says signed-in only.
-
-**Backend**
-- Extend `cancelCustomerOrder` (or sibling mutation) with optional `guestId` + `guestToken`; authorize `allow.guest()` + `allow.authenticated()`.
-- Verify HMAC guest token; assert order `guestId` matches (exactly one of `userId` | `guestId`); reuse `assertCustomerCanCancelOrder` / `issueOrderRefund` eligibility (paid, not shipped, refundable balance).
-- Do not weaken ownership checks — never cancel by `orderId` alone.
-
-**Frontend**
-- Guest path to view/cancel the order (thank-you / order lookup with guest session, or Account-equivalent guest order detail already used for prints — prefer extending customer order detail for guest-owned rows when signed out with valid guest session).
-- Same cancel confirm UX and success copy as M16d.
-
-**Policy (required when shipping M16e)**
-- Update `/shipping-returns` → **Cancellations before shipment** from “Signed-in customers may…” to cover **guests and signed-in customers** (or “Anyone who placed the order may cancel…”), and point guests at the in-app order/cancel surface you ship.
-- Keep post-ship language unchanged (returns, not self-service cancel).
+**Shipped**
+- `Order.guestId` set on guest Stripe/mock checkout (and print-quote checkout); merge on sign-in attaches guest orders to Cognito `userId`.
+- `cancelCustomerOrder` accepts optional `guestId` + `guestToken`; `allow.guest()` + `allow.authenticated()`; HMAC verify + ownership by `guestId`.
+- `getGuestOrders` query for list/detail; Account → Orders works signed-out with guest session; cancel UX matches M16d.
+- `/shipping-returns` cancellations copy covers guests and signed-in customers.
 
 **Acceptance**
 - Guest pays → cancels before ship → Stripe full refund + order cancelled; second cancel fails cleanly.
@@ -1146,13 +1139,13 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 
 ### M9 — Polish & growth
 
-**Status:** **Partial** — customer **Gallery** shipped under **M23c** (2026-08-10). SEO / meta / performance remain. Newsletter **not** in M9 anymore — see **M13b**.
+**Status:** **Partial** — customer **Gallery** **production verified** under **M23c** (2026-08-11). SEO / meta / performance remain. Newsletter **not** in M9 anymore — see **M13b**.
 
 **Goal:** SEO, performance, and (historically) gallery — **after M9a** and core milestones; not a substitute for cart/PDP micro-interactions.
 
 **Scope:**
-- **Gallery page (done — M23c):**
-  - `/gallery` + Admin → Gallery + `GalleryEntry` + `gallery/*` storage.
+- **Gallery page (done — M23c, production verified 2026-08-11):**
+  - `/gallery` + Admin → Gallery + `GalleryEntry` + `gallery/*` storage (public GetObject).
   - Per entry: image, Etsy/artist account name, optional artist URL (name becomes hyperlink), catalog product link (`productSlug`), date photo received.
   - Header + footer nav enabled (no longer a disabled placeholder).
 - **SEO / meta tags / structured data** _(open)_:
@@ -1181,15 +1174,20 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 
 ---
 
-### M10 — Admin–customer chat
+### M10 — Customer ↔ shop message inbox (Etsy-style)
 
-**Goal:** Direct messaging between admins and customers.
+**Status:** **Planned** — sits after **M8a.3** in the living build order (may pull earlier if messaging is the priority trust gap).
+
+**Product intent:** An **asynchronous message inbox** like Etsy — customers leave a question or order note; the shop replies when available. **Not** a live tech-support chat, floating widget, or SLA bot.
+
+**Goal:** Trust + pre/post-purchase questions without requiring email for every thread.
 
 **Data models:**
 - `Conversation`:
   - `id`
-  - `userId` (customer)
-  - `subject: string`
+  - `userId` (customer Cognito `sub` in v1; optional `guestId` later)
+  - `subject: string` (short topic)
+  - `orderId?: id` (when started from an order)
   - `lastMessageAt: datetime`
   - `unreadForCustomer: boolean`
   - `unreadForAdmin: boolean`
@@ -1200,31 +1198,24 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
   - `body: string`
   - `createdAt: datetime`
 
-**Auth:**
-- Customer:
-  - Owner read/write on conversations where `userId = sub`.
-- Admin:
-  - Full read/write.
+**Auth (v1):**
+- Customer: owner read/write on conversations where `userId = sub`.
+- Admin: full read/write; unread thread count/badge.
 
 **Frontend:**
-- Customer:
-  - `/account/messages` or `/account/chat`:
-    - List of conversations.
-    - View + reply.
-    - Start new conversation.
-- Admin:
-  - `/admin/messages`:
-    - List conversations.
-    - Filter by customer.
-    - Open from order detail (link to conversation).
+- Customer: `/account/messages` — thread list, open thread, reply, start new conversation (Account / Contact entry; optional “Ask about this order” on order detail).
+- Admin: `/admin/messages` — thread list, filter, reply; deep-link from order detail when `orderId` set.
+- Label as **Messages** / **Inbox**, not “Live chat” or “Support chat”.
 
-**Real-time:**
-- v1: polling (simple interval or manual refresh).
-- Future: AppSync subscriptions (optional).
+**Delivery model:**
+- v1: **polling or manual refresh** (Etsy-like; minutes, not seconds).
+- Optional later: AppSync subscriptions — only if inbox feels too stale after v1.
+- Out of scope v1: typing indicators, presence, chatbots / auto-replies; file attachments unless explicitly requested.
 
 **Cursor rules:**
-- Use `services/chatService.ts` for data access.
+- Use `services/messageInboxService.ts` (or `chatService.ts`) for data access.
 - Do not implement real-time subscriptions in v1 unless explicitly requested.
+- Prefer Account + Admin nav badges over a floating chat bubble.
 
 ---
 
@@ -1481,7 +1472,7 @@ On each fulfillment transition (when `userId` is set):
 2. ~~No returns / guarantee / secure-checkout strip near **Add to cart**** — **done** (`CheckoutTrustStrip`)
 3. ~~Cart has thin pre-Stripe reassurance~~ — **done** (trust strip above Checkout + Stripe badge)
 4. **No FAQ** page
-5. ~~Disabled **Newsletter** + disabled **Gallery** read unfinished~~ — Newsletter **hidden**; Gallery **enabled** (customer work)
+5. ~~Disabled **Newsletter** + disabled **Gallery** read unfinished~~ — Newsletter **hidden**; Gallery **production verified** (2026-08-11)
 6. **Mobile header** hides Shop/About/Contact (`nav` is `hidden md:flex`)
 7. ~~Shipping promise **inconsistent**~~ — **done** (`src/lib/shippingPromise.ts`; canonical: usually ships in 1–3 business days)
 8. Contact says hours are listed; **hours missing**
@@ -1494,7 +1485,7 @@ On each fulfillment transition (when `userId` is set):
 |-------|---------|----------|--------|
 | **M23a** | Admin: assign existing reviews to a product (`productSlug` dropdown); PDP review list + photos; trust strip next to Add to cart; always-on `/shipping-returns` link | **Highest** | **Done** (repo 2026-08-09) — assign + PDP list (2026-08-02); trust strip + shipping-returns link |
 | **M23b** | Cart trust line (returns + Stripe + TrustedSite or short secure copy); align shipping promise copy site-wide (one canonical window) | **Highest** | **Done** (repo 2026-08-09) — `CheckoutTrustStrip` on cart; shop banner / policy / strip share `shippingPromise` |
-| **M23c** | Hide disabled Newsletter; enable customer Gallery (`GalleryEntry` + admin + `/gallery` + `gallery/*`); **mobile nav** for Shop / About / Contact | High | **Partial** — Newsletter **hidden** + Gallery **shipped** (repo 2026-08-10, §3.10); newsletter **implement later in M13b**; mobile nav **open** |
+| **M23c** | Hide disabled Newsletter; enable customer Gallery (`GalleryEntry` + admin + `/gallery` + `gallery/*`); **mobile nav** for Shop / About / Contact | High | **Partial** — Gallery **production verified** (2026-08-11); Newsletter **hidden** (implement later in **M13b**); mobile nav **open** |
 | **M23d** | **FAQ** page (`/faq`) — resin, scale, supports, shipping, returns, licensed art, made-to-order variance; footer + PDP links | High | Open |
 | **M23e** | Contact **business hours** (ET); optional simple contact form; **brand social links** (Admin → Settings) | Medium | Open — see social links spec below |
 | **M23f** | Ops/content: seed/import enough approved reviews (incl. Etsy) so home + PDP social proof is never empty; optional payment-method logos on PDP/cart (Visa/MC/Amex/Apple Pay/Google Pay) | Medium | Open |
@@ -1530,7 +1521,7 @@ On each fulfillment transition (when `userId` is set):
 - `CartPage.tsx` — ~~reassurance above Checkout CTA~~ (**done**)
 - `Header.tsx` — ~~stop linking disabled Gallery~~ (**done** → `/gallery`); mobile navigation still open
 - `HomePage.tsx` — ~~newsletter hidden~~ (**done** M23c) — **restore after M13b** wires subscribe (Mailchimp or `NewsletterSubscriber`); do not re-add a disabled form
-- New `GalleryPage.tsx` + `AdminGalleryPage.tsx` + `GalleryEntry` + `gallery/*` — **done** (M23c / §3.10)
+- New `GalleryPage.tsx` + `AdminGalleryPage.tsx` + `GalleryEntry` + `gallery/*` — **done / production verified** (M23c / §3.10, 2026-08-11)
 - New `FaqPage.tsx` + route in `App.tsx`; footer link in `Footer.tsx`
 - `ContactPage.tsx` — concrete hours; optional form (mailto or thin Dynamo model — prefer mailto / existing email first)
 - `AdminSettingsPage.tsx` + `CatalogSettings` (or small model) — **social links** editor (network dropdown + URL); `Footer.tsx` (and shop chrome) render icons from active links
@@ -1541,8 +1532,8 @@ On each fulfillment transition (when `userId` is set):
 - Trustpilot / new third-party review networks (TrustedSite + Etsy bridge is enough)
 - Redesign / light-mode theme
 - Full newsletter provider / subscribe — **M13b** (UI intentionally hidden until then; see §3.10)
-- Gallery page — **shipped under M23c**; M9 SEO/performance remainder still open
-- Admin–customer chat (**M10**)
+- Gallery page — **production verified under M23c** (2026-08-11); M9 SEO/performance remainder still open
+- Customer ↔ shop **message inbox** (**M10** — Etsy-style threads, not live chat)
 - Catalog sales (**M19**)
 
 #### Cursor rules
@@ -1560,7 +1551,7 @@ On each fulfillment transition (when `userId` is set):
 - ~~Cart Checkout CTA has visible returns + Stripe reassurance.~~ **Met** (2026-08-09).
 - `/faq` loads and is linked from footer; key answers match `/shipping-returns` and Forge Terms.
 - Mobile can reach Shop, About, Contact from header.
-- No disabled Newsletter/Gallery controls that look like broken features. ~~Newsletter hidden; Gallery live.~~ **Partial** — mobile nav still open.
+- No disabled Newsletter/Gallery controls that look like broken features. ~~Newsletter hidden; Gallery production verified.~~ **Partial** — mobile nav still open.
 - ~~Shop banner and Shipping & Returns use the **same** ship-timing language.~~ **Met** (2026-08-09).
 - Contact page lists concrete business hours.
 - Admin can add/edit social links in Settings (network + URL); footer/shop shows the matching icons for active links.

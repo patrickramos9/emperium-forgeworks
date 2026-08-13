@@ -250,6 +250,14 @@ export function AccountMenu() {
               </Link>
               <Link
                 role="menuitem"
+                to="/account/orders"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Orders
+              </Link>
+              <Link
+                role="menuitem"
                 to="/account/favorites"
                 onClick={() => setOpen(false)}
                 className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"

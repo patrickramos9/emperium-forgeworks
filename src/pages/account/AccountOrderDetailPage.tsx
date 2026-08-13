@@ -7,8 +7,11 @@ import { OrderLineItemRow } from "@/components/OrderLineItemRow";
 import { formatPrice } from "@/data/seedProducts";
 import { RETURN_SHIP_INSTRUCTIONS } from "@/lib/config";
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
-import { requireCustomerSession } from "@/lib/amplifyDataClient";
-import { getCustomerUserId } from "@/lib/customerAuth";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
+import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import {
   buildTrackingUrl,
   displayFulfillmentStatus,
@@ -27,6 +30,7 @@ import { cancelCustomerOrder } from "@/services/cancelOrderService";
 import {
   formatOrderDate,
   formatShippingAddress,
+  getGuestOrderById,
   getOrderById,
   isOrphanedPendingCheckout,
   parseOrderLineItems,
@@ -37,10 +41,12 @@ import {
   listReturnRequestsForOrder,
   type ReturnRequestRecord,
 } from "@/services/returnRequestService";
+import { ensureGuestSession } from "@/services/guestSessionService";
 
 export function AccountOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const [signedIn, setSignedIn] = useState(false);
   const [order, setOrder] = useState<OrderRecord | null>(null);
   const [dataClient, setDataClient] = useState<AmplifyDataClient | null>(null);
   const [returnRequests, setReturnRequests] = useState<ReturnRequestRecord[]>([]);
@@ -52,11 +58,19 @@ export function AccountOrderDetailPage() {
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
   const { products: catalogProducts, loading: catalogLoading } = useProducts("all");
 
-  async function reloadOrder(client: AmplifyDataClient, id: string) {
-    const row = await getOrderById(client, id);
+  async function reloadOrder(
+    client: AmplifyDataClient,
+    id: string,
+    asGuest: boolean,
+  ) {
+    const row = asGuest
+      ? await getGuestOrderById(client, id)
+      : await getOrderById(client, id);
     if (row) {
       setOrder(row);
-      setReturnRequests(await listReturnRequestsForOrder(client, id));
+      if (!asGuest) {
+        setReturnRequests(await listReturnRequestsForOrder(client, id));
+      }
     }
     return row;
   }
@@ -68,22 +82,43 @@ export function AccountOrderDetailPage() {
         return;
       }
 
-      const client = await requireCustomerSession(
-        navigate,
-        `/account/orders/${orderId}`,
-      );
-      if (!client) return;
-      setDataClient(client);
-
       try {
-        const userId = await getCustomerUserId();
-        const row = await getOrderById(client, orderId);
-        if (!row || row.userId !== userId || isOrphanedPendingCheckout(row)) {
-          setError("Order not found.");
-          return;
+        const session = await hasCustomerSession();
+        setSignedIn(session);
+        if (session) {
+          const client = await getCustomerDataClient();
+          if (!client) {
+            navigate(
+              `/account/login?returnTo=${encodeURIComponent(`/account/orders/${orderId}`)}`,
+              { replace: true },
+            );
+            return;
+          }
+          setDataClient(client);
+          const userId = await getCustomerUserId();
+          const row = await getOrderById(client, orderId);
+          if (!row || row.userId !== userId || isOrphanedPendingCheckout(row)) {
+            setError("Order not found.");
+            return;
+          }
+          setOrder(row);
+          setReturnRequests(await listReturnRequestsForOrder(client, orderId));
+        } else {
+          await ensureGuestSession();
+          const client = await getGuestDataClient();
+          if (!client?.queries.getGuestOrders) {
+            throw new Error(
+              "Guest orders are not available yet. Redeploy the Amplify backend.",
+            );
+          }
+          setDataClient(client);
+          const row = await getGuestOrderById(client, orderId);
+          if (!row || isOrphanedPendingCheckout(row)) {
+            setError("Order not found.");
+            return;
+          }
+          setOrder(row);
         }
-        setOrder(row);
-        setReturnRequests(await listReturnRequestsForOrder(client, orderId));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load order");
       } finally {
@@ -99,8 +134,10 @@ export function AccountOrderDetailPage() {
     setCancelError(null);
     setCancelMessage(null);
     try {
-      await cancelCustomerOrder(dataClient, order.id);
-      await reloadOrder(dataClient, order.id);
+      await cancelCustomerOrder(dataClient, order.id, {
+        asGuest: !signedIn,
+      });
+      await reloadOrder(dataClient, order.id, !signedIn);
       setCancelMessage(
         "Your order was cancelled. A full refund will return to your original payment method (timing depends on your bank or card issuer).",
       );
@@ -147,7 +184,8 @@ export function AccountOrderDetailPage() {
   const openReturn = returnRequests.find((row) =>
     ["requested", "approved", "received"].includes(row.status ?? ""),
   );
-  const canRequestReturn = canCustomerRequestReturn(order) && !openReturn;
+  const canRequestReturn =
+    signedIn && canCustomerRequestReturn(order) && !openReturn;
   const canCancel = canCustomerCancelOrder(order);
   const wasCancelled = isCustomerCancelledOrder(order);
   const wasRefunded = isFullyRefunded(order);
@@ -335,7 +373,7 @@ export function AccountOrderDetailPage() {
         </ul>
       </section>
 
-      {order.status === "paid" && showFulfillmentProgress(order) && (
+      {signedIn && order.status === "paid" && showFulfillmentProgress(order) && (
         <div className="mt-6 flex flex-wrap gap-4">
           <Link
             to={`/account/orders/${order.id}/review`}
@@ -352,6 +390,16 @@ export function AccountOrderDetailPage() {
             </Link>
           )}
         </div>
+      )}
+
+      {!signedIn && fulfillment === "shipped" && (
+        <p className="mt-6 text-body-sm text-on-surface-variant">
+          Need a return after shipment?{" "}
+          <Link to="/account/register" className="text-primary underline">
+            Create an account
+          </Link>{" "}
+          or contact support — self-service returns require a signed-in account.
+        </p>
       )}
 
       {cancelConfirmOpen && (

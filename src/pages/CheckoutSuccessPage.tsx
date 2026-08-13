@@ -36,14 +36,23 @@ export function CheckoutSuccessPage() {
       {signedIn === false && (
         <div className="mt-8 border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
           <p className="text-on-surface-variant">
-            Create a free account to track this order and future purchases.
+            View or cancel this order from Orders on this device, or create a
+            free account to track purchases across devices.
           </p>
-          <Link
-            to="/account/register"
-            className="molten-glow mt-4 inline-block border border-primary/40 bg-surface-container px-6 py-3 font-label-md uppercase text-primary"
-          >
-            Create account
-          </Link>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <Link
+              to="/account/orders"
+              className="molten-glow inline-block border border-primary/40 bg-surface-container px-6 py-3 font-label-md uppercase text-primary"
+            >
+              View orders
+            </Link>
+            <Link
+              to="/account/register"
+              className="inline-block border border-outline-variant/30 px-6 py-3 font-label-md uppercase text-on-surface-variant hover:text-primary"
+            >
+              Create account
+            </Link>
+          </div>
         </div>
       )}
 

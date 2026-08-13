@@ -46,17 +46,26 @@ export async function markPendingOrderCancelled(
   return true;
 }
 
-/** Cancel open pending checkouts before starting a new Stripe session for the same user. */
+/** Cancel open pending checkouts before starting a new Stripe session for the same owner. */
 export async function cancelSupersededPendingOrders(
   client: DataClient,
-  userId: string,
+  owner: { userId?: string; guestId?: string },
 ): Promise<void> {
+  const userId = owner.userId?.trim();
+  const guestId = owner.guestId?.trim();
+  const filter = userId
+    ? { userId: { eq: userId }, status: { eq: "pending" as const } }
+    : guestId
+      ? { guestId: { eq: guestId }, status: { eq: "pending" as const } }
+      : null;
+  if (!filter) return;
+
   const rows: OrderRecord[] = [];
   let nextToken: string | undefined;
 
   do {
     const response = await client.models.Order.list({
-      filter: { userId: { eq: userId }, status: { eq: "pending" } },
+      filter,
       limit: 50,
       nextToken,
     });

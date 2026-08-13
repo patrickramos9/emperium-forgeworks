@@ -41,7 +41,7 @@ const SECTIONS: {
       },
       {
         heading: "Cancellations before shipment",
-        body: "Signed-in customers may cancel any paid order that has not shipped yet from Account → Order details. A full refund is issued automatically to your original payment method. Once an order has shipped, self-service cancellation is no longer available—use the return process instead.",
+        body: "Anyone who placed an order may cancel it before shipment from Account → Orders → order details (signed-in or guest session on this device). A full refund is issued automatically to your original payment method. Once an order has shipped, self-service cancellation is no longer available—use the return process instead (signed-in accounts).",
       },
     ],
   },

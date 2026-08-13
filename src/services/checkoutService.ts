@@ -15,6 +15,10 @@ import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { getCustomerUserId } from "@/lib/customerAuth";
 import { toOrderLineItemSnapshots } from "@/lib/orderLineItems";
 import { serializePrintServicePayload } from "@/lib/printService";
+import {
+  ensureGuestSession,
+  getStoredGuestSession,
+} from "@/services/guestSessionService";
 
 function toLineItems(items: CartLine[]): CheckoutLineItem[] {
   return items.map((item) => ({
@@ -41,6 +45,11 @@ async function saveMockOrder(
   if (!client) return;
 
   const userId = await getCustomerUserId();
+  let guestId: string | undefined;
+  if (!userId) {
+    await ensureGuestSession();
+    guestId = getStoredGuestSession()?.guestId;
+  }
   const snapshots = toOrderLineItemSnapshots(items);
 
   const { data, errors } = await client.models.Order.create({
@@ -50,6 +59,7 @@ async function saveMockOrder(
     lineItems: JSON.stringify(snapshots),
     totalCents,
     ...(userId ? { userId } : {}),
+    ...(guestId ? { guestId } : {}),
   });
 
   if (errors?.length) {
@@ -101,9 +111,23 @@ async function startStripeCheckout(
       : {}),
   }));
 
+  const userId = await getCustomerUserId();
+  let guestArgs: { guestId: string; guestToken: string } | undefined;
+  if (!userId) {
+    await ensureGuestSession();
+    const session = getStoredGuestSession();
+    if (!session) {
+      throw new Error("Guest session not ready — reload and try again.");
+    }
+    guestArgs = session;
+  }
+
   const { data, errors } = await client.mutations.createStripeCheckoutSession({
     lineItems,
     ...(promoGrantId ? { promoGrantId } : {}),
+    ...(guestArgs
+      ? { guestId: guestArgs.guestId, guestToken: guestArgs.guestToken }
+      : {}),
     successUrl: `${base}/checkout/success?session={CHECKOUT_SESSION_ID}`,
     cancelUrl: `${base}/checkout/cancel?session={CHECKOUT_SESSION_ID}`,
   });
