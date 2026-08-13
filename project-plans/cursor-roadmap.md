@@ -25,7 +25,7 @@ Cursor should treat this file as the **source of truth** for:
 | Item | State |
 |------|--------|
 | **Phase** | **M23** — trust & conversion (in progress) |
-| **Next** | **M23d–f** / mobile nav (after M16e guest cancel) |
+| **Next** | **M23d–f** / mobile nav |
 | **Then** | **M23d–f** — FAQ → contact hours + **Settings social links** → reviews seed · mobile nav · then **M19** → **M18** |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
 | **Recently verified** | **M23c Gallery** (2026-08-11) · **M6e guest identity parity** (2026-08-09) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
@@ -39,7 +39,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M23c** Gallery (**production verified** 2026-08-11) + hide Newsletter (**done**) → **M16e** guest pre-ship cancel (**shipped**) → **M23d–f** / mobile nav → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
+… → **M23c** Gallery (**production verified** 2026-08-11) + hide Newsletter (**done**) → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M23d–f** / mobile nav → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -301,7 +301,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | **M16b** | `ReturnRequest`; `submitReturnRequest` / `adminUpdateReturnRequest`; customer + admin return UI |
 | **M16c** | Exchange reason + admin case-by-case copy |
 | **M16d** | `cancelCustomerOrder` — customer cancel before ship, full Stripe refund |
-| **M16e** | **Shipped** — guest pre-ship cancel + `/shipping-returns` policy copy update |
+| **M16e** | **Production verified** (2026-08-12) — guest pre-ship cancel + `/shipping-returns` policy copy |
 | **UI polish** | Admin **Payment** + **Fulfillment** columns; `paymentStatusDetail` on customer order list/detail |
 
 **Deploy:** Backend (schema, Lambdas) + frontend.
@@ -377,7 +377,7 @@ _(none)_
 
 **Next — M23d–f trust / mobile nav**
 
-- **M16e** — **Shipped** — Guests can cancel paid, not-yet-shipped orders (HMAC `guestId` + `guestToken`); reuse `issueOrderRefund` / M16d rules. `/shipping-returns` “Cancellations before shipment” covers guests and signed-in customers via Account → Orders.
+- **M16e** — **Production verified** (2026-08-12) — Guests can cancel paid, not-yet-shipped orders (HMAC `guestId` + `guestToken`); reuse `issueOrderRefund` / M16d rules. `/shipping-returns` “Cancellations before shipment” covers guests and signed-in customers via Account → Orders.
 
 **Then (priority — conversion) — M23 remainder**
 
@@ -587,7 +587,7 @@ _(none)_
 - **Inbox** — `GuestNotification` + account menu badge; quote/decline notify guests in-app (SES optional / unavailable).
 - **Admin** — carts & favorites table lists guests as `Guest · {shortId}` (+ print email when known); guest rows drop after merge.
 
-**Still account-only (by design today):** promo redemption at checkout, thank-you grants on guest-paid orders, returns portal, cross-device without cookie. **Pre-ship cancel for guests** is **M16e** (**shipped**).
+**Still account-only (by design today):** promo redemption at checkout, thank-you grants on guest-paid orders, returns portal, cross-device without cookie. **Pre-ship cancel for guests** is **M16e** (**production verified** 2026-08-12).
 
 #### Why a cookie (or equivalent)
 
@@ -659,7 +659,7 @@ Guests have no Cognito `sub`. The backend needs a **stable anonymous identifier*
 #### Out of scope (v1) — unchanged
 
 - Guest **promo redemption** without account.
-- Guest **returns** portal without sign-in _(pre-ship **cancel** is **M16e**, shipped)_.
+- Guest **returns** portal without sign-in _(pre-ship **cancel** is **M16e**, production verified)_.
 - Cross-device guest sync without cookie (incognito close = new guest).
 - Guest account inbox for broadcast/marketing (order/print only via `GuestNotification`).
 
@@ -798,7 +798,7 @@ Cart / favorites / prints / guest inbox / merge verified in production testing. 
 
 ### M16 — Returns, refunds & exchanges
 
-**Status:** **Production verified** (2026-06-24) — admin refunds (**M16a**), return requests (**M16b**), exchange notes (**M16c**), pre-ship cancel (**M16d**). **M16e** (guest pre-ship cancel) — **shipped**. Policy at `/shipping-returns`.
+**Status:** **Production verified** (2026-06-24) — admin refunds (**M16a**), return requests (**M16b**), exchange notes (**M16c**), pre-ship cancel (**M16d**). **M16e** (guest pre-ship cancel) — **production verified** (2026-08-12). Policy at `/shipping-returns`.
 
 **Goal:** Support your published policy (30-day returns on new products, buyer pays return shipping, refund within ~2 days of receipt) with admin tools and optional customer self-service — without building a full RMA/ERP.
 
@@ -872,9 +872,9 @@ Align copy with `ShippingReturnsPage` — contact-before-shipping is the default
 
 **Acceptance:** Customer cancels while order is in Received/Processing → refunded in Stripe + order shows **Cancelled**; after ship, cancel UI hidden, return flow only.
 
-#### Phase E — Guest pre-ship cancellation (M16e) — **shipped**
+#### Phase E — Guest pre-ship cancellation (M16e) — **production verified** (2026-08-12)
 
-**Status:** **Shipped** — extends **M16d** to guest-paid orders under M6e identity. Deploy + verify on Amplify before marking production-verified.
+**Status:** **Production verified** (2026-08-12) — extends **M16d** to guest-paid orders under M6e identity.
 
 **Goal:** A guest who paid without Cognito can cancel any **paid, not-yet-shipped** order owned by their `guestId`, with the same full automatic refund as signed-in customers.
 
