@@ -8,6 +8,7 @@ import {
 } from "@/lib/adminSessionPolicy";
 import { useUnacknowledgedOrderCount } from "@/hooks/useUnacknowledgedOrderCount";
 import { usePendingPrintRequestCount } from "@/hooks/usePendingPrintRequestCount";
+import { useAdminMessageUnread } from "@/hooks/useAdminMessageUnread";
 
 type NavItem = { label: string; to: string; end?: boolean };
 
@@ -15,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", to: "/admin", end: true },
   { label: "Products", to: "/admin/products" },
   { label: "Orders", to: "/admin/orders" },
+  { label: "Messages", to: "/admin/messages" },
   { label: "Returns", to: "/admin/returns" },
   { label: "Shipping", to: "/admin/shipping" },
   { label: "Print service", to: "/admin/print-service" },
@@ -43,6 +45,7 @@ export function AdminLayout() {
   const [signingOut, setSigningOut] = useState(false);
   const { count: newOrderCount } = useUnacknowledgedOrderCount();
   const { count: pendingPrintCount } = usePendingPrintRequestCount();
+  const messageUnread = useAdminMessageUnread();
 
   useEffect(() => {
     async function guard() {
@@ -131,6 +134,11 @@ export function AdminLayout() {
                       {newOrderCount}
                     </span>
                   )}
+                  {item.to === "/admin/messages" && messageUnread > 0 && (
+                    <span className="bg-primary px-2 py-0.5 font-label-sm text-on-primary">
+                      {messageUnread}
+                    </span>
+                  )}
                   {item.to === "/admin/print-requests" && pendingPrintCount > 0 && (
                     <span className="bg-primary px-2 py-0.5 font-label-sm text-on-primary">
                       {pendingPrintCount}
@@ -162,6 +170,11 @@ export function AdminLayout() {
                 {item.to === "/admin/orders" && newOrderCount > 0 && (
                   <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center bg-primary px-1 text-[10px] text-on-primary">
                     {newOrderCount}
+                  </span>
+                )}
+                {item.to === "/admin/messages" && messageUnread > 0 && (
+                  <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center bg-primary px-1 text-[10px] text-on-primary">
+                    {messageUnread}
                   </span>
                 )}
                 {item.to === "/admin/print-requests" && pendingPrintCount > 0 && (

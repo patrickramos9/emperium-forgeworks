@@ -381,8 +381,81 @@ async function mergeGuestOrdersIntoUser(
   return merged;
 }
 
+async function mergeGuestConversationsIntoUser(
+  userId: string,
+  guestId: string,
+): Promise<number> {
+  const Conversation = dataClient.models.Conversation;
+  const Message = dataClient.models.Message;
+  if (!Conversation || !Message) return 0;
+
+  const rows: Schema["Conversation"]["type"][] = [];
+  let nextToken: string | undefined;
+  do {
+    const response = await Conversation.list({
+      filter: { guestId: { eq: guestId } },
+      limit: 50,
+      nextToken,
+    });
+    if (response.errors?.length) {
+      throw new Error(response.errors.map((e) => e.message).join("; "));
+    }
+    for (const row of response.data ?? []) {
+      if (row) rows.push(row);
+    }
+    nextToken = response.nextToken ?? undefined;
+  } while (nextToken);
+
+  let merged = 0;
+  for (const row of rows) {
+    if (!row.id) continue;
+
+    const { errors } = await Conversation.update({
+      id: row.id,
+      userId,
+      guestId: null,
+    });
+    if (errors?.length) {
+      throw new Error(errors.map((e) => e.message).join("; "));
+    }
+
+    const messageIds: string[] = [];
+    let msgToken: string | undefined;
+    do {
+      const msgResponse = await Message.list({
+        filter: { conversationId: { eq: row.id } },
+        limit: 100,
+        nextToken: msgToken,
+      });
+      if (msgResponse.errors?.length) {
+        throw new Error(msgResponse.errors.map((e) => e.message).join("; "));
+      }
+      for (const msg of msgResponse.data ?? []) {
+        if (msg?.id) messageIds.push(msg.id);
+      }
+      msgToken = msgResponse.nextToken ?? undefined;
+    } while (msgToken);
+
+    for (const messageId of messageIds) {
+      const { errors: msgErrors } = await Message.update({
+        id: messageId,
+        conversationUserId: userId,
+      });
+      if (msgErrors?.length) {
+        // Message may lack update in client auth modes; recreate ownership via delete+create is worse.
+        // Resource-backed merge Lambda should allow update; log and continue if model rejects.
+        console.warn("Message ownership update failed", messageId, msgErrors);
+      }
+    }
+
+    merged += 1;
+  }
+
+  return merged;
+}
+
 /**
- * M6e — verify guest token + Cognito sub; merge guest cart, favorites, prints, notifications, orders.
+ * M6e — verify guest token + Cognito sub; merge guest cart, favorites, prints, notifications, orders, conversations.
  */
 export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
   event,
@@ -414,6 +487,10 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
     guestId,
   );
   const ordersMerged = await mergeGuestOrdersIntoUser(userId, guestId);
+  const conversationsMerged = await mergeGuestConversationsIntoUser(
+    userId,
+    guestId,
+  );
 
   // Belt-and-suspenders: never leave a guest cart row after merge.
   if (dataClient.models.GuestCartSnapshot) {
@@ -433,5 +510,6 @@ export const handler: Schema["mergeGuestIdentity"]["functionHandler"] = async (
     printRequestsMerged,
     notificationsMerged,
     ordersMerged,
+    conversationsMerged,
   };
 };

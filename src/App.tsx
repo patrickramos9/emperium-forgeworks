@@ -35,9 +35,13 @@ import { AccountOrdersPage } from "@/pages/account/AccountOrdersPage";
 import { AccountOrderDetailPage } from "@/pages/account/AccountOrderDetailPage";
 import { AccountReturnRequestPage } from "@/pages/account/AccountReturnRequestPage";
 import { AccountNotificationsPage } from "@/pages/account/AccountNotificationsPage";
+import { AccountMessagesPage } from "@/pages/account/AccountMessagesPage";
+import { AccountMessageThreadPage } from "@/pages/account/AccountMessageThreadPage";
 import { AccountFavoritesPage } from "@/pages/account/AccountFavoritesPage";
 import { AccountPrintRequestsPage } from "@/pages/account/AccountPrintRequestsPage";
 import { AccountPrintRequestDetailPage } from "@/pages/account/AccountPrintRequestDetailPage";
+import { AdminMessagesPage } from "@/pages/admin/AdminMessagesPage";
+import { AdminMessageThreadPage } from "@/pages/admin/AdminMessageThreadPage";
 import { VaultPage } from "@/pages/VaultPage";
 import { VaultProductDetailPage } from "@/pages/VaultProductDetailPage";
 import { AdminVaultPage } from "@/pages/admin/AdminVaultPage";
@@ -129,6 +133,11 @@ export default function App() {
               element={<AccountReviewPage />}
             />
             <Route path="/account/notifications" element={<AccountNotificationsPage />} />
+            <Route path="/account/messages" element={<AccountMessagesPage />} />
+            <Route
+              path="/account/messages/:conversationId"
+              element={<AccountMessageThreadPage />}
+            />
             <Route path="/account/favorites" element={<AccountFavoritesPage />} />
             <Route
               path="/account/print-requests"
@@ -158,6 +167,11 @@ export default function App() {
             <Route path="products/:slug" element={<AdminProductEditPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="orders/:id" element={<AdminOrderDetailPage />} />
+            <Route path="messages" element={<AdminMessagesPage />} />
+            <Route
+              path="messages/:conversationId"
+              element={<AdminMessageThreadPage />}
+            />
             <Route path="returns" element={<AdminReturnsPage />} />
             <Route path="shipping" element={<AdminShippingProfilesPage />} />
             <Route path="shipping/:id" element={<AdminShippingProfileEditPage />} />

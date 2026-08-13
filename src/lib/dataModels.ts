@@ -124,3 +124,27 @@ export function requireGalleryEntryModel(client: AmplifyDataClient) {
 export function hasGalleryEntryModel(client: AmplifyDataClient): boolean {
   return Boolean(client.models.GalleryEntry);
 }
+
+export function requireConversationModel(client: AmplifyDataClient) {
+  const model = client.models.Conversation;
+  if (!model) {
+    throw new Error(
+      `Messages are not available in this environment. ${DEPLOY_HINT}`,
+    );
+  }
+  return model;
+}
+
+export function hasConversationModel(client: AmplifyDataClient): boolean {
+  return Boolean(client.models.Conversation && client.models.Message);
+}
+
+export function requireMessageModel(client: AmplifyDataClient) {
+  const model = client.models.Message;
+  if (!model) {
+    throw new Error(
+      `Messages are not available in this environment. ${DEPLOY_HINT}`,
+    );
+  }
+  return model;
+}

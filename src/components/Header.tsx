@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, type MouseEvent, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { useVaultNavAccess } from "@/hooks/useVaultNavAccess";
+import { useCustomerMessageUnread } from "@/hooks/useCustomerMessageUnread";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { AccountMenu } from "./AccountMenu";
 import { Icon } from "./Icon";
@@ -23,6 +24,7 @@ export function Header() {
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [cartBadgeBump, setCartBadgeBump] = useState(false);
+  const messageUnread = useCustomerMessageUnread();
 
   useEffect(() => {
     if (itemCount < 1) return;
@@ -35,6 +37,11 @@ export function Header() {
     e.preventDefault();
     const q = query.trim();
     navigate(q ? `/shop?q=${encodeURIComponent(q)}` : "/shop");
+  }
+
+  async function handleMessagesClick(e: MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault();
+    navigate("/account/messages");
   }
 
   return (
@@ -87,6 +94,23 @@ export function Header() {
               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant"
             />
           </form>
+          <a
+            href="/account/messages"
+            onClick={(e) => void handleMessagesClick(e)}
+            className="relative p-2 text-on-surface-variant transition-colors hover:text-primary active:scale-95"
+            aria-label={
+              messageUnread > 0
+                ? `Messages, ${messageUnread} unread`
+                : "Messages"
+            }
+          >
+            <Icon name="mail" />
+            {messageUnread > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center bg-primary px-1 text-label-sm text-on-primary">
+                {messageUnread > 9 ? "9+" : messageUnread}
+              </span>
+            )}
+          </a>
           <Link
             to="/cart"
             className="relative p-2 text-on-surface-variant transition-colors hover:text-primary active:scale-95"

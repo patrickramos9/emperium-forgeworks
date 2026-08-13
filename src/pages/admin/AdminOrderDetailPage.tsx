@@ -248,6 +248,15 @@ export function AdminOrderDetailPage() {
         Order detail
       </h1>
 
+      <p className="mt-3">
+        <Link
+          to={`/admin/messages?orderId=${encodeURIComponent(order.id)}`}
+          className="font-label-sm uppercase text-primary hover:underline"
+        >
+          Message customer about this order
+        </Link>
+      </p>
+
       <dl className="mt-stack-lg space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
         <DetailRow label="Date" value={formatOrderDate(order.createdAt)} />
         <DetailRow label="Payment" value={paymentStatusDetail(order)} />

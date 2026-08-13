@@ -3819,6 +3819,46 @@
               "list",
               "write",
               "delete"
+            ],
+            "guest": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "message-attachments/*": {
+            "guest": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "authenticated": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "groupscustomer": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
+            "groupsadmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "message-attachments/${cognito-identity.amazonaws.com:sub}/*": {
+            "entityidentity": [
+              "get",
+              "list",
+              "write",
+              "delete"
             ]
           }
         }

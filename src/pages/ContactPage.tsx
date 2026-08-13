@@ -20,6 +20,30 @@ export function ContactPage() {
           studio questions. We respond during business hours (Eastern Time).
         </p>
 
+        <section className="mt-stack-lg border border-primary/40 bg-surface-container-low p-stack-lg iron-bevel md:p-margin-desktop">
+          <div className="flex flex-col gap-stack-md md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="font-label-sm uppercase tracking-widest text-primary">
+                Preferred
+              </p>
+              <h2 className="mt-1 font-headline-md text-headline-md uppercase text-on-surface">
+                Message the shop
+              </h2>
+              <p className="mt-2 max-w-xl font-body-md text-on-surface-variant">
+                Start a thread in your account inbox — same pattern as Etsy.
+                Sign in if needed; we reply when we&apos;re available.
+              </p>
+            </div>
+            <Link
+              to="/account/messages?compose=1"
+              className="inline-flex shrink-0 items-center justify-center gap-2 molten-glow bg-primary px-8 py-3 font-label-md uppercase tracking-widest text-on-primary transition-all hover:brightness-110"
+            >
+              <Icon name="mail" className="text-xl" />
+              Open messages
+            </Link>
+          </div>
+        </section>
+
         <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-stack-lg iron-bevel md:p-margin-desktop">
           <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
             {BUSINESS_LEGAL_NAME}

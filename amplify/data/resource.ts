@@ -22,6 +22,7 @@ import { adminDeclinePrintRequest as adminDeclinePrintRequestFn } from "../funct
 import { createPrintQuoteCheckout as createPrintQuoteCheckoutFn } from "../functions/create-print-quote-checkout/resource";
 import { mergeGuestIdentity as mergeGuestIdentityFn } from "../functions/merge-guest-identity/resource";
 import { guestNotifications as guestNotificationsFn } from "../functions/guest-notifications/resource";
+import { guestMessages as guestMessagesFn } from "../functions/guest-messages/resource";
 import { cleanupIdleCarts as cleanupIdleCartsFn } from "../functions/cleanup-idle-carts/resource";
 
 const schema = a.schema({
@@ -129,6 +130,7 @@ const schema = a.schema({
     printRequestsMerged: a.integer().required(),
     notificationsMerged: a.integer().required(),
     ordersMerged: a.integer().required(),
+    conversationsMerged: a.integer().required(),
   }),
 
   GuestNotificationItem: a.customType({
@@ -147,6 +149,47 @@ const schema = a.schema({
   }),
 
   MarkGuestNotificationReadResult: a.customType({
+    success: a.boolean().required(),
+  }),
+
+  /** M10 — guest message inbox (HMAC guest session). */
+  GuestConversationItem: a.customType({
+    id: a.id().required(),
+    guestId: a.string(),
+    subject: a.string().required(),
+    orderId: a.id(),
+    customerEmail: a.email(),
+    lastMessageAt: a.datetime().required(),
+    unreadForCustomer: a.boolean(),
+    unreadForAdmin: a.boolean(),
+  }),
+
+  GuestConversationListResult: a.customType({
+    conversations: a.ref("GuestConversationItem").array().required(),
+  }),
+
+  GuestMessageItem: a.customType({
+    id: a.id().required(),
+    conversationId: a.id().required(),
+    senderRole: a.string().required(),
+    body: a.string().required(),
+    imagePaths: a.string().array(),
+    createdAt: a.datetime(),
+  }),
+
+  GuestMessageListResult: a.customType({
+    messages: a.ref("GuestMessageItem").array().required(),
+  }),
+
+  StartGuestConversationResult: a.customType({
+    conversation: a.ref("GuestConversationItem").required(),
+  }),
+
+  ReplyGuestConversationResult: a.customType({
+    success: a.boolean().required(),
+  }),
+
+  MarkGuestConversationReadResult: a.customType({
     success: a.boolean().required(),
   }),
 
@@ -415,6 +458,67 @@ const schema = a.schema({
     .returns(a.ref("MarkGuestNotificationReadResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
     .handler(a.handler.function(guestNotificationsFn)),
+
+  /** M10 — guest message inbox (Conversation/Message not client-writable for guests). */
+  getGuestConversations: a
+    .query()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+    })
+    .returns(a.ref("GuestConversationListResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestMessagesFn)),
+
+  getGuestConversationMessages: a
+    .query()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      conversationId: a.id().required(),
+    })
+    .returns(a.ref("GuestMessageListResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestMessagesFn)),
+
+  startGuestConversation: a
+    .mutation()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      subject: a.string().required(),
+      body: a.string().required(),
+      email: a.email().required(),
+      orderId: a.id(),
+      imagePaths: a.string().array(),
+    })
+    .returns(a.ref("StartGuestConversationResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestMessagesFn)),
+
+  replyGuestConversation: a
+    .mutation()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      conversationId: a.id().required(),
+      body: a.string().required(),
+      imagePaths: a.string().array(),
+    })
+    .returns(a.ref("ReplyGuestConversationResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestMessagesFn)),
+
+  markGuestConversationRead: a
+    .mutation()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      conversationId: a.id().required(),
+    })
+    .returns(a.ref("MarkGuestConversationReadResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestMessagesFn)),
 
   issueNewAccountWelcomeGrant: a
     .mutation()
@@ -1159,6 +1263,52 @@ const schema = a.schema({
         .to(["read", "update"]),
       allow.group("admin"),
     ]),
+
+  /** M10 — Etsy-style shop ↔ customer message thread (signed-in + guest via Lambda). */
+  Conversation: a
+    .model({
+      /** Cognito sub when signed in; omit for guest rows. */
+      userId: a.string(),
+      /** Opaque guest id; exactly one of userId | guestId. */
+      guestId: a.string(),
+      subject: a.string().required(),
+      orderId: a.id(),
+      /** Snapshot at thread open — helps admin when Cognito email is unavailable. */
+      customerEmail: a.email(),
+      lastMessageAt: a.datetime().required(),
+      unreadForCustomer: a.boolean().default(false),
+      unreadForAdmin: a.boolean().default(true),
+    })
+    .authorization((allow) => [
+      allow
+        .ownerDefinedIn("userId")
+        .identityClaim("sub")
+        .to(["create", "read", "update"]),
+      allow.group("admin").to(["read", "update"]),
+    ]),
+
+  /** M10 — message within a Conversation. */
+  Message: a
+    .model({
+      conversationId: a.id().required(),
+      /**
+       * Owner key for signed-in threads (Cognito sub). For guest threads this is
+       * the guestId (no Cognito owner match — guests read/write via Lambda).
+       */
+      conversationUserId: a.string().required(),
+      senderRole: a.enum(["customer", "admin"]),
+      /** Text and/or caption; may be empty when imagePaths are set. */
+      body: a.string().required(),
+      /** S3 paths under message-attachments/{entity_id}/… */
+      imagePaths: a.string().array(),
+    })
+    .authorization((allow) => [
+      allow
+        .ownerDefinedIn("conversationUserId")
+        .identityClaim("sub")
+        .to(["create", "read"]),
+      allow.group("admin").to(["create", "read", "update"]),
+    ]),
 })
 .authorization((allow) => [
   allow.resource(createStripeCheckoutFn),
@@ -1181,6 +1331,7 @@ const schema = a.schema({
   allow.resource(adminDeclinePrintRequestFn),
   allow.resource(createPrintQuoteCheckoutFn),
   allow.resource(guestNotificationsFn),
+  allow.resource(guestMessagesFn),
   allow.resource(cleanupIdleCartsFn),
 ]);
 

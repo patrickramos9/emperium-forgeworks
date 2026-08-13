@@ -30,10 +30,13 @@ Admin **uploads** still use `uploadData()` in `productImageUpload.ts` (admin gro
 | `reviews/*` | yes | yes |
 | `gallery/*` | yes (+ public bucket policy URLs) | yes |
 | `print-jobs/{entity_id}/*` | yes (also guest write for uploads) | yes |
+| `message-attachments/{entity_id}/*` | signed-in + guest read/write (private; M10 photos) | yes |
 
 Partner sculptor uploads use `uploadData()` under `sculptors/{slug}/…` — **`customer`** and **`authenticated`** roles need `write` on `sculptors/*` (see `amplify/storage/resource.ts`).
 
 Print service STL/ZIP uploads use `uploadData()` under `print-jobs/{identityId}/…` — the **`customer`** group role needs **`write`** on `print-jobs/{entity_id}/*`. `allow.entity("identity")` alone is **not** enough for signed-in shoppers (same group-role precedence as product images). **Guests** also need **`write`** on that path for M6e guest print uploads (unauthenticated identity pool `identityId`).
+
+Message inbox photos use `uploadData()` under `message-attachments/{identityId}/…` (signed-in only) — same group-role pattern as print-jobs; display via Amplify `getUrl` (presigned), not public URLs.
 
 ## Public catalog images (M13 — Google Merchant / Ads)
 
@@ -46,7 +49,7 @@ https://{bucket}.s3.{region}.amazonaws.com/gallery/{file}.jpg
 
 Built in `src/lib/publicProductImageUrl.ts`. Used by the storefront, customer Gallery, and `npm run export:merchant-feed`.
 
-**Not public:** `print-jobs/*`, `reviews/*`, `sculptors/*` (still IAM/presigned as before).
+**Not public:** `print-jobs/*`, `reviews/*`, `sculptors/*`, `message-attachments/*` (still IAM/presigned as before).
 
 See [merchant-center-feed.md](./merchant-center-feed.md).
 

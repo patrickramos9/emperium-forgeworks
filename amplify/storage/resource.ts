@@ -44,5 +44,13 @@ export const storage = defineStorage({
       allow.groups(["customer"]).to(["read", "write", "delete"]),
       allow.groups(["admin"]).to(["read", "write", "delete"]),
     ],
+    /** M10 — private message photos (signed-in + guest). */
+    "message-attachments/{entity_id}/*": [
+      allow.entity("identity").to(["read", "write", "delete"]),
+      allow.guest.to(["read", "write", "delete"]),
+      allow.authenticated.to(["read", "write", "delete"]),
+      allow.groups(["customer"]).to(["read", "write", "delete"]),
+      allow.groups(["admin"]).to(["read", "write", "delete"]),
+    ],
   }),
 });

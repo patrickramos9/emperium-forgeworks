@@ -280,6 +280,23 @@ export function AccountOrderDetailPage() {
         </section>
       )}
 
+      {signedIn && (
+        <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
+          <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
+            Questions about this order?
+          </h2>
+          <p className="mt-2 text-body-sm text-on-surface-variant">
+            Message the shop — we&apos;ll reply in your account inbox.
+          </p>
+          <Link
+            to={`/account/messages?compose=1&orderId=${encodeURIComponent(order.id)}`}
+            className="mt-4 inline-block border border-outline-variant/30 bg-surface-container px-6 py-3 font-label-md uppercase text-primary hover:border-primary"
+          >
+            Ask about this order
+          </Link>
+        </section>
+      )}
+
       <section className="mt-stack-lg">
         <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
           Order status

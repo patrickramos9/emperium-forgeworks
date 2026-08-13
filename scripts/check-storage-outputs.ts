@@ -110,6 +110,44 @@ if (
   );
 }
 
+/** Group/authenticated rules on `{entity_id}` paths appear under `message-attachments/*` in outputs. */
+const messageAttachmentGroupPaths =
+  outputs.storage?.buckets?.[0]?.paths?.["message-attachments/*"] ?? {};
+const messageAttachmentEntityPaths =
+  outputs.storage?.buckets?.[0]?.paths?.[
+    "message-attachments/${cognito-identity.amazonaws.com:sub}/*"
+  ] ?? {};
+
+if (
+  storageSource.includes("message-attachments/{entity_id}/*") &&
+  storageSource.includes('allow.groups(["customer"]).to(["read", "write", "delete"])') &&
+  !hasWrite(messageAttachmentGroupPaths.groupscustomer)
+) {
+  errors.push(
+    "message-attachments/* (outputs): customer group write is in storage/resource.ts but missing in amplify_outputs.json — redeploy backend (required for M10 message photos)",
+  );
+}
+
+if (
+  storageSource.includes("message-attachments/{entity_id}/*") &&
+  storageSource.includes('allow.guest.to(["read", "write", "delete"])') &&
+  !hasWrite(messageAttachmentGroupPaths.guest)
+) {
+  errors.push(
+    "message-attachments/* (outputs): guest write is in storage/resource.ts but missing in amplify_outputs.json — redeploy backend (required for guest message photos)",
+  );
+}
+
+if (
+  storageSource.includes("message-attachments/{entity_id}/*") &&
+  storageSource.includes('allow.entity("identity").to(["read", "write", "delete"])') &&
+  !hasWrite(messageAttachmentEntityPaths.entityidentity)
+) {
+  errors.push(
+    "message-attachments entity path: identity write is in storage/resource.ts but missing in amplify_outputs.json — redeploy backend",
+  );
+}
+
 if (errors.length > 0) {
   console.error("\n[check:storage] amplify_outputs.json is out of date:\n");
   for (const e of errors) console.error(`  • ${e}`);
@@ -117,4 +155,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log("[check:storage] products/* and print-jobs/* rules match storage/resource.ts");
+console.log("[check:storage] products/*, print-jobs/*, and message-attachments/* rules match storage/resource.ts");

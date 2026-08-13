@@ -186,6 +186,31 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Message the shop — Etsy-style header mail + homepage CTA */}
+      <section className="bg-surface-container-low">
+        <div className="mx-auto flex max-w-container-max flex-col items-center gap-stack-md px-margin-mobile py-section-gap text-center md:flex-row md:items-center md:justify-between md:text-left md:px-margin-desktop">
+          <div className="max-w-xl">
+            <p className="font-label-sm uppercase tracking-[0.35em] text-primary">
+              Messages
+            </p>
+            <h2 className="mt-2 font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
+              Message the shop
+            </h2>
+            <p className="mt-3 font-body-md text-on-surface-variant">
+              Questions about an order, a sculpt, or printing? Leave a note —
+              we reply in your inbox when we&apos;re at the forge.
+            </p>
+          </div>
+          <Link
+            to="/account/messages?compose=1"
+            className="inline-flex shrink-0 items-center gap-2 molten-glow bg-primary px-8 py-3 font-label-md uppercase tracking-widest text-on-primary transition-all hover:brightness-110"
+          >
+            <Icon name="mail" className="text-xl" />
+            Open messages
+          </Link>
+        </div>
+      </section>
+
       {/* Tech specs */}
       <section className="border-y border-outline-variant/10 bg-surface-container-lowest">
         <div className="mx-auto grid max-w-container-max grid-cols-1 gap-gutter px-margin-mobile py-section-gap md:grid-cols-3 md:px-margin-desktop">

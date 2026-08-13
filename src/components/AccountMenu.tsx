@@ -189,6 +189,14 @@ export function AccountMenu() {
               </Link>
               <Link
                 role="menuitem"
+                to="/account/messages"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Messages
+              </Link>
+              <Link
+                role="menuitem"
                 to="/account/notifications"
                 onClick={() => setOpen(false)}
                 className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
@@ -240,6 +248,14 @@ export function AccountMenu() {
             </>
           ) : (
             <>
+              <Link
+                role="menuitem"
+                to="/account/messages"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2 font-label-md text-on-surface hover:bg-surface-container-high hover:text-primary"
+              >
+                Messages
+              </Link>
               <Link
                 role="menuitem"
                 to="/account/notifications"

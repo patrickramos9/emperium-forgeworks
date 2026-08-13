@@ -14,6 +14,7 @@ export type MergeGuestIdentityResult = {
   printRequestsMerged: number;
   notificationsMerged: number;
   ordersMerged: number;
+  conversationsMerged: number;
 };
 
 /**
@@ -66,5 +67,6 @@ export async function mergeGuestIdentityOnSignIn(): Promise<MergeGuestIdentityRe
     printRequestsMerged: data.printRequestsMerged,
     notificationsMerged: data.notificationsMerged ?? 0,
     ordersMerged: data.ordersMerged ?? 0,
+    conversationsMerged: data.conversationsMerged ?? 0,
   };
 }

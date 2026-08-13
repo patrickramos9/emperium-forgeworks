@@ -20,17 +20,17 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-12
 
 | Item | State |
 |------|--------|
-| **Phase** | **M23** — trust & conversion (in progress) |
-| **Next** | **M23d–f** / mobile nav |
-| **Then** | **M23d–f** — FAQ → contact hours + **Settings social links** → reviews seed · mobile nav · then **M19** → **M18** |
+| **Phase** | **M23d–f** / mobile nav (after M10 inbox) |
+| **Next** | **M23d–f** / mobile nav → **M19** → **M18** → **M8a.3** … |
+| **Then** | **M19** → **M18** → **M8a.3** → M12 → **M13b** … |
 | **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
-| **Recently verified** | **M23c Gallery** (2026-08-11) · **M6e guest identity parity** (2026-08-09) · **M21c** quote-first print (2026-08-01) · **M13a** · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M23c** Newsletter hidden · **M23a/b trust** · **M6f** idle cart TTL · Merchant transparency · **M21c** · **M13a** |
-| **In progress** | **M23** — FAQ / contact hours / mobile nav still open |
+| **Recently verified** | **M16e** guest pre-ship cancel (2026-08-12) · **M23c Gallery** (2026-08-11) · **M6e** (2026-08-09) · **M21c** · **M13a** · **M22** · **M16** · **M11** |
+| **Recently shipped (repo)** | **M10** message inbox · **M16e** · **M23c** Newsletter hidden · **M23a/b trust** · **M6f** idle cart TTL · Merchant transparency · **M21c** · **M13a** |
+| **In progress** | _(none — M10 shipped in repo; deploy Amplify Data for Conversation/Message)_ |
 | **Deferred (feature)** | **Newsletter subscribe** — home form removed; implement under **M13b** (provider or `NewsletterSubscriber`) then restore UI |
 | **In test** | **M6f** — Idle cart TTL cleanup (Admin → Settings; daily job + Run now) |
 | **Ops** | Merchant Center **identity verify** — done |
@@ -39,7 +39,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M23c** Gallery (**production verified** 2026-08-11) + hide Newsletter (**done**) → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M23d–f** / mobile nav → **M19** → **M18** → **M8a.3** → M10 → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
+… → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M10** message inbox (**shipped in repo** 2026-08-12; deploy Data) → **M23d–f** / mobile nav → **M19** → **M18** → **M8a.3** → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
 
@@ -191,6 +191,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **Merchant transparency (Misrepresentation)** — street address, phone, `/contact`, Organization JSON-LD, footer/About/Shipping contact details — **shipped** (repo 2026-08-02); **ops:** Merchant Center identity **done**; keep MC business info matched to live site
 - **M23a + M23b** — PDP/cart trust strip (Stripe / returns / dispatch), always-on shipping-returns link, aligned ship copy — **shipped** (repo 2026-08-09); review assign + PDP list earlier (2026-08-02)
 - **M23c (partial)** — Customer **Gallery** — **production verified** (2026-08-11); hide home Newsletter — **shipped** (repo 2026-08-10); see **§3.10**. Mobile nav still open.
+- **M10** — Customer ↔ shop **message inbox** (Etsy-style threads) — **shipped** (repo 2026-08-12): `Conversation`/`Message`, `/account/messages`, `/admin/messages`, header mail badge, homepage + Contact CTAs; **deploy Amplify Data** before production use
 
 ### 3.10 M23c — Customer Gallery + Newsletter hide (2026-08-10)
 
@@ -388,15 +389,16 @@ _(none)_
 - **M23e** — Contact **business hours** (ET); optional contact form; **store social links** via Admin → Settings (network dropdown + URL → icons in footer/shop chrome)
 - **M23f** — Seed/import reviews for social proof; optional payment logos
 
-**Core + polish (after M23)**
+**Core + polish (after M10 / remaining M23)**
 
+- **M10** — Customer ↔ shop **message inbox** (Etsy-style threads; not live tech-support chat) — **shipped in repo** 2026-08-12 (deploy Amplify Data)
+- **M23d–f** — FAQ / contact hours / Settings social links / reviews seed · mobile nav
 - **M19** — Catalog **sales** on products and **bundles** (storefront pricing; separate from M6 account promos)
 - **M18** — **Cart price-change** in-system notifications (sale or list price up/down for items in cart)
 - **M8a.3** — **Inbox messages vs notification campaigns** — split immutable per-customer deliveries from editable admin broadcasts (see §4)
 
 **Later**
 
-- **M10** — Customer ↔ shop **message inbox** (Etsy-style threads; not live tech-support chat)
 - **M12** — Notification preferences _(depends on **M8a.3**)_
 - **M13b** — Marketing remainder: Merchant API sync, pixels, **newsletter subscribe** (restore home form), M6d abandoned-cart email
 - **M9** — Polish & growth remainder (SEO / meta / performance — **Gallery production verified under M23c**)
@@ -1176,7 +1178,7 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 
 ### M10 — Customer ↔ shop message inbox (Etsy-style)
 
-**Status:** **Planned** — sits after **M8a.3** in the living build order (may pull earlier if messaging is the priority trust gap).
+**Status:** **Shipped in repo** (2026-08-12; guest threads + photo attachments added 2026-08-13). Needs Amplify backend deploy for `Conversation` / `Message` / `guest-messages` Lambda before production use.
 
 **Product intent:** An **asynchronous message inbox** like Etsy — customers leave a question or order note; the shop replies when available. **Not** a live tech-support chat, floating widget, or SLA bot.
 
@@ -1185,9 +1187,11 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 **Data models:**
 - `Conversation`:
   - `id`
-  - `userId` (customer Cognito `sub` in v1; optional `guestId` later)
+  - `userId?` (Cognito `sub` when signed in)
+  - `guestId?` (opaque guest id; exactly one of userId | guestId)
   - `subject: string` (short topic)
   - `orderId?: id` (when started from an order)
+  - `customerEmail?` (required for guest compose)
   - `lastMessageAt: datetime`
   - `unreadForCustomer: boolean`
   - `unreadForAdmin: boolean`
@@ -1195,11 +1199,13 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
   - `id`
   - `conversationId`
   - `senderRole: "admin" | "customer"`
-  - `body: string`
+  - `body: string` (caption; may be placeholder when photos-only)
+  - `imagePaths?: string[]` (S3 `message-attachments/{entity_id}/…`, up to 4)
   - `createdAt: datetime`
 
-**Auth (v1):**
+**Auth:**
 - Customer: owner read/write on conversations where `userId = sub`.
+- Guest: HMAC `guestId` + `guestToken` via `guest-messages` Lambda (same pattern as guest orders/notifications); merge into account on sign-in.
 - Admin: full read/write; unread thread count/badge.
 
 **Frontend:**
@@ -1210,7 +1216,7 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 **Delivery model:**
 - v1: **polling or manual refresh** (Etsy-like; minutes, not seconds).
 - Optional later: AppSync subscriptions — only if inbox feels too stale after v1.
-- Out of scope v1: typing indicators, presence, chatbots / auto-replies; file attachments unless explicitly requested.
+- Out of scope v1: typing indicators, presence, chatbots / auto-replies. **Photo attachments:** supported (up to 4 images / message; private S3).
 
 **Cursor rules:**
 - Use `services/messageInboxService.ts` (or `chatService.ts`) for data access.
