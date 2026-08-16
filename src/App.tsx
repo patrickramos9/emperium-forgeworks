@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SiteSystemBanner } from "@/components/SiteSystemBanner";
 import { AnnouncementProvider } from "@/context/AnnouncementContext";
@@ -73,15 +73,26 @@ import { ToastRegion } from "@/components/ToastRegion";
 
 function AnalyticsTracker() {
   const location = useLocation();
+  const skipInitialMetaPageView = useRef(true);
 
   useEffect(() => {
+    const path = `${location.pathname}${location.search}${location.hash}`;
     const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-    if (!gtag) return;
+    if (gtag) {
+      gtag("event", "page_view", {
+        page_path: path,
+        page_title: document.title,
+      });
+    }
 
-    gtag("event", "page_view", {
-      page_path: `${location.pathname}${location.search}${location.hash}`,
-      page_title: document.title,
-    });
+    const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
+    if (!fbq) return;
+    // index.html already sends the first PageView.
+    if (skipInitialMetaPageView.current) {
+      skipInitialMetaPageView.current = false;
+      return;
+    }
+    fbq("track", "PageView");
   }, [location.pathname, location.search, location.hash]);
 
   return null;
