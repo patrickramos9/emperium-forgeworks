@@ -248,6 +248,7 @@ export function AdminReviewsPage() {
   const [importPreviews, setImportPreviews] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     return () => {
@@ -297,6 +298,41 @@ export function AdminReviewsPage() {
     () => rows.filter((row) => !row.productSlug?.trim()).length,
     [rows],
   );
+
+  const productTitleBySlug = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const option of productOptions) {
+      map.set(option.slug, option.title);
+    }
+    return map;
+  }, [productOptions]);
+
+  const filteredRows = useMemo(() => {
+    const tokens = search
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (tokens.length === 0) return rows;
+
+    return rows.filter((row) => {
+      const slug = row.productSlug?.trim() ?? "";
+      const haystack = [
+        reviewDisplayName(row),
+        row.text,
+        slug,
+        productTitleBySlug.get(slug) ?? "",
+        slug ? "" : "unassigned",
+        row.orderId,
+        row.approved ? "approved" : "pending",
+        isImportedReview(row) ? "etsy import" : "order",
+        formatReviewDate(row),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return tokens.every((token) => haystack.includes(token));
+    });
+  }, [rows, search, productTitleBySlug]);
 
   async function handleToggleApproved(orderId: string, approved: boolean) {
     const client = await requireAdminSession(navigate);
@@ -691,8 +727,37 @@ export function AdminReviewsPage() {
         <p className="mt-4 text-on-surface-variant">No reviews yet.</p>
       )}
 
+      {!loading && rows.length > 0 && (
+        <div className="mt-6">
+          <label className="block">
+            <span className="font-label-sm uppercase text-on-surface-variant">
+              Search reviews
+            </span>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Name, review text, or product"
+              className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface"
+            />
+          </label>
+          <p className="mt-2 text-label-sm text-on-surface-variant">
+            {search.trim()
+              ? `${filteredRows.length} of ${rows.length} reviews`
+              : `${rows.length} reviews`}
+          </p>
+        </div>
+      )}
+
+      {!loading && rows.length > 0 && filteredRows.length === 0 && (
+        <p className="mt-4 text-on-surface-variant">
+          No reviews match that search.
+        </p>
+      )}
+
+      {filteredRows.length > 0 && (
       <ul className="mt-6 space-y-4">
-        {rows.map((row) => (
+        {filteredRows.map((row) => (
           <li
             key={row.orderId}
             className="border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel"
@@ -804,6 +869,7 @@ export function AdminReviewsPage() {
           </li>
         ))}
       </ul>
+      )}
     </div>
   );
 }
