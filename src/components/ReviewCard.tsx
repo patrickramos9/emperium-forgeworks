@@ -6,6 +6,7 @@ import {
   reviewDisplayName,
   reviewEtsyUrl,
   reviewImagePaths,
+  formatReviewDate,
   type ReviewRecord,
 } from "@/services/reviewService";
 
@@ -64,6 +65,7 @@ export function ReviewCard({ review, compact = false }: ReviewCardProps) {
   const rating = Math.min(5, Math.max(1, review.rating ?? 5));
   const imagePaths = reviewImagePaths(review);
   const etsyUrl = reviewEtsyUrl(review);
+  const reviewedOn = formatReviewDate(review);
 
   return (
     <blockquote
@@ -94,6 +96,11 @@ export function ReviewCard({ review, compact = false }: ReviewCardProps) {
       <footer className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <cite className="font-label-md uppercase not-italic text-on-surface">
           {reviewDisplayName(review)}
+          {reviewedOn ? (
+            <span className="ml-2 font-label-sm normal-case tracking-normal text-on-surface-variant">
+              · {reviewedOn}
+            </span>
+          ) : null}
         </cite>
         {etsyUrl ? (
           <a

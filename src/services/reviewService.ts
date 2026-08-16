@@ -57,6 +57,71 @@ export function isReviewApproved(review: ReviewRecord): boolean {
   return review.approved === true;
 }
 
+/** Date shown and used for ordering — `reviewedAt` when set, else `createdAt`. */
+export function reviewTimestamp(
+  review: Pick<ReviewRecord, "reviewedAt" | "createdAt">,
+): string | null {
+  return review.reviewedAt ?? review.createdAt ?? null;
+}
+
+export function formatReviewDate(
+  review: Pick<ReviewRecord, "reviewedAt" | "createdAt">,
+): string {
+  const value = reviewTimestamp(review);
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function compareReviewsByDate(
+  a: Pick<ReviewRecord, "reviewedAt" | "createdAt">,
+  b: Pick<ReviewRecord, "reviewedAt" | "createdAt">,
+): number {
+  return Date.parse(reviewTimestamp(b) ?? "") - Date.parse(reviewTimestamp(a) ?? "");
+}
+
+/** `YYYY-MM-DD` for `<input type="date">` from a review timestamp. */
+export function reviewDateInputValue(
+  review: Pick<ReviewRecord, "reviewedAt" | "createdAt">,
+): string {
+  const value = reviewTimestamp(review);
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** Local calendar date → ISO datetime (noon local to avoid timezone day-shift). */
+export function reviewDateInputToIso(raw: string | null | undefined): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    throw new Error("Review date must be a valid calendar date.");
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day, 12, 0, 0);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    throw new Error("Review date must be a valid calendar date.");
+  }
+  return date.toISOString();
+}
+
 /** Link a review to a product when the order contains a single catalog item. */
 export function primaryProductSlugFromLineItems(
   lineItems: OrderRecord["lineItems"],
@@ -90,9 +155,7 @@ export async function listApprovedReviewsForProduct(
     nextToken = response.nextToken ?? undefined;
   } while (nextToken);
 
-  return rows.sort(
-    (a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""),
-  );
+  return rows.sort(compareReviewsByDate);
 }
 
 export function reviewImagePaths(review: ReviewRecord): string[] {
@@ -126,9 +189,7 @@ export async function listApprovedReviews(
     nextToken = response.nextToken ?? undefined;
   } while (nextToken);
 
-  return rows
-    .sort((a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""))
-    .slice(0, limit);
+  return rows.sort(compareReviewsByDate).slice(0, limit);
 }
 
 export async function listAllReviews(
@@ -148,9 +209,7 @@ export async function listAllReviews(
     nextToken = response.nextToken ?? undefined;
   } while (nextToken);
 
-  return rows.sort(
-    (a, b) => Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""),
-  );
+  return rows.sort(compareReviewsByDate);
 }
 
 export async function listMyReviews(
@@ -177,7 +236,7 @@ export async function listMyReviews(
     nextToken = response.nextToken ?? undefined;
   } while (nextToken);
 
-  return rows;
+  return rows.sort(compareReviewsByDate);
 }
 
 export async function getReviewForOrder(
@@ -235,6 +294,7 @@ export async function createReview(
     displayName: input.displayName?.trim() || undefined,
     approved: false,
     source: "site",
+    reviewedAt: new Date().toISOString(),
     ...(productSlug ? { productSlug } : {}),
   });
 
@@ -257,6 +317,7 @@ export type CreateImportedReviewInput = {
   images?: string[];
   productSlug?: string;
   sourceUrl?: string;
+  reviewedAt?: string;
 };
 
 export async function createImportedReview(
@@ -277,6 +338,7 @@ export async function createImportedReview(
   const images = input.images?.filter(Boolean);
   const productSlug = input.productSlug?.trim();
   const sourceUrl = normalizeReviewSourceUrl(input.sourceUrl);
+  const reviewedAt = input.reviewedAt?.trim() || new Date().toISOString();
   const result = await client.models.Review.create({
     orderId,
     userId: IMPORTED_REVIEW_USER_ID,
@@ -285,6 +347,7 @@ export async function createImportedReview(
     displayName: input.displayName?.trim() || undefined,
     approved: input.approved ?? true,
     source: input.source ?? "etsy",
+    reviewedAt,
     images: images?.length ? images : undefined,
     ...(productSlug ? { productSlug } : {}),
     ...(sourceUrl ? { sourceUrl } : {}),
@@ -327,6 +390,24 @@ export async function setReviewProductSlug(
   }
   if (!result.data) {
     throw new Error("Could not update review product.");
+  }
+  return result.data;
+}
+
+export async function setReviewReviewedAt(
+  client: AmplifyDataClient,
+  orderId: string,
+  reviewedAt: string | null,
+): Promise<ReviewRecord> {
+  const result = await client.models.Review.update({
+    orderId,
+    reviewedAt: reviewedAt as string | null | undefined,
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+  if (!result.data) {
+    throw new Error("Could not update review date.");
   }
   return result.data;
 }

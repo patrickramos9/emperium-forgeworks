@@ -1158,6 +1158,8 @@ const schema = a.schema({
       sourceUrl: a.string(),
       /** When set, review appears on that product's PDP and counts toward its star average. Admin can assign any review to a product. */
       productSlug: a.string(),
+      /** Public review date (Etsy original date, or when the customer submitted). Falls back to createdAt when omitted. */
+      reviewedAt: a.datetime(),
       /** S3 paths under `reviews/{orderId}/…` for customer product photos. */
       images: a.string().array(),
     })

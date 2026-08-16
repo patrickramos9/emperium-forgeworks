@@ -12,16 +12,21 @@ import {
   uploadReviewImages,
 } from "@/lib/reviewImageUpload";
 import {
+  compareReviewsByDate,
   createImportedReview,
   deleteReview,
+  formatReviewDate,
   generateImportedReviewId,
   isImportedReview,
   listAllReviews,
+  reviewDateInputToIso,
+  reviewDateInputValue,
   reviewDisplayName,
   reviewEtsyUrl,
   reviewImagePaths,
   setReviewApproved,
   setReviewProductSlug,
+  setReviewReviewedAt,
   setReviewSourceUrl,
   type ReviewRecord,
 } from "@/services/reviewService";
@@ -121,6 +126,51 @@ function ProductAssignSelect({
   );
 }
 
+function ReviewDateEditor({
+  initialValue,
+  disabled,
+  onSave,
+}: {
+  initialValue: string;
+  disabled?: boolean;
+  onSave: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(initialValue);
+
+  useEffect(() => {
+    setDraft(initialValue);
+  }, [initialValue]);
+
+  const dirty = draft !== initialValue;
+
+  return (
+    <div className="mt-3">
+      <label className="block">
+        <span className="font-label-sm uppercase text-on-surface-variant">
+          Review date
+        </span>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <input
+            type="date"
+            value={draft}
+            disabled={disabled}
+            onChange={(e) => setDraft(e.target.value)}
+            className="border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface disabled:opacity-50"
+          />
+          <button
+            type="button"
+            disabled={disabled || !dirty || !draft}
+            onClick={() => onSave(draft)}
+            className="border border-outline-variant/30 px-3 py-2 font-label-sm uppercase hover:border-primary disabled:opacity-50"
+          >
+            Save date
+          </button>
+        </div>
+      </label>
+    </div>
+  );
+}
+
 function EtsySourceUrlEditor({
   initialUrl,
   disabled,
@@ -192,6 +242,7 @@ export function AdminReviewsPage() {
   const [importDisplayName, setImportDisplayName] = useState("");
   const [importProductSlug, setImportProductSlug] = useState("");
   const [importSourceUrl, setImportSourceUrl] = useState("");
+  const [importReviewedOn, setImportReviewedOn] = useState("");
   const [importApproved, setImportApproved] = useState(true);
   const [importFiles, setImportFiles] = useState<File[]>([]);
   const [importPreviews, setImportPreviews] = useState<string[]>([]);
@@ -287,6 +338,28 @@ export function AdminReviewsPage() {
     setSavingId(null);
   }
 
+  async function handleSaveReviewedAt(orderId: string, dateValue: string) {
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+
+    setSavingId(orderId);
+    setError(null);
+    try {
+      const reviewedAt = reviewDateInputToIso(dateValue);
+      const updated = await setReviewReviewedAt(client, orderId, reviewedAt);
+      setRows((prev) =>
+        prev
+          .map((row) => (row.orderId === orderId ? updated : row))
+          .sort(compareReviewsByDate),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save review date",
+      );
+    }
+    setSavingId(null);
+  }
+
   async function handleSaveSourceUrl(orderId: string, sourceUrl: string) {
     const client = await requireAdminSession(navigate);
     if (!client) return;
@@ -356,17 +429,14 @@ export function AdminReviewsPage() {
         images,
         productSlug: linkedSlug || undefined,
         sourceUrl: importSourceUrl.trim() || undefined,
+        reviewedAt: reviewDateInputToIso(importReviewedOn) ?? undefined,
       });
-      setRows((prev) =>
-        [created, ...prev].sort(
-          (a, b) =>
-            Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? ""),
-        ),
-      );
+      setRows((prev) => [created, ...prev].sort(compareReviewsByDate));
       setImportText("");
       setImportDisplayName("");
       setImportProductSlug("");
       setImportSourceUrl("");
+      setImportReviewedOn("");
       setImportRating(5);
       setImportApproved(true);
       clearObjectUrls(importPreviews);
@@ -476,6 +546,21 @@ export function AdminReviewsPage() {
                 product page.
               </p>
             </div>
+
+            <label className="mt-4 block">
+              <span className="font-label-sm uppercase text-on-surface-variant">
+                Review date
+              </span>
+              <input
+                type="date"
+                value={importReviewedOn}
+                onChange={(e) => setImportReviewedOn(e.target.value)}
+                className="mt-1 border border-outline-variant/30 bg-surface px-3 py-2 text-on-surface"
+              />
+              <p className="mt-1 text-label-sm text-on-surface-variant">
+                Use the original Etsy review date. Leave blank to use today.
+              </p>
+            </label>
 
             <label className="mt-4 block">
               <span className="font-label-sm uppercase text-on-surface-variant">
@@ -618,6 +703,7 @@ export function AdminReviewsPage() {
                   {reviewDisplayName(row)} · {row.rating}/5
                 </p>
                 <p className="text-label-sm text-on-surface-variant">
+                  {formatReviewDate(row) ? `${formatReviewDate(row)} · ` : ""}
                   {isImportedReview(row) ? (
                     <>Etsy import · {row.approved ? "Approved" : "Pending"}</>
                   ) : (
@@ -663,6 +749,11 @@ export function AdminReviewsPage() {
               <AdminReviewThumbnails paths={reviewImagePaths(row)} />
             )}
             <div className="mt-4 border-t border-outline-variant/15 pt-3">
+              <ReviewDateEditor
+                initialValue={reviewDateInputValue(row)}
+                disabled={savingId === row.orderId}
+                onSave={(value) => void handleSaveReviewedAt(row.orderId, value)}
+              />
               <ProductAssignSelect
                 value={row.productSlug?.trim() ?? ""}
                 options={productOptions}
