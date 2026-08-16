@@ -229,7 +229,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 |------|----------------|
 | **Config** | `BUSINESS_*` / `CONTACT_PHONE*` / address helpers in `src/lib/config.ts` (single source for UI + return-ship copy) |
 | **Pages** | `/contact`; About + Shipping & Returns show phone/address; footer nav + contact block |
-| **Schema.org** | `OrganizationJsonLd` on storefront layout (name, logo, email, phone, PostalAddress) |
+| **Schema.org** | `OrganizationJsonLd` on storefront layout (name, logo, email, phone, PostalAddress); **Product JSON-LD** on public PDPs (`ProductJsonLd`, one `Offer` per variant) |
 | **Print UX** | `/print` — four-step process copy; sample pricing table driven by admin size tiers (+ resin surcharge note) |
 
 **Ops (Merchant Center):** Business name / address / phone / email in MC must match the live site. **Identity verify — done.** Keep details matched if the site address changes; request **Misrepresentation** review if still pending in MC.
@@ -1142,7 +1142,7 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 
 ### M9 — Polish & growth
 
-**Status:** **Partial** — customer **Gallery** **production verified** under **M23c** (2026-08-11). SEO / meta / performance remain. Newsletter **not** in M9 anymore — see **M13b**.
+**Status:** **Partial** — customer **Gallery** **production verified** under **M23c** (2026-08-11). **Product JSON-LD** (one `Offer` per variant) shipped 2026-08-16. SEO meta / sitemap / performance remain. Newsletter **not** in M9 anymore — see **M13b**.
 
 **Goal:** SEO, performance, and (historically) gallery — **after M9a** and core milestones; not a substitute for cart/PDP micro-interactions.
 
@@ -1157,9 +1157,10 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
   - **`sitemap.xml`** — public routes + `/shop/:slug` PDP URLs (exclude vault unless public); include `/gallery`.
   - **Canonical URLs** on PDP and key landing pages.
   - **Schema.org JSON-LD** (Google structured data for product discovery):
-    - **`Product`** on each public PDP — `name`, `description`, absolute `image`, `sku` (slug or id), `brand`, `offers` (`price`, `priceCurrency`, `availability` from `inStock`, `url`).
-    - **`Organization`** (+ optional **`WebSite`**) on home — business name, site URL, logo.
+    - **`Product` (v1, 2026-08-16):** public PDPs via `ProductJsonLd` — built from existing catalog fields (`name`, stripped `description`, absolute `image`, `sku`/`mpn` = slug, `brand`, specs as `material` / `additionalProperty`). **One `Offer` per size/type combo** (`price` = base + `priceDeltaCents`, `priceCurrency`, `availability` from `inStock`, same PDP `url`). Simple products emit a single offer. Skip vault PDPs and the print-service catalog slug.
+    - **`Organization`** (+ optional **`WebSite`**) on home — business name, site URL, logo. Organization already ships via `OrganizationJsonLd`.
     - Optional **`ItemList`** on `/shop` (product URLs only; v1 nice-to-have).
+    - **Later — ProductGroup (option 2):** parent `ProductGroup` + child `Product`s per variant, with per-variant SKU / image / stock. Use when variants need their own identity beyond an `Offer` list. Not v1.
   - Validate with Google Rich Results Test + Search Console after deploy.
   - **Public shop catalog only** — do not emit Product JSON-LD for vault-gated PDPs.
   - When **M19** catalog sales ship, JSON-LD `offers.price` must match the **live sale price** on PDP/checkout.
@@ -1173,7 +1174,7 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 **Cursor rules:**
 - Keep SPA structure; no SSR.
 - Use React Helmet or a simple head manager pattern if already present; otherwise, introduce a minimal solution.
-- JSON-LD via a small component (e.g. `ProductStructuredData`) — absolute image/page URLs from `SITE_URL`; reuse existing product fields, no new backend models for v1.
+- JSON-LD via `ProductJsonLd` / `buildProductJsonLd` — absolute image/page URLs from the live origin; reuse existing product fields, no new backend models for v1. Do not ask admins to paste microdata or JSON-LD into specs.
 
 ---
 

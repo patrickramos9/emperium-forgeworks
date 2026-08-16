@@ -26,6 +26,7 @@ import {
 import type { CatalogMode } from "@/lib/catalogFilter";
 import { useProduct, useProducts } from "@/hooks/useProducts";
 import { useProductShippingDisplay } from "@/hooks/useProductShippingDisplay";
+import { ProductJsonLd } from "@/components/ProductJsonLd";
 import { ProductShippingInfo } from "@/components/ProductShippingInfo";
 import { CheckoutTrustStrip } from "@/components/CheckoutTrustStrip";
 import { ProductFavoriteButton } from "@/components/ProductFavoriteButton";
@@ -367,6 +368,7 @@ export function ProductDetailPage({
 
   return (
     <main className="pb-section-gap pt-24">
+      <ProductJsonLd product={product} catalogMode={catalogMode} />
       <div className="mx-auto max-w-container-max px-margin-mobile md:px-margin-desktop">
         <nav className="mb-stack-lg flex items-center gap-2 font-label-sm uppercase text-on-surface-variant">
           <Link to={listPath} className="hover:text-primary">
