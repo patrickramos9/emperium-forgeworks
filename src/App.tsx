@@ -70,6 +70,7 @@ import { ScrollToTopOnNavigate } from "@/components/ScrollToTopOnNavigate";
 import { ToastProvider } from "@/context/ToastContext";
 import { NotificationBadgeProvider } from "@/context/NotificationBadgeContext";
 import { ToastRegion } from "@/components/ToastRegion";
+import { isPublicProductPath } from "@/lib/productJsonLd";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -87,7 +88,10 @@ function AnalyticsTracker() {
 
     const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;
     if (!fbq) return;
-    // index.html already sends the first PageView.
+    if (isPublicProductPath(location.pathname)) {
+      skipInitialMetaPageView.current = false;
+      return;
+    }
     if (skipInitialMetaPageView.current) {
       skipInitialMetaPageView.current = false;
       return;

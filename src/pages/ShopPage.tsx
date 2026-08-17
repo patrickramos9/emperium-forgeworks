@@ -18,6 +18,7 @@ import {
   SHOP_PRODUCTS_PAGE_SIZE,
 } from "@/lib/catalogPagination";
 import { CONTACT_EMAIL } from "@/lib/config";
+import { trackMetaSearch } from "@/lib/metaPixel";
 import { SHIPPING_DISPATCH_SHOP_BANNER } from "@/lib/shippingPromise";
 
 export function ShopPage() {
@@ -90,6 +91,15 @@ export function ShopPage() {
     next.delete("page");
     setSearchParams(next, { replace: true });
   }, [category, search, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const query = search.trim();
+    if (!query || loading) return;
+    trackMetaSearch(
+      query,
+      filtered.map((product) => product.slug),
+    );
+  }, [search, loading, filtered]);
 
   function goToPage(page: number) {
     const next = new URLSearchParams(searchParams);

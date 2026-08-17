@@ -15,6 +15,7 @@ import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { getCustomerUserId } from "@/lib/customerAuth";
 import { toOrderLineItemSnapshots } from "@/lib/orderLineItems";
 import { serializePrintServicePayload } from "@/lib/printService";
+import { trackMetaInitiateCheckout } from "@/lib/metaPixel";
 import {
   ensureGuestSession,
   getStoredGuestSession,
@@ -144,6 +145,7 @@ async function startStripeCheckout(
     );
   }
 
+  trackMetaInitiateCheckout(items);
   window.location.href = data.redirectUrl;
   return data;
 }
@@ -193,10 +195,9 @@ export async function startCheckout(
 
   if (provider.name === "mock") {
     await saveMockOrder(session.sessionId, items, totalCents);
-    window.location.href = session.redirectUrl;
-    return session;
   }
 
+  trackMetaInitiateCheckout(items);
   window.location.href = session.redirectUrl;
   return session;
 }

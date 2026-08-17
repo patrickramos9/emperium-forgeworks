@@ -1841,7 +1841,8 @@ Reuse existing cart/checkout — no separate payment path.
      - Begin checkout
      - Purchase (after Stripe integration).
    - Optionally add:
-     - Meta pixel
+     - Meta pixel — **base PageView** in `index.html` + SPA PageView; **catalog events** (2026-08-16): `ViewContent` (public PDP), `AddToCart`, `InitiateCheckout`, `Purchase`, `Search`. `content_ids` = product slug (same as Merchant feed `id`). Vault and print-service SKUs omitted.
+     - **Pixel catalog ingest** (Meta “add products from your website”): public PDPs emit Open Graph `product:*` tags + JSON-LD `productID`; PageView fires **after** those tags are in the DOM. Connect the pixel as a catalog data source in Commerce Manager.
      - TikTok pixel
    - Keep them behind config flags/env vars.
 

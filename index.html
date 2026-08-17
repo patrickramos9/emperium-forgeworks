@@ -34,7 +34,10 @@
       s.parentNode.insertBefore(t,s)}(window, document,'script',
       'https://connect.facebook.net/en_US/fbevents.js');
       fbq('init', '1772000520810676');
-      fbq('track', 'PageView');
+      // Product pages send PageView after JSON-LD / Open Graph are injected.
+      if (!/^\/shop\/[^/]+\/?$/.test(location.pathname)) {
+        fbq('track', 'PageView');
+      }
     </script>
     <!-- End Meta Pixel Code -->
   </head>

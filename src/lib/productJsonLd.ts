@@ -32,6 +32,11 @@ export function shouldEmitProductJsonLd(
   );
 }
 
+/** Public PDP path — Meta PageView waits for product microdata on these routes. */
+export function isPublicProductPath(pathname: string): boolean {
+  return /^\/shop\/[^/]+\/?$/.test(pathname);
+}
+
 function formatOfferPrice(cents: number): string {
   return (Math.max(0, cents) / 100).toFixed(2);
 }
@@ -92,12 +97,20 @@ function offersForProduct(product: Product, productUrl: string): JsonLdOffer[] {
   }));
 }
 
-function extraProperties(product: Product) {
+function extraProperties(product: Product, hasVariants: boolean) {
   const properties: Array<{
     "@type": "PropertyValue";
-    name: string;
+    name?: string;
+    propertyID?: string;
     value: string;
   }> = [];
+  if (hasVariants) {
+    properties.push({
+      "@type": "PropertyValue",
+      propertyID: "item_group_id",
+      value: product.slug,
+    });
+  }
   if (product.specs?.sculptor) {
     properties.push({
       "@type": "PropertyValue",
@@ -115,6 +128,57 @@ function extraProperties(product: Product) {
   return properties;
 }
 
+function productDescription(product: Product): string {
+  return stripHtml(
+    product.description?.trim() || product.subtitle?.trim() || product.title,
+  )
+    .replace(/\s+/g, " ")
+    .slice(0, 5000);
+}
+
+function listingPriceCents(product: Product): number {
+  const variants =
+    product.variants.length > 0
+      ? product.variants
+      : flattenVariantGroups(product.variantGroups).filter((row) =>
+          row.label.trim(),
+        );
+  if (variants.length === 0) return product.priceCents;
+  return Math.min(
+    ...variants.map((row) => product.priceCents + row.priceDeltaCents),
+    product.priceCents,
+  );
+}
+
+/** Open Graph + product:* tags Meta’s pixel catalog ingest reads from <head>. */
+export function buildProductOpenGraph(
+  product: Product,
+  origin: string,
+): Record<string, string> {
+  const site = origin.replace(/\/$/, "");
+  const url = `${site}/shop/${product.slug}`;
+  const images = absoluteProductImages(product);
+  const hasVariants =
+    product.variants.length > 0 ||
+    flattenVariantGroups(product.variantGroups).some((row) => row.label.trim());
+
+  const tags: Record<string, string> = {
+    "og:type": "product",
+    "og:title": product.title,
+    "og:description": productDescription(product).slice(0, 500),
+    "og:url": url,
+    "product:brand": MERCHANT_BRAND,
+    "product:availability": product.inStock ? "in stock" : "out of stock",
+    "product:condition": "new",
+    "product:price:amount": formatOfferPrice(listingPriceCents(product)),
+    "product:price:currency": "USD",
+    "product:retailer_item_id": product.slug,
+  };
+  if (images[0]) tags["og:image"] = images[0];
+  if (hasVariants) tags["product:item_group_id"] = product.slug;
+  return tags;
+}
+
 /** Schema.org Product JSON-LD for a public PDP (one Offer per variant). */
 export function buildProductJsonLd(
   product: Product,
@@ -123,9 +187,9 @@ export function buildProductJsonLd(
   const site = origin.replace(/\/$/, "");
   const url = `${site}/shop/${product.slug}`;
   const images = absoluteProductImages(product);
-  const description = stripHtml(
-    product.description?.trim() || product.subtitle?.trim() || product.title,
-  ).slice(0, 5000);
+  const description = productDescription(product);
+  const offers = offersForProduct(product, url);
+  const hasVariants = offers.length > 1 || Boolean(offers[0]?.name);
 
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -133,12 +197,13 @@ export function buildProductJsonLd(
     "@id": url,
     name: product.title,
     description,
+    productID: product.slug,
     sku: product.slug,
     mpn: product.slug,
     url,
-    brand: { "@type": "Brand", name: MERCHANT_BRAND },
+    brand: MERCHANT_BRAND,
     category: product.category,
-    offers: offersForProduct(product, url),
+    offers,
   };
 
   if (images.length === 1) data.image = images[0];
@@ -146,7 +211,7 @@ export function buildProductJsonLd(
 
   if (product.specs?.material) data.material = product.specs.material;
 
-  const extra = extraProperties(product);
+  const extra = extraProperties(product, hasVariants);
   if (extra.length > 0) data.additionalProperty = extra;
 
   return data;

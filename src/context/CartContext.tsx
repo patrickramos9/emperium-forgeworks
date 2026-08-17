@@ -16,6 +16,7 @@ import {
   MAX_LINE_QTY,
 } from "@/lib/cartConstants";
 import { productPrimaryImageRef } from "@/lib/productImageUrls";
+import { trackMetaAddToCart } from "@/lib/metaPixel";
 import {
   isPrintServiceCartLine,
   printServiceLineKey,
@@ -229,6 +230,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return next;
       });
       setCartBadgeBumpToken((token) => token + 1);
+      if (added) {
+        trackMetaAddToCart(product, quantity, variant);
+      }
       return added;
     },
     [],

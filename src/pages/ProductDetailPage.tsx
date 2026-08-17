@@ -41,6 +41,8 @@ import {
   type ReviewRecord,
 } from "@/services/reviewService";
 import { isVaultUnlocked } from "@/lib/vaultSession";
+import { isPrintServiceCatalogSlug } from "@/lib/printService";
+import { trackMetaViewContent } from "@/lib/metaPixel";
 
 type ProductDetailPageProps = {
   catalogMode?: CatalogMode;
@@ -112,6 +114,12 @@ export function ProductDetailPage({
       cancelled = true;
     };
   }, [product?.slug]);
+
+  useEffect(() => {
+    if (!product || catalogMode !== "public") return;
+    if (product.vaultOnly || isPrintServiceCatalogSlug(product.slug)) return;
+    trackMetaViewContent(product);
+  }, [product, catalogMode]);
 
   useEffect(() => {
     if (product) {

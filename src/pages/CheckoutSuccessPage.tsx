@@ -2,16 +2,22 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { useEffect, useState } from "react";
 import { hasCustomerSession } from "@/lib/customerAuth";
+import { trackMetaPurchaseOnce } from "@/lib/metaPixel";
 
 export function CheckoutSuccessPage() {
   const [params] = useSearchParams();
   const { clearCart } = useCart();
+  const sessionRef = params.get("session");
   const isMock = params.get("mock") === "1";
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     clearCart();
   }, [clearCart]);
+
+  useEffect(() => {
+    trackMetaPurchaseOnce(sessionRef);
+  }, [sessionRef]);
 
   useEffect(() => {
     void hasCustomerSession().then(setSignedIn);
