@@ -28,6 +28,7 @@ import {
   setReviewProductSlug,
   setReviewReviewedAt,
   setReviewSourceUrl,
+  setReviewImages,
   type ReviewRecord,
 } from "@/services/reviewService";
 import { ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
@@ -53,16 +54,31 @@ function clearObjectUrls(urls: string[]) {
   }
 }
 
-function AdminReviewThumbnails({ paths }: { paths: string[] }) {
-  const [urls, setUrls] = useState<string[]>([]);
+function AdminReviewPhotosEditor({
+  paths,
+  disabled,
+  onAddFiles,
+  onRemove,
+}: {
+  paths: string[];
+  disabled?: boolean;
+  onAddFiles: (files: File[]) => void;
+  onRemove: (path: string) => void;
+}) {
+  const [items, setItems] = useState<{ path: string; url: string }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const resolved = await Promise.all(paths.map((path) => resolveImageUrl(path)));
+      const resolved = await Promise.all(
+        paths.map(async (path) => {
+          const url = await resolveImageUrl(path);
+          return url ? { path, url } : null;
+        }),
+      );
       if (!cancelled) {
-        setUrls(resolved.filter((url): url is string => Boolean(url)));
+        setItems(resolved.filter((row): row is { path: string; url: string } => Boolean(row)));
       }
     }
 
@@ -72,18 +88,65 @@ function AdminReviewThumbnails({ paths }: { paths: string[] }) {
     };
   }, [paths]);
 
-  if (urls.length === 0) return null;
+  const remaining = Math.max(0, MAX_REVIEW_IMAGES - paths.length);
 
   return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      {urls.map((url) => (
-        <img
-          key={url}
-          src={url}
-          alt="Customer product photo"
-          className="h-14 w-14 border border-outline-variant/20 object-cover"
-        />
-      ))}
+    <div className="mt-3">
+      <span className="font-label-sm uppercase text-on-surface-variant">
+        Photos
+      </span>
+      {items.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {items.map((item) => (
+            <div key={item.path} className="relative">
+              <img
+                src={item.url}
+                alt="Review photo"
+                className="h-14 w-14 border border-outline-variant/20 object-cover"
+              />
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onRemove(item.path)}
+                className="absolute -right-2 -top-2 border border-outline-variant/30 bg-surface px-1.5 py-0.5 font-label-sm uppercase text-error disabled:opacity-50"
+                aria-label="Remove photo"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <label
+          className={
+            remaining === 0 || disabled
+              ? "cursor-not-allowed border border-outline-variant/30 px-3 py-2 font-label-sm uppercase opacity-50"
+              : "cursor-pointer border border-outline-variant/30 px-3 py-2 font-label-sm uppercase hover:border-primary"
+          }
+        >
+          Add photos
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+            disabled={disabled || remaining === 0}
+            onChange={(e) => {
+              const files = e.target.files
+                ? Array.from(e.target.files).filter((file) =>
+                    file.type.startsWith("image/"),
+                  )
+                : [];
+              e.target.value = "";
+              if (files.length) onAddFiles(files.slice(0, remaining));
+            }}
+          />
+        </label>
+        <span className="text-label-sm text-on-surface-variant">
+          {paths.length}/{MAX_REVIEW_IMAGES}
+        </span>
+      </div>
     </div>
   );
 }
@@ -415,6 +478,59 @@ export function AdminReviewsPage() {
       setError(
         err instanceof Error ? err.message : "Could not save Etsy review link",
       );
+    }
+    setSavingId(null);
+  }
+
+  async function handleAddReviewImages(orderId: string, files: File[]) {
+    const current = rows.find((row) => row.orderId === orderId);
+    if (!current || files.length === 0) return;
+
+    const existing = reviewImagePaths(current);
+    const remaining = MAX_REVIEW_IMAGES - existing.length;
+    const toUpload = files.slice(0, remaining);
+    if (toUpload.length === 0) return;
+
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+
+    setSavingId(orderId);
+    setError(null);
+    try {
+      const uploaded = await uploadReviewImages(orderId, toUpload);
+      const updated = await setReviewImages(client, orderId, [
+        ...existing,
+        ...uploaded,
+      ]);
+      setRows((prev) =>
+        prev.map((row) => (row.orderId === orderId ? updated : row)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add photos");
+    }
+    setSavingId(null);
+  }
+
+  async function handleRemoveReviewImage(orderId: string, path: string) {
+    const current = rows.find((row) => row.orderId === orderId);
+    if (!current) return;
+
+    const client = await requireAdminSession(navigate);
+    if (!client) return;
+
+    setSavingId(orderId);
+    setError(null);
+    try {
+      const updated = await setReviewImages(
+        client,
+        orderId,
+        reviewImagePaths(current).filter((item) => item !== path),
+      );
+      setRows((prev) =>
+        prev.map((row) => (row.orderId === orderId ? updated : row)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove photo");
     }
     setSavingId(null);
   }
@@ -810,9 +926,12 @@ export function AdminReviewsPage() {
             <p className="mt-3 whitespace-pre-wrap text-on-surface-variant">
               {row.text}
             </p>
-            {reviewImagePaths(row).length > 0 && (
-              <AdminReviewThumbnails paths={reviewImagePaths(row)} />
-            )}
+            <AdminReviewPhotosEditor
+              paths={reviewImagePaths(row)}
+              disabled={savingId === row.orderId}
+              onAddFiles={(files) => void handleAddReviewImages(row.orderId, files)}
+              onRemove={(path) => void handleRemoveReviewImage(row.orderId, path)}
+            />
             <div className="mt-4 border-t border-outline-variant/15 pt-3">
               <ReviewDateEditor
                 initialValue={reviewDateInputValue(row)}

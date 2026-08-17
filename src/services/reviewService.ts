@@ -432,6 +432,30 @@ export async function setReviewSourceUrl(
   return result.data;
 }
 
+/** Replace the photo list on a review (S3 paths under `reviews/{orderId}/`). */
+export async function setReviewImages(
+  client: AmplifyDataClient,
+  orderId: string,
+  images: string[],
+): Promise<ReviewRecord> {
+  const paths = images.map((path) => path.trim()).filter(Boolean);
+  if (paths.length > 5) {
+    throw new Error("Maximum 5 photos per review.");
+  }
+
+  const result = await client.models.Review.update({
+    orderId,
+    images: paths,
+  });
+  if (result.errors?.length) {
+    throw new Error(result.errors.map((e) => e.message).join("; "));
+  }
+  if (!result.data) {
+    throw new Error("Could not update review photos.");
+  }
+  return result.data;
+}
+
 export async function deleteReview(
   client: AmplifyDataClient,
   orderId: string,
