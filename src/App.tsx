@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { SiteSystemBanner } from "@/components/SiteSystemBanner";
 import { AnnouncementProvider } from "@/context/AnnouncementContext";
 import { Layout } from "@/components/Layout";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -112,7 +111,6 @@ export default function App() {
             <ScrollToTopOnNavigate />
             <AnalyticsTracker />
             <TrustedSiteScript />
-            <SiteSystemBanner />
             <ToastRegion />
             <Routes>
           <Route element={<Layout showPowerLine />}>

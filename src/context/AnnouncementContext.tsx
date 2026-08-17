@@ -55,8 +55,8 @@ export function useSiteLayout() {
   const { hasSystemBanner } = useAnnouncementContext();
   return {
     hasSystemBanner,
-    headerTopClass: hasSystemBanner ? "top-10" : "top-0",
-    mainTopPadding: hasSystemBanner ? "pt-[128px]" : "pt-[88px]",
-    pageTopPadding: hasSystemBanner ? "pt-36" : "pt-32",
+    /** Measured header (banner + bar). Fallback matches the bar-only height. */
+    mainTopPadding: "pt-[var(--site-header-height,5.5rem)]",
+    pageTopPadding: "pt-[var(--site-header-height,8rem)]",
   };
 }

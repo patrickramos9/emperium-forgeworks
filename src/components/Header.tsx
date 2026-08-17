@@ -1,11 +1,12 @@
-import { FormEvent, type MouseEvent, useEffect, useId, useState } from "react";
+import { FormEvent, type MouseEvent, useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { useVaultNavAccess } from "@/hooks/useVaultNavAccess";
 import { useCustomerMessageUnread } from "@/hooks/useCustomerMessageUnread";
-import { useSiteLayout } from "@/context/AnnouncementContext";
+import { useAnnouncementContext } from "@/context/AnnouncementContext";
 import { AccountMenu } from "./AccountMenu";
 import { Icon } from "./Icon";
+import { SystemAnnouncementBanner } from "./SystemAnnouncementBanner";
 
 const desktopNavLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
@@ -27,7 +28,7 @@ export function Header() {
   const { items, cartBadgeBumpToken } = useCart();
   const itemCount = items.reduce((count, line) => count + line.quantity, 0);
   const showVaultNav = useVaultNavAccess();
-  const { headerTopClass } = useSiteLayout();
+  const { hasSystemBanner } = useAnnouncementContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -36,6 +37,26 @@ export function Header() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const messageUnread = useCustomerMessageUnread();
   const mobileNavId = useId();
+  const chromeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = chromeRef.current;
+    if (!el) return;
+
+    const apply = () => {
+      document.documentElement.style.setProperty(
+        "--site-header-height",
+        `${el.offsetHeight}px`,
+      );
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--site-header-height");
+    };
+  }, [hasSystemBanner]);
 
   useEffect(() => {
     if (itemCount < 1) return;
@@ -78,10 +99,10 @@ export function Header() {
   }
 
   return (
-    <header
-      className={`fixed z-50 w-full border-b border-outline-variant/20 bg-background/90 backdrop-blur-md ${headerTopClass}`}
-    >
-      <div className="mx-auto flex max-w-container-max items-center justify-between gap-stack-md px-margin-mobile py-4 md:px-margin-desktop">
+    <header className="fixed top-0 z-50 w-full border-b border-outline-variant/20 bg-background/90 backdrop-blur-md">
+      <div ref={chromeRef}>
+        <SystemAnnouncementBanner />
+        <div className="mx-auto flex max-w-container-max items-center justify-between gap-stack-md px-margin-mobile py-4 md:px-margin-desktop">
         <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-8">
           <button
             type="button"
@@ -173,6 +194,7 @@ export function Header() {
             )}
           </Link>
           <AccountMenu />
+        </div>
         </div>
       </div>
 

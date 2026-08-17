@@ -18,11 +18,13 @@ import {
   SHOP_PRODUCTS_PAGE_SIZE,
 } from "@/lib/catalogPagination";
 import { CONTACT_EMAIL } from "@/lib/config";
+import { useSiteLayout } from "@/context/AnnouncementContext";
 import { trackMetaSearch } from "@/lib/metaPixel";
 import { SHIPPING_DISPATCH_SHOP_BANNER } from "@/lib/shippingPromise";
 
 export function ShopPage() {
   const { products, loading, source, loadError } = useProducts();
+  const { mainTopPadding } = useSiteLayout();
   const { categoryFilters, shopFilters } = useCategoryFilters();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") ?? ALL_CATEGORY_FILTER;
@@ -119,7 +121,7 @@ export function ShopPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-container-max px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
+    <main className={`mx-auto min-h-screen max-w-container-max px-margin-mobile pb-section-gap md:px-margin-desktop ${mainTopPadding}`}>
       <div className="mb-stack-lg flex flex-col justify-between gap-stack-md md:flex-row md:items-end">
         <div>
           <h1 className="mb-2 font-display-lg text-display-lg uppercase tracking-tighter text-primary">

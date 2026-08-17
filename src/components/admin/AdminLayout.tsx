@@ -9,6 +9,7 @@ import {
 import { useUnacknowledgedOrderCount } from "@/hooks/useUnacknowledgedOrderCount";
 import { usePendingPrintRequestCount } from "@/hooks/usePendingPrintRequestCount";
 import { useAdminMessageUnread } from "@/hooks/useAdminMessageUnread";
+import { SiteSystemBanner } from "@/components/SiteSystemBanner";
 
 type NavItem = { label: string; to: string; end?: boolean };
 
@@ -105,7 +106,9 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
+      <SiteSystemBanner />
+      <div className="flex min-h-0 min-w-0 flex-1">
       <aside className="hidden w-56 shrink-0 border-r border-outline-variant/20 bg-surface-container-lowest md:block">
         <div className="sticky top-0 flex h-screen flex-col">
           <div className="border-b border-outline-variant/20 px-4 py-5">
@@ -199,6 +202,7 @@ export function AdminLayout() {
         <div className="flex-1 px-4 py-6 md:px-6 md:py-8">
           <Outlet />
         </div>
+      </div>
       </div>
     </div>
   );

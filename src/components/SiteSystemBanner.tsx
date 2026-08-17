@@ -1,14 +1,10 @@
 import { SystemAnnouncementBanner } from "@/components/SystemAnnouncementBanner";
 import { useAnnouncementContext } from "@/context/AnnouncementContext";
 
-/** Fixed site-wide system announcement bar (maintenance, construction, etc.). */
+/** System announcement for layouts that are not the storefront header. */
 export function SiteSystemBanner() {
   const { hasSystemBanner } = useAnnouncementContext();
   if (!hasSystemBanner) return null;
 
-  return (
-    <div className="fixed top-0 z-[60] w-full">
-      <SystemAnnouncementBanner />
-    </div>
-  );
+  return <SystemAnnouncementBanner />;
 }
