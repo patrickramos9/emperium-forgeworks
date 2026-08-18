@@ -21,6 +21,7 @@ import {
 import { buildProductMutationPayload } from "@/lib/productPayload";
 import type { ProductOptionGroup } from "@/lib/productVariants";
 import { hasShippingProfileModel } from "@/lib/dataModels";
+import { isPrintServiceCatalogSlug } from "@/lib/printService";
 import {
   listAllShippingProfiles,
   firstShippingProfileId,
@@ -43,6 +44,11 @@ import {
   productSlugFromTitle,
   validateProductSlug,
 } from "@/lib/productSlug";
+import {
+  META_CONTENT_ID_MAX_LENGTH,
+  assertProductSlugAvailable,
+  retargetProductSlugRefs,
+} from "@/services/productSlugChangeService";
 
 function parseJsonField<T>(raw: string, label: string): T | null {
   const trimmed = raw.trim();
@@ -71,6 +77,7 @@ export function AdminProductEditPage() {
   const [recordId, setRecordId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [productSlug, setProductSlug] = useState("");
+  const [originalSlug, setOriginalSlug] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
   const [priceDollars, setPriceDollars] = useState("");
@@ -111,6 +118,7 @@ export function AdminProductEditPage() {
     setRecordId(p.id);
     setTitle(p.title);
     setProductSlug(p.slug);
+    setOriginalSlug(p.slug);
     setSubtitle(p.subtitle ?? "");
     setDescription(p.description ?? "");
     setPriceDollars(formatCentsForInput(p.priceCents));
@@ -150,6 +158,7 @@ export function AdminProductEditPage() {
         const blank = newProductDefaults();
         setTitle(blank.title);
         setProductSlug(blank.slug);
+        setOriginalSlug("");
         setCategory(blank.category);
         setLoading(false);
         return;
@@ -218,6 +227,13 @@ export function AdminProductEditPage() {
         throw new Error(slugValidation);
       }
 
+      const nextSlug = normalizeProductSlug(productSlug);
+      if (isPrintServiceCatalogSlug(originalSlug) && nextSlug !== originalSlug) {
+        throw new Error("The print-service catalog slug cannot be changed.");
+      }
+
+      await assertProductSlugAvailable(client, nextSlug, recordId ?? undefined);
+
       if (featured && !wasFeaturedOnLoad) {
         const featuredCount = await countFeaturedProducts(
           client,
@@ -256,7 +272,7 @@ export function AdminProductEditPage() {
         : undefined;
 
       const payload = buildProductMutationPayload({
-        slug: normalizeProductSlug(productSlug),
+        slug: nextSlug,
         title,
         subtitle: subtitle || undefined,
         description: normalizeRichTextForSave(description),
@@ -297,6 +313,10 @@ export function AdminProductEditPage() {
       }
       if (!result.data) {
         throw new Error("Save failed — no data returned from API.");
+      }
+
+      if (!isNew && originalSlug && originalSlug !== nextSlug) {
+        await retargetProductSlugRefs(client, originalSlug, nextSlug);
       }
 
       navigate("/admin/products");
@@ -377,13 +397,29 @@ export function AdminProductEditPage() {
               setProductSlug(e.target.value);
             }}
             required
-            disabled={!isNew && !!recordId}
+            disabled={
+              saving ||
+              isPrintServiceCatalogSlug(originalSlug || productSlug)
+            }
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2 disabled:opacity-60"
           />
-          {isNew && (
+          {isPrintServiceCatalogSlug(originalSlug || productSlug) ? (
             <p className="mt-1 text-body-sm text-on-surface-variant">
-              Auto-generated from title until you edit this field. Required before
-              photo upload.
+              Locked — this slug is used by the print service.
+            </p>
+          ) : (
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              {isNew
+                ? "Auto-generated from title until you edit this field. Required before photo upload."
+                : "Changing this updates the shop URL and the Meta catalog ID. Old /shop/… links will 404. Reviews and gallery entries are updated to match."}
+              {normalizeProductSlug(productSlug).length >
+              META_CONTENT_ID_MAX_LENGTH ? (
+                <>
+                  {" "}
+                  Meta IDs max {META_CONTENT_ID_MAX_LENGTH} characters (currently{" "}
+                  {normalizeProductSlug(productSlug).length}).
+                </>
+              ) : null}
             </p>
           )}
         </label>
