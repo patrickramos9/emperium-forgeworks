@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
+import { getCustomerUserId } from "@/lib/customerAuth";
 import { listAllProducts } from "@/lib/listAllProducts";
 import {
   fetchCustomerActivity,
@@ -67,6 +68,7 @@ export function AdminCustomerActivitySection() {
 
       try {
         const products = await listAllProducts(client);
+        const adminUserId = await getCustomerUserId();
         const activity = await fetchCustomerActivity(
           client,
           products.map((p) => ({
@@ -74,6 +76,9 @@ export function AdminCustomerActivitySection() {
             title: p.title,
             slug: p.slug,
           })),
+          {
+            ...(adminUserId ? { hideUserIds: [adminUserId] } : {}),
+          },
         );
         if (!cancelled) setRows(activity);
       } catch (err) {

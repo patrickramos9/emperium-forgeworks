@@ -234,6 +234,7 @@ function emptyGuestRow(
 export async function fetchCustomerActivity(
   client: AmplifyDataClient,
   products: { id: string; title: string; slug: string }[],
+  options?: { hideUserIds?: string[] },
 ): Promise<CustomerActivityRow[]> {
   const [
     accounts,
@@ -253,20 +254,26 @@ export async function fetchCustomerActivity(
 
   const productsById = buildProductLookup(products);
   const accountsById = new Map(accounts.map((a) => [a.userId, a]));
+  const hiddenUserIds = new Set(
+    (options?.hideUserIds ?? []).map((id) => id.trim()).filter(Boolean),
+  );
   const rowsByKey = new Map<string, CustomerActivityRow>();
 
+  const isHiddenCustomer = (userId: string | null | undefined) =>
+    !userId || hiddenUserIds.has(userId) || !accountsById.has(userId);
+
   for (const account of accounts) {
+    if (isHiddenCustomer(account.userId)) continue;
     rowsByKey.set(
       `customer:${account.userId}`,
       emptyCustomerRow(accountsById, account.userId),
     );
   }
 
-  // Skip Cognito users who are not in the customer group (admin/staff
-  // browsing the shop, leftover rows after an account was deleted).
+  // Skip admin/staff (not in the customer group) and the signed-in admin.
   for (const favorite of favorites) {
     const userId = favorite.userId;
-    if (!userId || !accountsById.has(userId)) continue;
+    if (isHiddenCustomer(userId)) continue;
     const key = `customer:${userId}`;
     const row =
       rowsByKey.get(key) ?? emptyCustomerRow(accountsById, userId);
@@ -282,7 +289,7 @@ export async function fetchCustomerActivity(
 
   for (const snapshot of snapshots) {
     const userId = snapshot.userId;
-    if (!userId || !accountsById.has(userId)) continue;
+    if (isHiddenCustomer(userId)) continue;
     const lines = parseSnapshotLineItems(snapshot.lineItems);
     if (!lines.length) continue;
 
