@@ -98,13 +98,40 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** Apex + www of SITE_URL (both hosts serve the storefront). */
+export function originsForSiteUrl(siteUrl: string): string[] {
+  const canonical = siteUrl.replace(/\/$/, "");
+  if (!canonical) return [];
+  try {
+    const url = new URL(canonical);
+    const hostname = url.hostname;
+    if (
+      !hostname ||
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.endsWith(".amplifyapp.com")
+    ) {
+      return [canonical];
+    }
+    const altHost = hostname.startsWith("www.")
+      ? hostname.slice(4)
+      : `www.${hostname}`;
+    const port = url.port ? `:${url.port}` : "";
+    return [canonical, `${url.protocol}//${altHost}${port}`];
+  } catch {
+    return [canonical];
+  }
+}
+
 /** Reflect Origin when it is the storefront, localhost, or Amplify Hosting. */
 export function resolveCorsOrigin(
   requestOrigin: string | undefined,
 ): string | null {
   if (!requestOrigin) return null;
   const siteUrl = (process.env.SITE_URL ?? "").replace(/\/$/, "");
-  if (siteUrl && requestOrigin === siteUrl) return requestOrigin;
+  if (siteUrl && originsForSiteUrl(siteUrl).includes(requestOrigin)) {
+    return requestOrigin;
+  }
   if (
     requestOrigin === "http://localhost:5173" ||
     requestOrigin === "http://127.0.0.1:5173" ||

@@ -94,6 +94,9 @@ export function AdminDashboardPage() {
   const [productTitlesBySlug, setProductTitlesBySlug] = useState(
     () => new Map<string, string>(),
   );
+  const [inCartProducts, setInCartProducts] = useState<
+    { slug: string; title: string; count: number }[]
+  >([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
@@ -126,8 +129,21 @@ export function AdminDashboardPage() {
       if (!client) return;
 
       try {
-        const orders = await listAllOrders(client);
+        const [orders, products] = await Promise.all([
+          listAllOrders(client),
+          listAllProducts(client),
+        ]);
         setStats(computeAdminOrderStats(orders));
+        setInCartProducts(
+          products
+            .filter((product) => (product.activeCartCount ?? 0) > 0)
+            .map((product) => ({
+              slug: product.slug,
+              title: product.title,
+              count: product.activeCartCount ?? 0,
+            }))
+            .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title)),
+        );
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Could not load dashboard",
@@ -340,6 +356,51 @@ export function AdminDashboardPage() {
           </section>
         </>
       )}
+
+      <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="font-headline-md text-headline-md uppercase text-on-surface">
+              Currently in carts
+            </h2>
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              Live shopper carts (signed-in and guest), not Meta or GA4 add-to-cart
+              events. Same counts as Admin → Products.
+            </p>
+          </div>
+          <Link
+            to="/admin/products"
+            className="font-label-sm uppercase text-primary hover:underline"
+          >
+            View products
+          </Link>
+        </div>
+        {inCartProducts.length ? (
+          <ul className="mt-4 space-y-2 text-body-sm">
+            {inCartProducts.map((product) => (
+              <li
+                key={product.slug}
+                className="flex items-center justify-between gap-4"
+              >
+                <Link
+                  to={`/admin/products/${product.slug}`}
+                  className="truncate text-primary hover:underline"
+                  title={product.title}
+                >
+                  {product.title}
+                </Link>
+                <span className="whitespace-nowrap text-on-surface-variant">
+                  In {product.count} {product.count === 1 ? "cart" : "carts"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-on-surface-variant">
+            No products are in a live cart right now.
+          </p>
+        )}
+      </section>
 
       <AdminCustomerActivitySection />
 

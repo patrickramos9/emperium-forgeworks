@@ -262,9 +262,11 @@ export async function fetchCustomerActivity(
     );
   }
 
+  // Skip Cognito users who are not in the customer group (admin/staff
+  // browsing the shop, leftover rows after an account was deleted).
   for (const favorite of favorites) {
     const userId = favorite.userId;
-    if (!userId) continue;
+    if (!userId || !accountsById.has(userId)) continue;
     const key = `customer:${userId}`;
     const row =
       rowsByKey.get(key) ?? emptyCustomerRow(accountsById, userId);
@@ -280,7 +282,7 @@ export async function fetchCustomerActivity(
 
   for (const snapshot of snapshots) {
     const userId = snapshot.userId;
-    if (!userId) continue;
+    if (!userId || !accountsById.has(userId)) continue;
     const lines = parseSnapshotLineItems(snapshot.lineItems);
     if (!lines.length) continue;
 
