@@ -19,6 +19,7 @@ import {
   type PrintRequestRecord,
 } from "@/lib/printRequest";
 import type { PrintServiceConfigData } from "@/lib/printService";
+import { resolvePrintServicePriceCents } from "@/lib/printService";
 import {
   adminDeclinePrintRequest,
   adminQuotePrintRequest,
@@ -26,7 +27,34 @@ import {
 } from "@/services/printRequestService";
 import { fetchPrintServiceConfig } from "@/services/printServiceConfigService";
 
-type FigureDraft = { sizeTierId: string; quantity: string };
+type FigureDraft = {
+  sizeTierId: string;
+  quantity: string;
+  /** Dollars string for the editable unit price input. */
+  unitPriceDollars: string;
+};
+
+function centsToDollarsInput(cents: number): string {
+  return (Math.max(0, cents) / 100).toFixed(2);
+}
+
+function dollarsInputToCents(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value) || value < 0) return null;
+  return Math.round(value * 100);
+}
+
+function defaultUnitPriceDollars(
+  config: PrintServiceConfigData,
+  sizeTierId: string,
+  resinTypeId: string,
+): string {
+  if (!sizeTierId) return "";
+  const cents = resolvePrintServicePriceCents(config, sizeTierId, resinTypeId);
+  return cents == null ? "" : centsToDollarsInput(cents);
+}
 
 export function AdminPrintRequestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +66,7 @@ export function AdminPrintRequestDetailPage() {
   );
   const [config, setConfig] = useState<PrintServiceConfigData | null>(null);
   const [drafts, setDrafts] = useState<FigureDraft[]>([
-    { sizeTierId: "", quantity: "1" },
+    { sizeTierId: "", quantity: "1", unitPriceDollars: "" },
   ]);
   const [adminNotes, setAdminNotes] = useState("");
   const [loading, setLoading] = useState(true);
@@ -80,10 +108,22 @@ export function AdminPrintRequestDetailPage() {
             request.figureLines.map((line) => ({
               sizeTierId: line.sizeTierId,
               quantity: String(line.quantity),
+              unitPriceDollars: centsToDollarsInput(line.unitPriceCents),
             })),
           );
         } else if (cfg.sizeTiers[0]) {
-          setDrafts([{ sizeTierId: cfg.sizeTiers[0].id, quantity: "1" }]);
+          const tierId = cfg.sizeTiers[0].id;
+          setDrafts([
+            {
+              sizeTierId: tierId,
+              quantity: "1",
+              unitPriceDollars: defaultUnitPriceDollars(
+                cfg,
+                tierId,
+                request.resinTypeId,
+              ),
+            },
+          ]);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load request.");
@@ -96,12 +136,17 @@ export function AdminPrintRequestDetailPage() {
   const preview = useMemo(() => {
     if (!config || !row) return null;
     try {
-      const inputs: PrintFigureLineInput[] = drafts
-        .map((draft) => ({
+      const inputs: PrintFigureLineInput[] = [];
+      for (const draft of drafts) {
+        if (!draft.sizeTierId || Number(draft.quantity) < 1) continue;
+        const unitPriceCents = dollarsInputToCents(draft.unitPriceDollars);
+        if (unitPriceCents == null) return null;
+        inputs.push({
           sizeTierId: draft.sizeTierId,
           quantity: Number(draft.quantity),
-        }))
-        .filter((line) => line.sizeTierId && line.quantity >= 1);
+          unitPriceCents,
+        });
+      }
       if (!inputs.length) return null;
       return buildQuotedFigureLines(config, inputs, row.resinTypeId);
     } catch {
@@ -130,10 +175,18 @@ export function AdminPrintRequestDetailPage() {
     setError(null);
     setMessage(null);
     try {
-      const figureLines: PrintFigureLineInput[] = drafts.map((draft) => ({
-        sizeTierId: draft.sizeTierId,
-        quantity: Number(draft.quantity),
-      }));
+      const figureLines: PrintFigureLineInput[] = [];
+      for (const draft of drafts) {
+        const unitPriceCents = dollarsInputToCents(draft.unitPriceDollars);
+        if (unitPriceCents == null) {
+          throw new Error("Enter a valid unit price for each figure line.");
+        }
+        figureLines.push({
+          sizeTierId: draft.sizeTierId,
+          quantity: Number(draft.quantity),
+          unitPriceCents,
+        });
+      }
       const result = await adminQuotePrintRequest(client, {
         printRequestId: id,
         figureLines,
@@ -291,50 +344,94 @@ export function AdminPrintRequestDetailPage() {
             Figure lines / quote
           </h2>
           <p className="mt-2 text-body-sm text-on-surface-variant">
-            Assign how many figures fall in each size tier. Price = sum of (qty ×
-            tier + resin delta).
+            Pick a size tier for the label, set quantity, and enter the unit
+            price. Changing the tier prefills the catalog price (tier + resin);
+            you can edit it.
           </p>
 
           <div className="mt-4 space-y-3">
             {drafts.map((draft, index) => (
-              <div key={index} className="flex flex-wrap gap-3">
-                <select
-                  value={draft.sizeTierId}
-                  onChange={(e) => {
-                    const next = [...drafts];
-                    next[index] = { ...draft, sizeTierId: e.target.value };
-                    setDrafts(next);
-                  }}
-                  className="border border-outline-variant/30 bg-surface px-3 py-2"
-                  required
-                >
-                  <option value="">Size tier…</option>
-                  {config.sizeTiers.map((tier) => (
-                    <option key={tier.id} value={tier.id}>
-                      {tier.label} — {formatPrice(tier.priceCents)}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={draft.quantity}
-                  onChange={(e) => {
-                    const next = [...drafts];
-                    next[index] = { ...draft, quantity: e.target.value };
-                    setDrafts(next);
-                  }}
-                  className="w-24 border border-outline-variant/30 bg-surface px-3 py-2"
-                  required
-                />
+              <div key={index} className="flex flex-wrap items-end gap-3">
+                <label className="min-w-[12rem] flex-1">
+                  <span className="font-label-sm uppercase text-on-surface-variant">
+                    Size tier
+                  </span>
+                  <select
+                    value={draft.sizeTierId}
+                    onChange={(e) => {
+                      const sizeTierId = e.target.value;
+                      const next = [...drafts];
+                      next[index] = {
+                        ...draft,
+                        sizeTierId,
+                        unitPriceDollars: config
+                          ? defaultUnitPriceDollars(
+                              config,
+                              sizeTierId,
+                              row.resinTypeId,
+                            )
+                          : draft.unitPriceDollars,
+                      };
+                      setDrafts(next);
+                    }}
+                    className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
+                    required
+                  >
+                    <option value="">Size tier…</option>
+                    {config.sizeTiers.map((tier) => (
+                      <option key={tier.id} value={tier.id}>
+                        {tier.label} — {formatPrice(tier.priceCents)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span className="font-label-sm uppercase text-on-surface-variant">
+                    Qty
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={draft.quantity}
+                    onChange={(e) => {
+                      const next = [...drafts];
+                      next[index] = { ...draft, quantity: e.target.value };
+                      setDrafts(next);
+                    }}
+                    className="mt-1 w-20 border border-outline-variant/30 bg-surface px-3 py-2"
+                    required
+                  />
+                </label>
+                <label>
+                  <span className="font-label-sm uppercase text-on-surface-variant">
+                    Unit price ($)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    inputMode="decimal"
+                    value={draft.unitPriceDollars}
+                    onChange={(e) => {
+                      const next = [...drafts];
+                      next[index] = {
+                        ...draft,
+                        unitPriceDollars: e.target.value,
+                      };
+                      setDrafts(next);
+                    }}
+                    className="mt-1 w-28 border border-outline-variant/30 bg-surface px-3 py-2"
+                    required
+                  />
+                </label>
                 <button
                   type="button"
                   disabled={drafts.length <= 1}
                   onClick={() =>
                     setDrafts(drafts.filter((_, i) => i !== index))
                   }
-                  className="text-label-sm uppercase text-error disabled:opacity-40"
+                  className="mb-2 text-label-sm uppercase text-error disabled:opacity-40"
                 >
                   Remove
                 </button>
@@ -344,15 +441,21 @@ export function AdminPrintRequestDetailPage() {
 
           <button
             type="button"
-            onClick={() =>
+            onClick={() => {
+              const sizeTierId = config.sizeTiers[0]?.id ?? "";
               setDrafts([
                 ...drafts,
                 {
-                  sizeTierId: config.sizeTiers[0]?.id ?? "",
+                  sizeTierId,
                   quantity: "1",
+                  unitPriceDollars: defaultUnitPriceDollars(
+                    config,
+                    sizeTierId,
+                    row.resinTypeId,
+                  ),
                 },
-              ])
-            }
+              ]);
+            }}
             className="mt-3 font-label-sm uppercase text-primary hover:underline"
           >
             + Add size line

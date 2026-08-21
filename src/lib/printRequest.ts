@@ -21,6 +21,8 @@ export type PrintRequestStatus = (typeof PRINT_REQUEST_STATUSES)[number];
 export type PrintFigureLineInput = {
   sizeTierId: string;
   quantity: number;
+  /** Optional override; when omitted, price comes from size tier + resin. */
+  unitPriceCents?: number;
 };
 
 export type PrintFigureLine = {
@@ -229,14 +231,25 @@ export function buildQuotedFigureLines(
     if (!sizeTierId || !Number.isFinite(quantity) || quantity < 1) {
       throw new Error("Each figure line needs a size tier and quantity ≥ 1.");
     }
-    const unitPriceCents = resolvePrintServicePriceCents(
-      config,
-      sizeTierId,
-      resinTypeId,
-    );
-    if (unitPriceCents == null) {
-      throw new Error("Selected size or resin is no longer available.");
+
+    let unitPriceCents: number;
+    if (
+      input.unitPriceCents != null &&
+      Number.isFinite(input.unitPriceCents)
+    ) {
+      unitPriceCents = Math.max(0, Math.floor(input.unitPriceCents));
+    } else {
+      const resolved = resolvePrintServicePriceCents(
+        config,
+        sizeTierId,
+        resinTypeId,
+      );
+      if (resolved == null) {
+        throw new Error("Selected size or resin is no longer available.");
+      }
+      unitPriceCents = resolved;
     }
+
     const tier = config.sizeTiers.find((row) => row.id === sizeTierId);
     figureLines.push({
       sizeTierId,

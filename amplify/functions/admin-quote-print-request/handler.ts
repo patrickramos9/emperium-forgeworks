@@ -30,6 +30,9 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
       .map((row) => ({
         sizeTierId: row.sizeTierId,
         quantity: row.quantity,
+        ...(row.unitPriceCents != null
+          ? { unitPriceCents: row.unitPriceCents }
+          : {}),
       }));
 
     const { data: request, errors } = await dataClient.models.PrintRequest.get({

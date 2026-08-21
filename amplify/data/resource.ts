@@ -358,6 +358,8 @@ const schema = a.schema({
   PrintFigureLineInput: a.customType({
     sizeTierId: a.string().required(),
     quantity: a.integer().required(),
+    /** Optional per-figure price override in cents; defaults to size tier + resin. */
+    unitPriceCents: a.integer(),
   }),
 
   ReturnRequestLineItem: a.customType({

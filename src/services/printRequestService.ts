@@ -260,7 +260,13 @@ export async function adminQuotePrintRequest(
 
   const { data, errors } = await client.mutations.adminQuotePrintRequest({
     printRequestId: input.printRequestId,
-    figureLines: input.figureLines,
+    figureLines: input.figureLines.map((line) => ({
+      sizeTierId: line.sizeTierId,
+      quantity: line.quantity,
+      ...(line.unitPriceCents != null
+        ? { unitPriceCents: line.unitPriceCents }
+        : {}),
+    })),
     ...(input.adminNotes?.trim()
       ? { adminNotes: input.adminNotes.trim() }
       : {}),
