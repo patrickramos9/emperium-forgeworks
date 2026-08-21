@@ -1,5 +1,6 @@
 /** M21c — Print request (quote-first) shared types and helpers. */
 
+import type { CustomerLabel } from "@/lib/customerAdmin";
 import type {
   PrintServiceConfigData,
   PrintServiceLinePayload,
@@ -67,6 +68,35 @@ export function printRequestStatusLabel(status: PrintRequestStatus): string {
     case "cancelled":
       return "Cancelled";
   }
+}
+
+/** Admin-facing submitter contact (guest email or resolved account label). */
+export function printRequestSubmitterLabel(
+  row: Pick<PrintRequestRecord, "userId" | "guestId" | "email">,
+  accountLabel?: CustomerLabel | null,
+): string {
+  const storedEmail = row.email?.trim() || null;
+  if (row.guestId) {
+    return storedEmail ?? "Guest (no email)";
+  }
+  if (row.userId) {
+    const email = accountLabel?.email?.trim() || storedEmail;
+    const name = accountLabel?.displayName?.trim() || null;
+    if (email && name && name !== email) {
+      return `${name} · ${email}`;
+    }
+    if (email) return email;
+    return "Account (email unavailable)";
+  }
+  return "Unknown";
+}
+
+export function printRequestSubmitterKind(
+  row: Pick<PrintRequestRecord, "userId" | "guestId">,
+): "guest" | "account" | null {
+  if (row.guestId) return "guest";
+  if (row.userId) return "account";
+  return null;
 }
 
 /** Needs admin attention (review / quote) — used for nav badge. */

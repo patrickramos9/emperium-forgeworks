@@ -4,9 +4,15 @@ import { getUrl } from "aws-amplify/storage";
 import { formatPrice } from "@/data/seedProducts";
 import { requireAdminSession, type AmplifyDataClient } from "@/lib/amplifyDataClient";
 import {
+  resolveCustomerLabelsForUserIds,
+  type CustomerLabel,
+} from "@/lib/customerAdmin";
+import {
   buildQuotedFigureLines,
   formatPrintFigureLinesSummary,
   printRequestStatusLabel,
+  printRequestSubmitterKind,
+  printRequestSubmitterLabel,
   type PrintFigureLineInput,
   type PrintRequestRecord,
 } from "@/lib/printRequest";
@@ -25,6 +31,9 @@ export function AdminPrintRequestDetailPage() {
   const navigate = useNavigate();
   const [client, setClient] = useState<AmplifyDataClient | null>(null);
   const [row, setRow] = useState<PrintRequestRecord | null>(null);
+  const [customerLabel, setCustomerLabel] = useState<CustomerLabel | null>(
+    null,
+  );
   const [config, setConfig] = useState<PrintServiceConfigData | null>(null);
   const [drafts, setDrafts] = useState<FigureDraft[]>([
     { sizeTierId: "", quantity: "1" },
@@ -56,6 +65,14 @@ export function AdminPrintRequestDetailPage() {
         setRow(request);
         setConfig(cfg);
         setAdminNotes(request.adminNotes ?? "");
+        if (request.userId) {
+          const labels = await resolveCustomerLabelsForUserIds(session, [
+            request.userId,
+          ]);
+          setCustomerLabel(labels.get(request.userId) ?? null);
+        } else {
+          setCustomerLabel(null);
+        }
         if (request.figureLines?.length) {
           setDrafts(
             request.figureLines.map((line) => ({
@@ -175,6 +192,7 @@ export function AdminPrintRequestDetailPage() {
     row.status === "submitted" ||
     row.status === "in_review" ||
     row.status === "quoted";
+  const submitterKind = printRequestSubmitterKind(row);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -190,14 +208,26 @@ export function AdminPrintRequestDetailPage() {
       </h1>
       <p className="mt-2 text-on-surface-variant">
         {printRequestStatusLabel(row.status)}
-        {row.guestId
-          ? ` · Guest${row.email ? ` (${row.email})` : ""}`
-          : row.userId
-            ? " · Account"
-            : ""}
       </p>
 
       <dl className="mt-stack-lg space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
+        <div>
+          <dt className="font-label-sm uppercase text-on-surface-variant">
+            From
+          </dt>
+          <dd className="text-on-surface">
+            {printRequestSubmitterLabel(row, customerLabel)}
+            {submitterKind === "account" ? (
+              <span className="ml-2 text-body-sm text-on-surface-variant">
+                Account
+              </span>
+            ) : submitterKind === "guest" ? (
+              <span className="ml-2 text-body-sm text-on-surface-variant">
+                Guest
+              </span>
+            ) : null}
+          </dd>
+        </div>
         <div>
           <dt className="font-label-sm uppercase text-on-surface-variant">File</dt>
           <dd className="text-on-surface">

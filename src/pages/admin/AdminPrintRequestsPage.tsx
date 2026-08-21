@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
+import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
 import {
   formatPrintFigureLinesSummary,
   printRequestStatusLabel,
+  printRequestSubmitterKind,
+  printRequestSubmitterLabel,
   type PrintRequestRecord,
 } from "@/lib/printRequest";
 import { formatPrice } from "@/data/seedProducts";
@@ -25,6 +28,9 @@ function queueRank(status: PrintRequestRecord["status"]): number {
 export function AdminPrintRequestsPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<PrintRequestRecord[]>([]);
+  const [customerLabels, setCustomerLabels] = useState<
+    Awaited<ReturnType<typeof resolveCustomerLabelsForUserIds>>
+  >(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +46,16 @@ export function AdminPrintRequestsPage() {
               queueRank(a.status) - queueRank(b.status) ||
               (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
           ),
+        );
+        const userIds = [
+          ...new Set(
+            all.map((row) => row.userId).filter(Boolean) as string[],
+          ),
+        ];
+        setCustomerLabels(
+          userIds.length
+            ? await resolveCustomerLabelsForUserIds(client, userIds)
+            : new Map(),
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load requests.");
@@ -62,30 +78,42 @@ export function AdminPrintRequestsPage() {
       {error && <p className="mt-6 text-error">{error}</p>}
 
       <ul className="mt-6 space-y-2">
-        {rows.map((row) => (
-          <li key={row.id}>
-            <Link
-              to={`/admin/print-requests/${row.id}`}
-              className="flex flex-wrap items-baseline justify-between gap-2 border border-outline-variant/20 bg-surface-container-low px-4 py-3 iron-bevel hover:border-primary/40"
-            >
-              <span>
-                <span className="font-label-md uppercase text-on-surface">
-                  {row.originalFileName}
+        {rows.map((row) => {
+          const kind = printRequestSubmitterKind(row);
+          const submitter = printRequestSubmitterLabel(
+            row,
+            row.userId ? customerLabels.get(row.userId) : null,
+          );
+          const from = kind === "guest" ? `Guest · ${submitter}` : submitter;
+          return (
+            <li key={row.id}>
+              <Link
+                to={`/admin/print-requests/${row.id}`}
+                className="flex flex-wrap items-baseline justify-between gap-2 border border-outline-variant/20 bg-surface-container-low px-4 py-3 iron-bevel hover:border-primary/40"
+              >
+                <span>
+                  <span className="font-label-md uppercase text-on-surface">
+                    {row.originalFileName}
+                  </span>
+                  <span className="ml-2 text-body-sm text-on-surface-variant">
+                    {from}
+                    {" · "}
+                    {row.resinTypeLabel} · {row.resinColorLabel}
+                    {row.figureLines?.length
+                      ? ` · ${formatPrintFigureLinesSummary(row.figureLines)}`
+                      : ""}
+                    {row.quoteCents != null
+                      ? ` · ${formatPrice(row.quoteCents)}`
+                      : ""}
+                  </span>
                 </span>
-                <span className="ml-2 text-body-sm text-on-surface-variant">
-                  {row.resinTypeLabel} · {row.resinColorLabel}
-                  {row.figureLines?.length
-                    ? ` · ${formatPrintFigureLinesSummary(row.figureLines)}`
-                    : ""}
-                  {row.quoteCents != null ? ` · ${formatPrice(row.quoteCents)}` : ""}
+                <span className="font-label-sm uppercase text-primary">
+                  {printRequestStatusLabel(row.status)}
                 </span>
-              </span>
-              <span className="font-label-sm uppercase text-primary">
-                {printRequestStatusLabel(row.status)}
-              </span>
-            </Link>
-          </li>
-        ))}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
 
       {!loading && !rows.length && (
