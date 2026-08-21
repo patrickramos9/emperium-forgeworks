@@ -30,6 +30,8 @@ export type PrintFigureLine = {
   unitPriceCents: number;
 };
 
+export type PrintRequestSizingMode = "absolute" | "scale";
+
 export type PrintRequestRecord = {
   id: string;
   userId?: string | null;
@@ -43,6 +45,11 @@ export type PrintRequestRecord = {
   resinTypeLabel: string;
   resinColorId: string;
   resinColorLabel: string;
+  sizingMode?: PrintRequestSizingMode | null;
+  /** Target finished height in mm when sizingMode is absolute. */
+  desiredSizeMm?: number | null;
+  /** Uniform scale percent when sizingMode is scale (e.g. 125 = 125%). */
+  desiredScalePercent?: number | null;
   customerNotes?: string | null;
   adminNotes?: string | null;
   figureLines?: PrintFigureLine[] | null;
@@ -52,6 +59,68 @@ export type PrintRequestRecord = {
   createdAt?: string | null;
   updatedAt?: string | null;
 };
+
+/** Printer build volume limit shown on the print form (mm). */
+export const PRINT_BUILD_VOLUME_MM = {
+  x: 218.88,
+  y: 122.88,
+  z: 220,
+} as const;
+
+export function formatDesiredSizeMm(
+  value: number | null | undefined,
+): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded} mm`;
+}
+
+export function formatDesiredScalePercent(
+  value: number | null | undefined,
+): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded}%`;
+}
+
+/** Admin/customer display: `65 mm`, `125%`, or null when unset. */
+export function formatPrintRequestSizing(
+  row: Pick<
+    PrintRequestRecord,
+    "sizingMode" | "desiredSizeMm" | "desiredScalePercent"
+  >,
+): string | null {
+  if (row.sizingMode === "scale") {
+    return formatDesiredScalePercent(row.desiredScalePercent);
+  }
+  if (row.sizingMode === "absolute") {
+    return formatDesiredSizeMm(row.desiredSizeMm);
+  }
+  return (
+    formatDesiredScalePercent(row.desiredScalePercent) ??
+    formatDesiredSizeMm(row.desiredSizeMm)
+  );
+}
+
+export function printRequestSizingKindLabel(
+  row: Pick<
+    PrintRequestRecord,
+    "sizingMode" | "desiredSizeMm" | "desiredScalePercent"
+  >,
+): "Finished size" | "Scale" | null {
+  if (row.sizingMode === "scale") return "Scale";
+  if (row.sizingMode === "absolute") return "Finished size";
+  if (
+    row.desiredScalePercent != null &&
+    Number.isFinite(row.desiredScalePercent)
+  ) {
+    return "Scale";
+  }
+  if (row.desiredSizeMm != null && Number.isFinite(row.desiredSizeMm)) {
+    return "Finished size";
+  }
+  return null;
+}
 
 export function printRequestStatusLabel(status: PrintRequestStatus): string {
   switch (status) {

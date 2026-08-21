@@ -7,6 +7,7 @@ import {
 import { hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintFigureLinesSummary,
+  formatPrintRequestSizing,
   printRequestStatusLabel,
   type PrintRequestRecord,
 } from "@/lib/printRequest";
@@ -95,7 +96,9 @@ export function AccountPrintRequestsPage() {
       )}
 
       <ul className="mt-4 space-y-3">
-        {rows.map((row) => (
+        {rows.map((row) => {
+          const sizeLabel = formatPrintRequestSizing(row);
+          return (
           <li key={row.id}>
             <Link
               to={`/account/print-requests/${row.id}`}
@@ -111,6 +114,7 @@ export function AccountPrintRequestsPage() {
               </div>
               <p className="mt-1 text-body-sm text-on-surface-variant">
                 {row.resinTypeLabel} · {row.resinColorLabel}
+                {sizeLabel ? ` · ${sizeLabel}` : ""}
                 {row.figureLines?.length
                   ? ` · ${formatPrintFigureLinesSummary(row.figureLines)}`
                   : ""}
@@ -120,7 +124,8 @@ export function AccountPrintRequestsPage() {
               </p>
             </Link>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </main>
   );

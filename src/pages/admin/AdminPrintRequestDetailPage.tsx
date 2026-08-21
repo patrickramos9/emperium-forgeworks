@@ -10,6 +10,8 @@ import {
 import {
   buildQuotedFigureLines,
   formatPrintFigureLinesSummary,
+  formatPrintRequestSizing,
+  printRequestSizingKindLabel,
   printRequestStatusLabel,
   printRequestSubmitterKind,
   printRequestSubmitterLabel,
@@ -193,6 +195,8 @@ export function AdminPrintRequestDetailPage() {
     row.status === "in_review" ||
     row.status === "quoted";
   const submitterKind = printRequestSubmitterKind(row);
+  const sizingLabel = formatPrintRequestSizing(row);
+  const sizingKind = printRequestSizingKindLabel(row);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -247,6 +251,14 @@ export function AdminPrintRequestDetailPage() {
             {row.resinTypeLabel} · {row.resinColorLabel}
           </dd>
         </div>
+        {sizingLabel && sizingKind && (
+          <div>
+            <dt className="font-label-sm uppercase text-on-surface-variant">
+              {sizingKind}
+            </dt>
+            <dd>{sizingLabel}</dd>
+          </div>
+        )}
         {row.customerNotes && (
           <div>
             <dt className="font-label-sm uppercase text-on-surface-variant">

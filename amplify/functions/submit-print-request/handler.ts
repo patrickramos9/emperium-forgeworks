@@ -26,6 +26,9 @@ type AppSyncEvent = {
     originalFileName?: string;
     resinTypeId?: string;
     resinColorId?: string;
+    sizingMode?: "absolute" | "scale" | null;
+    desiredSizeMm?: number | null;
+    desiredScalePercent?: number | null;
     customerNotes?: string | null;
     guestId?: string | null;
     guestToken?: string | null;
@@ -33,6 +36,86 @@ type AppSyncEvent = {
     printRequestId?: string | null;
   };
 };
+
+const MIN_DESIRED_SIZE_MM = 1;
+const MAX_DESIRED_SIZE_MM = 500;
+const MIN_SCALE_PERCENT = 1;
+
+type NormalizedSizing =
+  | { sizingMode?: undefined; desiredSizeMm?: undefined; desiredScalePercent?: undefined }
+  | { sizingMode: "absolute"; desiredSizeMm: number; desiredScalePercent?: undefined }
+  | { sizingMode: "scale"; desiredScalePercent: number; desiredSizeMm?: undefined };
+
+function normalizeDesiredSizeMm(raw: number | null | undefined): number {
+  const value = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(value)) {
+    throw new Error("Enter a finished size in millimeters.");
+  }
+  const rounded = Math.round(value * 10) / 10;
+  if (rounded < MIN_DESIRED_SIZE_MM || rounded > MAX_DESIRED_SIZE_MM) {
+    throw new Error(
+      `Finished size must be between ${MIN_DESIRED_SIZE_MM} and ${MAX_DESIRED_SIZE_MM} mm.`,
+    );
+  }
+  return rounded;
+}
+
+function normalizeDesiredScalePercent(raw: number | null | undefined): number {
+  const value = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(value)) {
+    throw new Error("Enter a scale percentage (for example 125 for 125%).");
+  }
+  const rounded = Math.round(value * 10) / 10;
+  if (rounded < MIN_SCALE_PERCENT) {
+    throw new Error(`Scale must be at least ${MIN_SCALE_PERCENT}%.`);
+  }
+  return rounded;
+}
+
+function normalizeSizing(args: {
+  sizingMode?: "absolute" | "scale" | null;
+  desiredSizeMm?: number | null;
+  desiredScalePercent?: number | null;
+}): NormalizedSizing {
+  const mode = args.sizingMode ?? null;
+  const hasSize =
+    args.desiredSizeMm != null &&
+    Number.isFinite(Number(args.desiredSizeMm));
+  const hasScale =
+    args.desiredScalePercent != null &&
+    Number.isFinite(Number(args.desiredScalePercent));
+
+  if (!mode) {
+    if (hasSize || hasScale) {
+      throw new Error("Choose finished size or scale, not a value alone.");
+    }
+    return {};
+  }
+
+  if (mode === "absolute") {
+    if (hasScale) {
+      throw new Error("Choose either finished size or scale, not both.");
+    }
+    return {
+      sizingMode: "absolute",
+      desiredSizeMm: normalizeDesiredSizeMm(args.desiredSizeMm),
+    };
+  }
+
+  if (mode === "scale") {
+    if (hasSize) {
+      throw new Error("Choose either finished size or scale, not both.");
+    }
+    return {
+      sizingMode: "scale",
+      desiredScalePercent: normalizeDesiredScalePercent(
+        args.desiredScalePercent,
+      ),
+    };
+  }
+
+  throw new Error("Invalid sizing option.");
+}
 
 function resolveFieldName(event: AppSyncEvent): string {
   return event.fieldName ?? event.info?.fieldName ?? "";
@@ -68,6 +151,9 @@ function toGuestItem(row: Schema["PrintRequest"]["type"]) {
     resinTypeLabel: row.resinTypeLabel,
     resinColorId: row.resinColorId,
     resinColorLabel: row.resinColorLabel,
+    sizingMode: row.sizingMode ?? undefined,
+    desiredSizeMm: row.desiredSizeMm ?? undefined,
+    desiredScalePercent: row.desiredScalePercent ?? undefined,
     customerNotes: row.customerNotes ?? undefined,
     adminNotes: row.adminNotes ?? undefined,
     figureLines: row.figureLines ?? undefined,
@@ -135,6 +221,11 @@ async function handleSubmit(event: AppSyncEvent) {
   const originalFileName = event.arguments.originalFileName?.trim() ?? "";
   const resinTypeId = event.arguments.resinTypeId?.trim() ?? "";
   const resinColorId = event.arguments.resinColorId?.trim() ?? "";
+  const sizing = normalizeSizing({
+    sizingMode: event.arguments.sizingMode,
+    desiredSizeMm: event.arguments.desiredSizeMm,
+    desiredScalePercent: event.arguments.desiredScalePercent,
+  });
   const customerNotes = event.arguments.customerNotes?.trim() || undefined;
 
   if (!uploadId || !storagePath || !originalFileName) {
@@ -183,6 +274,13 @@ async function handleSubmit(event: AppSyncEvent) {
     resinTypeLabel: resinType.label,
     resinColorId: resinColor.id,
     resinColorLabel: resinColor.label,
+    ...(sizing.sizingMode ? { sizingMode: sizing.sizingMode } : {}),
+    ...(sizing.desiredSizeMm != null
+      ? { desiredSizeMm: sizing.desiredSizeMm }
+      : {}),
+    ...(sizing.desiredScalePercent != null
+      ? { desiredScalePercent: sizing.desiredScalePercent }
+      : {}),
     ...(customerNotes ? { customerNotes } : {}),
   });
 

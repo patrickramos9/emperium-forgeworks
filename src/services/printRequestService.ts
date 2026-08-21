@@ -22,6 +22,9 @@ function mapPrintRequest(
     resinTypeLabel?: string | null;
     resinColorId?: string | null;
     resinColorLabel?: string | null;
+    sizingMode?: string | null;
+    desiredSizeMm?: number | null;
+    desiredScalePercent?: number | null;
     customerNotes?: string | null;
     adminNotes?: string | null;
     figureLines?: unknown;
@@ -48,6 +51,11 @@ function mapPrintRequest(
     return null;
   }
 
+  const sizingMode =
+    row.sizingMode === "absolute" || row.sizingMode === "scale"
+      ? row.sizingMode
+      : null;
+
   return {
     id: row.id,
     userId: row.userId,
@@ -61,6 +69,16 @@ function mapPrintRequest(
     resinTypeLabel: row.resinTypeLabel,
     resinColorId: row.resinColorId,
     resinColorLabel: row.resinColorLabel,
+    sizingMode,
+    desiredSizeMm:
+      typeof row.desiredSizeMm === "number" && Number.isFinite(row.desiredSizeMm)
+        ? row.desiredSizeMm
+        : null,
+    desiredScalePercent:
+      typeof row.desiredScalePercent === "number" &&
+      Number.isFinite(row.desiredScalePercent)
+        ? row.desiredScalePercent
+        : null,
     customerNotes: row.customerNotes,
     adminNotes: row.adminNotes,
     figureLines: parsePrintFigureLines(row.figureLines),
@@ -80,6 +98,9 @@ export async function submitPrintRequest(
     originalFileName: string;
     resinTypeId: string;
     resinColorId: string;
+    sizingMode?: "absolute" | "scale";
+    desiredSizeMm?: number;
+    desiredScalePercent?: number;
     customerNotes?: string;
     email?: string;
     asGuest?: boolean;
@@ -97,6 +118,9 @@ export async function submitPrintRequest(
     originalFileName: string;
     resinTypeId: string;
     resinColorId: string;
+    sizingMode?: "absolute" | "scale";
+    desiredSizeMm?: number;
+    desiredScalePercent?: number;
     customerNotes?: string;
     guestId?: string;
     guestToken?: string;
@@ -107,6 +131,13 @@ export async function submitPrintRequest(
     originalFileName: input.originalFileName,
     resinTypeId: input.resinTypeId,
     resinColorId: input.resinColorId,
+    ...(input.sizingMode ? { sizingMode: input.sizingMode } : {}),
+    ...(input.desiredSizeMm != null
+      ? { desiredSizeMm: input.desiredSizeMm }
+      : {}),
+    ...(input.desiredScalePercent != null
+      ? { desiredScalePercent: input.desiredScalePercent }
+      : {}),
     ...(input.customerNotes?.trim()
       ? { customerNotes: input.customerNotes.trim() }
       : {}),

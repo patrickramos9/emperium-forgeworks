@@ -4,6 +4,7 @@ import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
 import {
   formatPrintFigureLinesSummary,
+  formatPrintRequestSizing,
   printRequestStatusLabel,
   printRequestSubmitterKind,
   printRequestSubmitterLabel,
@@ -84,6 +85,7 @@ export function AdminPrintRequestsPage() {
             row,
             row.userId ? customerLabels.get(row.userId) : null,
           );
+          const sizeLabel = formatPrintRequestSizing(row);
           const from = kind === "guest" ? `Guest · ${submitter}` : submitter;
           return (
             <li key={row.id}>
@@ -97,6 +99,7 @@ export function AdminPrintRequestsPage() {
                   </span>
                   <span className="ml-2 text-body-sm text-on-surface-variant">
                     {from}
+                    {sizeLabel ? ` · ${sizeLabel}` : ""}
                     {" · "}
                     {row.resinTypeLabel} · {row.resinColorLabel}
                     {row.figureLines?.length

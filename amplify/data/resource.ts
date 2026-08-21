@@ -324,6 +324,12 @@ const schema = a.schema({
     resinTypeLabel: a.string().required(),
     resinColorId: a.string().required(),
     resinColorLabel: a.string().required(),
+    /** `absolute` (mm) or `scale` (%); omit when customer left sizing blank. */
+    sizingMode: a.enum(["absolute", "scale"]),
+    /** Target finished height in millimeters when sizingMode is absolute. */
+    desiredSizeMm: a.float(),
+    /** Uniform scale percent when sizingMode is scale (e.g. 125 = 125%). */
+    desiredScalePercent: a.float(),
     customerNotes: a.string(),
     adminNotes: a.string(),
     figureLines: a.json(),
@@ -652,6 +658,15 @@ const schema = a.schema({
       originalFileName: a.string().required(),
       resinTypeId: a.string().required(),
       resinColorId: a.string().required(),
+      /**
+       * Optional either/or sizing:
+       * - absolute + desiredSizeMm
+       * - scale + desiredScalePercent
+       * Omit both when leaving sizing blank.
+       */
+      sizingMode: a.enum(["absolute", "scale"]),
+      desiredSizeMm: a.float(),
+      desiredScalePercent: a.float(),
       customerNotes: a.string(),
       /** M6e — guest path (with guestToken + email). Ignored when Cognito `sub` is present. */
       guestId: a.string(),
@@ -1238,6 +1253,12 @@ const schema = a.schema({
       resinTypeLabel: a.string().required(),
       resinColorId: a.string().required(),
       resinColorLabel: a.string().required(),
+      /** `absolute` (mm) or `scale` (%); omit when customer left sizing blank. */
+      sizingMode: a.enum(["absolute", "scale"]),
+      /** Target finished height in millimeters when sizingMode is absolute. */
+      desiredSizeMm: a.float(),
+      /** Uniform scale percent when sizingMode is scale (e.g. 125 = 125%). */
+      desiredScalePercent: a.float(),
       customerNotes: a.string(),
       adminNotes: a.string(),
       /** JSON PrintFigureLine[] */

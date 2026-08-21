@@ -8,6 +8,8 @@ import {
 import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintFigureLinesSummary,
+  formatPrintRequestSizing,
+  printRequestSizingKindLabel,
   printRequestStatusLabel,
   type PrintRequestRecord,
 } from "@/lib/printRequest";
@@ -111,6 +113,9 @@ export function AccountPrintRequestDetailPage() {
 
   if (!row) return null;
 
+  const finishedSize = formatPrintRequestSizing(row);
+  const sizingKind = printRequestSizingKindLabel(row);
+
   return (
     <main className="mx-auto max-w-container-max min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
       <Link
@@ -149,6 +154,14 @@ export function AccountPrintRequestDetailPage() {
             {row.resinTypeLabel} · {row.resinColorLabel}
           </dd>
         </div>
+        {finishedSize && sizingKind && (
+          <div>
+            <dt className="font-label-sm uppercase text-on-surface-variant">
+              {sizingKind}
+            </dt>
+            <dd className="text-on-surface">{finishedSize}</dd>
+          </div>
+        )}
         {row.customerNotes && (
           <div>
             <dt className="font-label-sm uppercase text-on-surface-variant">

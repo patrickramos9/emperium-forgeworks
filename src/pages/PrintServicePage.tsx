@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FieldLabel } from "@/components/FieldTooltip";
 import { PageFeedback } from "@/components/PageFeedback";
 import { ResinColorSwatches } from "@/components/ResinColorSwatches";
 import { formatPrice } from "@/data/seedProducts";
@@ -22,19 +23,47 @@ import {
   newPrintUploadId,
   uploadPrintServiceStl,
 } from "@/lib/printServiceUpload";
+import {
+  PRINT_BUILD_VOLUME_MM,
+  type PrintRequestSizingMode,
+} from "@/lib/printRequest";
 import { fetchPrintServiceConfig } from "@/services/printServiceConfigService";
 import { submitPrintRequest } from "@/services/printRequestService";
 import { ensureGuestSession } from "@/services/guestSessionService";
 import { useToast } from "@/context/ToastContext";
 
+const MIN_FINISHED_SIZE_MM = 1;
+const MAX_FINISHED_SIZE_MM = 500;
+const MIN_SCALE_PERCENT = 1;
+
+type SizingChoice = "" | PrintRequestSizingMode;
+
+const FIELD_TOOLTIPS = {
+  resinType:
+    "Material blend for the print. Stronger or specialty resins may add a small per-figure surcharge shown in sample pricing.",
+  resinColor:
+    "Pigment of the cured resin. Color availability can depend on the resin type you selected.",
+  sizing:
+    "Optional. Choose a finished size in mm or a uniform scale percent for every figure in the file. For a mix of sizes, leave this blank or pick one default and explain the rest in notes.",
+  finishedSize:
+    "Target height of the finished print in millimeters (for example 32). Applies to all figures unless you specify otherwise in notes.",
+  scale:
+    "Uniform scale for every figure in the file (for example 125 means 125% / 1.25×). Handy when upsizing a whole set of minis. For mixed sizes, add details in notes.",
+  contactEmail:
+    "We’ll use this address for quote updates on this device. Sign in anytime to keep requests across devices.",
+  notes:
+    "Optional details—mixed sizes, multiple figures, preferred orientation, hollow vs solid, or anything that helps us quote accurately.",
+  file: `Upload a single ${PRINT_SERVICE_FILE_HINT} of your model. We’ll inspect it before sending a quote.`,
+} as const;
+
 const PRINT_PROCESS_STEPS = [
   {
     title: "Upload your file",
-    body: `Accept the print policy, choose resin type and color, and upload your ${PRINT_SERVICE_FILE_HINT}. Guests leave a contact email; accounts use the signed-in profile.`,
+    body: `Accept the print policy, choose resin type and color, optionally set finished size or scale, and upload your ${PRINT_SERVICE_FILE_HINT}. Guests leave a contact email; accounts use the signed-in profile.`,
   },
   {
     title: "We review & size",
-    body: "We inspect the model, count each figure, and assign size tiers. Complex supports, hollows, or multi-part files may affect the quote.",
+    body: "We inspect the model, count each figure, and assign size tiers using your size or scale request when provided. Complex supports, hollows, or multi-part files may affect the quote.",
   },
   {
     title: "Receive a quote",
@@ -192,6 +221,9 @@ export function PrintServicePage() {
   const [policyAccepted, setPolicyAccepted] = useState(false);
   const [resinTypeId, setResinTypeId] = useState("");
   const [resinColorId, setResinColorId] = useState("");
+  const [sizingChoice, setSizingChoice] = useState<SizingChoice>("");
+  const [desiredSizeMm, setDesiredSizeMm] = useState("");
+  const [desiredScalePercent, setDesiredScalePercent] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -262,6 +294,48 @@ export function PrintServicePage() {
       setError("Enter a contact email so we can reach you about your quote.");
       return;
     }
+
+    let sizingPayload: {
+      sizingMode?: PrintRequestSizingMode;
+      desiredSizeMm?: number;
+      desiredScalePercent?: number;
+    } = {};
+
+    if (sizingChoice === "absolute") {
+      const sizeValue = Number(desiredSizeMm);
+      if (
+        !desiredSizeMm.trim() ||
+        !Number.isFinite(sizeValue) ||
+        sizeValue < MIN_FINISHED_SIZE_MM ||
+        sizeValue > MAX_FINISHED_SIZE_MM
+      ) {
+        setError(
+          `Enter a finished size between ${MIN_FINISHED_SIZE_MM} and ${MAX_FINISHED_SIZE_MM} mm.`,
+        );
+        return;
+      }
+      sizingPayload = {
+        sizingMode: "absolute",
+        desiredSizeMm: Math.round(sizeValue * 10) / 10,
+      };
+    } else if (sizingChoice === "scale") {
+      const scaleValue = Number(desiredScalePercent);
+      if (
+        !desiredScalePercent.trim() ||
+        !Number.isFinite(scaleValue) ||
+        scaleValue < MIN_SCALE_PERCENT
+      ) {
+        setError(
+          `Enter a scale of at least ${MIN_SCALE_PERCENT}% (for example 125 for 125%).`,
+        );
+        return;
+      }
+      sizingPayload = {
+        sizingMode: "scale",
+        desiredScalePercent: Math.round(scaleValue * 10) / 10,
+      };
+    }
+
     if (!file) {
       setError(`Upload a ${PRINT_SERVICE_FILE_HINT} file.`);
       return;
@@ -300,6 +374,7 @@ export function PrintServicePage() {
           originalFileName: file.name,
           resinTypeId: resinType.id,
           resinColorId: resinColor.id,
+          ...sizingPayload,
           customerNotes: customerNotes.trim() || undefined,
         });
         showToast({
@@ -323,6 +398,7 @@ export function PrintServicePage() {
           originalFileName: file.name,
           resinTypeId: resinType.id,
           resinColorId: resinColor.id,
+          ...sizingPayload,
           customerNotes: customerNotes.trim() || undefined,
           email: guestEmail.trim(),
           asGuest: true,
@@ -453,11 +529,12 @@ export function PrintServicePage() {
             Submit your file
           </h2>
 
-          <label className="mt-4 block">
-            <span className="font-label-sm uppercase text-on-surface-variant">
+          <div className="mt-4">
+            <FieldLabel tooltip={FIELD_TOOLTIPS.resinType} htmlFor="print-resin-type">
               Resin type
-            </span>
+            </FieldLabel>
             <select
+              id="print-resin-type"
               value={resinTypeId}
               onChange={(e) => setResinTypeId(e.target.value)}
               className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
@@ -468,12 +545,10 @@ export function PrintServicePage() {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
           <div className="mt-4">
-            <span className="font-label-sm uppercase text-on-surface-variant">
-              Resin color
-            </span>
+            <FieldLabel tooltip={FIELD_TOOLTIPS.resinColor}>Resin color</FieldLabel>
             <div className="mt-2">
               <ResinColorSwatches
                 colors={availableColors}
@@ -483,12 +558,121 @@ export function PrintServicePage() {
             </div>
           </div>
 
+          <div className="mt-4">
+            <FieldLabel tooltip={FIELD_TOOLTIPS.sizing}>
+              Sizing (optional)
+            </FieldLabel>
+            <div className="mt-2 space-y-2 text-body-sm text-on-surface">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="print-sizing-mode"
+                  checked={sizingChoice === ""}
+                  onChange={() => {
+                    setSizingChoice("");
+                    setDesiredSizeMm("");
+                    setDesiredScalePercent("");
+                  }}
+                />
+                None — size from the file / notes
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="print-sizing-mode"
+                  checked={sizingChoice === "absolute"}
+                  onChange={() => {
+                    setSizingChoice("absolute");
+                    setDesiredScalePercent("");
+                  }}
+                />
+                Finished size (mm)
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="print-sizing-mode"
+                  checked={sizingChoice === "scale"}
+                  onChange={() => {
+                    setSizingChoice("scale");
+                    setDesiredSizeMm("");
+                  }}
+                />
+                Scale (%)
+              </label>
+            </div>
+
+            {sizingChoice === "absolute" && (
+              <div className="mt-3">
+                <FieldLabel
+                  tooltip={FIELD_TOOLTIPS.finishedSize}
+                  htmlFor="print-finished-size"
+                >
+                  Finished size (mm)
+                </FieldLabel>
+                <input
+                  id="print-finished-size"
+                  type="number"
+                  inputMode="decimal"
+                  min={MIN_FINISHED_SIZE_MM}
+                  max={MAX_FINISHED_SIZE_MM}
+                  step={0.1}
+                  required
+                  value={desiredSizeMm}
+                  onChange={(e) => setDesiredSizeMm(e.target.value)}
+                  placeholder="e.g. 32"
+                  className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
+                />
+                <p className="mt-2 text-body-sm text-on-surface-variant">
+                  Applies to all figures in the file unless you say otherwise in
+                  notes.
+                </p>
+              </div>
+            )}
+
+            {sizingChoice === "scale" && (
+              <div className="mt-3">
+                <FieldLabel
+                  tooltip={FIELD_TOOLTIPS.scale}
+                  htmlFor="print-scale-percent"
+                >
+                  Scale (%)
+                </FieldLabel>
+                <input
+                  id="print-scale-percent"
+                  type="number"
+                  inputMode="decimal"
+                  min={MIN_SCALE_PERCENT}
+                  step={0.1}
+                  required
+                  value={desiredScalePercent}
+                  onChange={(e) => setDesiredScalePercent(e.target.value)}
+                  placeholder="e.g. 125"
+                  className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
+                />
+                <p className="mt-2 text-body-sm text-on-surface-variant">
+                  Uniform scale for all figures (125 = 125%). Use notes for mixed
+                  sizes.
+                </p>
+              </div>
+            )}
+
+            <p className="mt-3 text-body-sm text-on-surface-variant">
+              Max build volume: X {PRINT_BUILD_VOLUME_MM.x} mm · Y{" "}
+              {PRINT_BUILD_VOLUME_MM.y} mm · Z {PRINT_BUILD_VOLUME_MM.z} mm
+            </p>
+          </div>
+
           {!signedIn && (
-            <label className="mt-4 block">
-              <span className="font-label-sm uppercase text-on-surface-variant">
+            <div className="mt-4">
+              <FieldLabel
+                tooltip={FIELD_TOOLTIPS.contactEmail}
+                htmlFor="print-guest-email"
+              >
                 Contact email
-              </span>
+              </FieldLabel>
               <input
+                id="print-guest-email"
                 type="email"
                 required
                 autoComplete="email"
@@ -497,34 +681,36 @@ export function PrintServicePage() {
                 placeholder="you@example.com"
                 className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
               />
-            </label>
+            </div>
           )}
 
-          <label className="mt-4 block">
-            <span className="font-label-sm uppercase text-on-surface-variant">
+          <div className="mt-4">
+            <FieldLabel tooltip={FIELD_TOOLTIPS.notes} htmlFor="print-notes">
               Notes (optional)
-            </span>
+            </FieldLabel>
             <textarea
+              id="print-notes"
               rows={3}
               value={customerNotes}
               onChange={(e) => setCustomerNotes(e.target.value)}
               placeholder="e.g. 3 heroes + 1 monster, preferred scale notes"
               className="mt-1 w-full border border-outline-variant/30 bg-surface px-3 py-2"
             />
-          </label>
+          </div>
 
-          <label className="mt-4 block">
-            <span className="font-label-sm uppercase text-on-surface-variant">
+          <div className="mt-4">
+            <FieldLabel tooltip={FIELD_TOOLTIPS.file} htmlFor="print-file">
               File ({PRINT_SERVICE_FILE_HINT}, max{" "}
               {formatPrintServiceMaxFileSize(config.maxFileBytes)})
-            </span>
+            </FieldLabel>
             <input
+              id="print-file"
               type="file"
               accept={PRINT_SERVICE_FILE_ACCEPT}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="mt-1 w-full text-body-sm"
             />
-          </label>
+          </div>
 
           {error && <p className="mt-4 text-error">{error}</p>}
 
