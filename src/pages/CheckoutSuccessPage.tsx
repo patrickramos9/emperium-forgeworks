@@ -2,7 +2,55 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { useEffect, useState } from "react";
 import { hasCustomerSession } from "@/lib/customerAuth";
+import {
+  getCustomerDataClient,
+  getGuestDataClient,
+} from "@/lib/amplifyDataClient";
 import { trackMetaPurchaseOnce } from "@/lib/metaPixel";
+import {
+  listCustomerOrders,
+  listGuestOrders,
+  type OrderRecord,
+} from "@/services/orderService";
+import { ensureGuestSession } from "@/services/guestSessionService";
+
+const ORDER_LOOKUP_ATTEMPTS = 6;
+const ORDER_LOOKUP_DELAY_MS = 2_000;
+
+function waitForOrderLookup(): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ORDER_LOOKUP_DELAY_MS);
+  });
+}
+
+async function findPaidOrder(sessionRef: string): Promise<OrderRecord | null> {
+  for (let attempt = 0; attempt < ORDER_LOOKUP_ATTEMPTS; attempt += 1) {
+    const signedIn = await hasCustomerSession();
+    let orders: OrderRecord[];
+
+    if (signedIn) {
+      const client = await getCustomerDataClient();
+      if (!client) return null;
+      orders = await listCustomerOrders(client);
+    } else {
+      await ensureGuestSession();
+      const client = await getGuestDataClient();
+      if (!client) return null;
+      orders = await listGuestOrders(client);
+    }
+
+    const order = orders.find(
+      (candidate) => candidate.externalSessionId === sessionRef,
+    );
+    if (order?.status === "paid") return order;
+
+    if (attempt < ORDER_LOOKUP_ATTEMPTS - 1) {
+      await waitForOrderLookup();
+    }
+  }
+
+  return null;
+}
 
 export function CheckoutSuccessPage() {
   const [params] = useSearchParams();
@@ -16,7 +64,14 @@ export function CheckoutSuccessPage() {
   }, [clearCart]);
 
   useEffect(() => {
-    trackMetaPurchaseOnce(sessionRef);
+    if (!sessionRef) return;
+    void findPaidOrder(sessionRef)
+      .then((order) => {
+        if (order) trackMetaPurchaseOnce(order);
+      })
+      .catch(() => {
+        /* Purchase tracking is best-effort and must not block the thank-you page. */
+      });
   }, [sessionRef]);
 
   useEffect(() => {

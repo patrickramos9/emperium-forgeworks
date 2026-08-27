@@ -43,6 +43,27 @@ type PixelCartLine = {
   printService?: { uploadId?: string; storagePath?: string } | null;
 };
 
+type MetaPixelOrderLine = {
+  slug?: string | null;
+  title?: string | null;
+  quantity?: number | null;
+  priceCents?: number | null;
+  vaultOnly?: boolean | null;
+  variantLabel?: string | null;
+  printService?: {
+    uploadId?: string | null;
+    storagePath?: string | null;
+  } | null;
+  printServiceJson?: string | null;
+};
+
+export type MetaPixelPaidOrder = {
+  status?: string | null;
+  externalSessionId?: string | null;
+  totalCents?: number | null;
+  lineItems?: unknown;
+};
+
 function catalogLines(lines: PixelCartLine[]): PixelCartLine[] {
   return lines.filter((line) => {
     if (!isCatalogTrackedSlug(line.slug, line.vaultOnly)) return false;
@@ -77,11 +98,82 @@ export function catalogParamsFromCartLines(
   };
 }
 
-function track(event: string, params?: Record<string, unknown>) {
+function track(event: string, params?: Record<string, unknown>): boolean {
   const fbq = getFbq();
-  if (!fbq) return;
+  if (!fbq) return false;
   if (params) fbq("track", event, params);
   else fbq("track", event);
+  return true;
+}
+
+function parseOrderLines(raw: unknown): MetaPixelOrderLine[] {
+  if (!raw) return [];
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => {
+      const line = { ...(item as MetaPixelOrderLine) };
+      if (!line.printService && line.printServiceJson) {
+        try {
+          line.printService = JSON.parse(line.printServiceJson);
+        } catch {
+          /* Ignore malformed optional print metadata. */
+        }
+      }
+      return line;
+    });
+  } catch {
+    return [];
+  }
+}
+
+function purchaseParamsFromOrder(
+  order: MetaPixelPaidOrder,
+): MetaPixelCatalogParams | null {
+  const lines = parseOrderLines(order.lineItems).filter((line) => {
+    const slug = line.slug?.trim();
+    const quantity = Number(line.quantity);
+    const priceCents = Number(line.priceCents);
+    const isPrint = Boolean(
+      line.printService?.uploadId && line.printService?.storagePath,
+    );
+    return (
+      Boolean(slug) &&
+      Number.isFinite(quantity) &&
+      quantity > 0 &&
+      Number.isFinite(priceCents) &&
+      priceCents >= 0 &&
+      (!line.vaultOnly || isPrint)
+    );
+  });
+  const contents = lines.map((line) => ({
+    id: line.slug!.trim(),
+    quantity: Math.floor(Number(line.quantity)),
+    item_price: centsToDollars(Number(line.priceCents)),
+  }));
+  const totalCents = Number(order.totalCents);
+
+  if (!contents.length || !Number.isFinite(totalCents) || totalCents < 0) {
+    return null;
+  }
+
+  const names = lines
+    .map((line) => {
+      const title = line.title?.trim();
+      const variant = line.variantLabel?.trim();
+      return title && variant ? `${title} (${variant})` : title;
+    })
+    .filter((name): name is string => Boolean(name));
+
+  return {
+    content_ids: [...new Set(contents.map((row) => row.id))],
+    content_type: "product",
+    contents,
+    value: centsToDollars(totalCents),
+    currency: "USD",
+    num_items: contents.reduce((sum, row) => sum + row.quantity, 0),
+    ...(names.length ? { content_name: names.join(", ") } : {}),
+  };
 }
 
 /** PageView after product microdata is in the DOM (pixel-based catalog ingest). */
@@ -162,21 +254,19 @@ export function trackMetaInitiateCheckout(lines: PixelCartLine[]) {
   if (params) track("InitiateCheckout", params);
 }
 
-export function trackMetaPurchaseOnce(orderRef: string | null) {
+export function trackMetaPurchaseOnce(order: MetaPixelPaidOrder) {
   if (typeof sessionStorage === "undefined") return;
+  if (order.status !== "paid") return;
 
-  const sentKey = `${PURCHASE_SENT_PREFIX}${orderRef?.trim() || "unknown"}`;
+  const orderRef = order.externalSessionId?.trim();
+  if (!orderRef) return;
+  const sentKey = `${PURCHASE_SENT_PREFIX}${orderRef}`;
   if (sessionStorage.getItem(sentKey)) return;
 
-  const paramsRaw = sessionStorage.getItem(CHECKOUT_SNAPSHOT_KEY);
-  if (!paramsRaw) return;
+  const params = purchaseParamsFromOrder(order);
+  if (!params) return;
+  if (!track("Purchase", params)) return;
 
-  try {
-    const params = JSON.parse(paramsRaw) as MetaPixelCatalogParams;
-    sessionStorage.setItem(sentKey, "1");
-    sessionStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
-    track("Purchase", params);
-  } catch {
-    /* Leave the snapshot so a retry can still send Purchase. */
-  }
+  sessionStorage.setItem(sentKey, "1");
+  sessionStorage.removeItem(CHECKOUT_SNAPSHOT_KEY);
 }
