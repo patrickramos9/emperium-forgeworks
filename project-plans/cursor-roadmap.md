@@ -20,16 +20,16 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-13
+**Last updated:** 2026-08-28
 
 | Item | State |
 |------|--------|
 | **Phase** | **M23d–f** (FAQ / contact hours / socials / reviews seed) |
 | **Next** | **M23d–f** → **M19** → **M18** → **M8a.3** … |
 | **Then** | **M19** → **M18** → **M8a.3** → M12 → **M13b** … |
-| **Blocked** | _(none)_ · Fulfillment **email** still unreliable (SES/AWS); in-app notifications are the working path |
-| **Recently verified** | **M10** message inbox (2026-08-13) · **M16e** guest pre-ship cancel (2026-08-12) · **M23c Gallery** (2026-08-11) · **M6e** (2026-08-09) · **M21c** · **M13a** · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M23c mobile nav** · **M10** message inbox · **M16e** · **M23c** Newsletter hidden · **M23a/b trust** · **M6f** idle cart TTL · Merchant transparency · **M21c** · **M13a** |
+| **Blocked** | _(none)_ · Transactional email → **Resend** (M20a); set `RESEND_API_KEY` + verify domain |
+| **Recently verified** | **M21c polish + Meta Purchase** (2026-08-28) · **M10** message inbox (2026-08-13) · **M16e** guest pre-ship cancel (2026-08-12) · **M23c Gallery** (2026-08-11) · **M6e** (2026-08-09) · **M21c** · **M13a** · **M22** · **M16** · **M11** |
+| **Recently shipped (repo)** | **M20a** Resend email (`orders@` / `melissa@`) · **M21c polish** · **Meta Pixel** · **M23c mobile nav** · **M10** · **M16e** · **M23a/b trust** · **M21c** |
 | **In progress** | _(none)_ |
 | **Deferred (feature)** | **Newsletter subscribe** — home form removed; implement under **M13b** (provider or `NewsletterSubscriber`) then restore UI |
 | **In test** | **M6f** — Idle cart TTL cleanup (Admin → Settings; daily job + Run now) |
@@ -41,7 +41,7 @@ Cursor should treat this file as the **source of truth** for:
 **Recommended build order (living):**  
 … → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M10** message inbox (**production verified** 2026-08-13) → **M23c mobile nav** (**shipped** 2026-08-13) → **M23d–f** → **M19** → **M18** → **M8a.3** → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
-**Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20** (cloud portability — §4).
+**Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20b–d** (cloud portability remainder — §4; **M20a** Resend email shipped).
 
 When a milestone ships, update this table and the **Shipped** list in §3 below.
 
@@ -186,6 +186,8 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M21b** — Print file review (post-pay) — **shipped** (repo 2026-07): `reviewStatus` on print lines; admin approve/reject; reject → refund; block **Processing** until approved; customer banners + in-app notifications. **Superseded for pricing** by **M21c** (keep review UX patterns).
 - **M21c** — Print quote-first (multi-figure) — **production verified** (2026-08-01): upload → admin review/tiers → quote → pay → fulfill; pay-first cart path disabled; admin print-request badge; notification deep links
 - **M21c UX polish** — `/print` how-it-works steps + sample price table from live `PrintServiceConfig.sizeTiers` (and resin deltas) — **shipped** (repo 2026-08-02)
+- **M21c admin/customer polish** — **production verified** (2026-08-28): admin shows submitter email/name; optional finished size **or** scale % on submit (build-volume note + field tooltips); admin quote lines support editable unit price ($)
+- **Meta Pixel (M13b partial)** — Pixel ID `1442658717707319`; catalog events + **Purchase from paid `Order`** (final `totalCents`, line contents including print quotes; wait for webhook) — **production verified** (2026-08-28)
 - **M22** — Stripe Tax — **production verified** (2026-06-24)
 - **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
 - **Merchant transparency (Misrepresentation)** — street address, phone, `/contact`, Organization JSON-LD, footer/About/Shipping contact details — **shipped** (repo 2026-08-02); **ops:** Merchant Center identity **done**; keep MC business info matched to live site
@@ -273,10 +275,13 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | **Checkout** | Quote amount locked server-side; pay-first print cart lines rejected |
 | **Notify** | In-app quote/decline notifications + deep-link CTAs on Account → Notifications |
 | **UX (2026-08-02)** | How-it-works steps + sample pricing from live `sizeTiers` / resin deltas on `/print` |
+| **Submitter (2026-08-28)** | Admin list/detail resolve Cognito email/name for account submits; guests show contact email |
+| **Sizing (2026-08-28)** | Optional either/or: finished size (mm) **or** scale (%); applies to all figures unless notes say otherwise; max build volume note (X 218.88 · Y 122.88 · Z 220 mm); field tooltips |
+| **Manual quote $ (2026-08-28)** | Admin figure lines: size tier + qty + editable **unit price ($)** (prefills from tier+resin; override allowed) |
 
-**Production verified** 2026-08-01 — end-to-end customer quote → pay flow. **UX polish** shipped in repo 2026-08-02 (process + sample prices).
+**Production verified** 2026-08-01 — end-to-end customer quote → pay flow. **UX polish** shipped in repo 2026-08-02 (process + sample prices). **Submitter / sizing / manual quote price** — **production verified** 2026-08-28.
 
-**Deploy:** Backend (PrintRequest + Lambdas) + frontend.
+**Deploy:** Backend (PrintRequest + Lambdas; `sizingMode` / `desiredSizeMm` / `desiredScalePercent`; `PrintFigureLineInput.unitPriceCents`) + frontend.
 
 ### 3.5 M22 — Stripe Tax (2026-06-24)
 
@@ -320,7 +325,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 | **Checkout hardening** | Stripe session before DB order; cancel superseded pending orders; hide orphan `pending_*` rows on customer orders |
 | **Order line items** | Variant labels on snapshots; product links (customer: shop/vault; admin: product edit); cart vault-only links |
 
-**Optional (deferred):** Customer transactional email on paid/shipped — blocked on SES production access (in-app notifications verified).
+**Optional (deferred):** Customer transactional email on paid/shipped — **M20a Resend** (set `RESEND_API_KEY` + verify domain); in-app notifications verified.
 
 **Deploy:** Backend (`updateOrderFulfillment`, checkout Lambda) + frontend.
 
@@ -339,7 +344,7 @@ Shipped in repo during pre-launch polish. **Signed off** 2026-06-11 (deployed; m
 | **Admin product edit** | Subtitle under title; price above variations |
 | **Shipping profiles** | Removed **Store default** checkbox and product dropdown empty option; **first profile by sort order** is the implicit default (checkout + PDP fallback) |
 | **Admin dashboard** | GA4 traffic **start/end dates** persist in `sessionStorage` for the browser session |
-| **Build / deploy** | Lambda `package-lock.json` sync (`stripe-webhook`, `notify-order-placed`, `get-storefront-stats`); `@aws-sdk/client-ses` on Amplify backend package for shared `order-shared/notifySupport.ts` type-check |
+| **Build / deploy** | Lambda `package-lock.json` sync (`stripe-webhook`, `notify-order-placed`, `get-storefront-stats`) |
 
 **Ops:** SES identity verified; live Stripe order → support inbox email **confirmed** (2026-06-11). Production storefront uses live Stripe on Amplify `main` (`VITE_APP_ENV=deployment`).
 
@@ -1642,8 +1647,10 @@ Pay-first only works when the customer can pick a known SKU. Figure count and tr
    - Policy + file-requirements checklist (existing markdown) + acknowledgment
    - Upload STL or ZIP (existing caps)
    - Resin type + color (customer choice; shared for the job in v1)
+   - Optional **sizing** — either finished size (mm) **or** scale (%); blank = size from file/notes; applies to all figures unless notes specify a mix; show max build volume
    - Optional notes (“3 heroes + 1 monster”, etc.)
-   - **Submit print request** — **not** add-to-cart; no customer-selected size price at submit
+   - Field tooltips on resin / sizing / notes / file
+   - **Submit print request** — **not** add-to-cart; no customer-selected size **price** at submit
 2. **Account** — list of print requests with status: `submitted` → `in_review` → `quoted` → `paid` / `declined` / `cancelled`
    - **Auth:** Guest submit + pay quote via **M6e** (`guestId` + contact email); Cognito optional.
 3. When **quoted** — show breakdown (e.g. `2 × 32mm`, `1 × 75mm`, resin, total) + **Pay quote** CTA → Stripe Checkout for that amount
@@ -1651,19 +1658,21 @@ Pay-first only works when the customer can pick a known SKU. Figure count and tr
 
 #### Admin flow
 
-1. **Print request queue** (new admin page or dashboard filter) — pending review first
+1. **Print request queue** (new admin page or dashboard filter) — pending review first; show **submitter** (account email/name or guest email)
 2. Open request → download file(s) → assign **figure lines**:
-   - `{ sizeTierId, quantity }` (one or more rows)
+   - `{ sizeTierId, quantity, unitPriceCents? }` (one or more rows)
+   - Unit price prefills from tier + resin; **admin may override** manually ($)
    - Optional admin notes to customer
-3. **Generate quote** — price from live `PrintServiceConfig` size tiers + resin delta; lock snapshot of labels/prices on the quote
+3. **Generate quote** — Σ qty × unit price (catalog or override); lock snapshot of labels/prices on the quote
 4. **Decline** — if file fails requirements (no charge); notify customer in-app
 5. After **paid** — fulfill like today’s print orders (download already available; purge on ship)
 
 #### Data model (sketch)
 
 - **`PrintRequest`** (or equivalent):
-  - `id`, `userId`, `status`, `storagePath(s)`, `originalFileName(s)`
+  - `id`, `userId` / `guestId`, `email?`, `status`, `storagePath(s)`, `originalFileName(s)`
   - `resinTypeId/Label`, `resinColorId/Label`
+  - Optional sizing: `sizingMode` (`absolute` | `scale`), `desiredSizeMm`, `desiredScalePercent`
   - `customerNotes`, `adminNotes`
   - `figureLines[]`: `{ sizeTierId, sizeLabel, quantity, unitPriceCents }`
   - `quoteCents`, `quotedAt`, `orderId?` (set when paid)
@@ -1679,14 +1688,16 @@ Pay-first only works when the customer can pick a known SKU. Figure count and tr
 
 - Do **not** charge until admin quote exists and customer pays.
 - Do **not** put customer STLs in Merchant feed / public catalog.
-- Price from admin-assigned figure lines × config tiers — never trust customer-entered size as the charge basis.
+- Charge basis is admin quote (figure lines × unit prices). Customer finished-size / scale is guidance only — never the sole charge source.
 - Reuse `print-jobs/` storage + purge-on-ship.
-- Prefer in-app notifications over email until SES is reliable.
+- Prefer in-app notifications over email until Resend is configured (`RESEND_API_KEY`).
 
 #### Acceptance
 
 - Customer can submit upload + resin/color without choosing a size tier or seeing a final print price.
-- Admin can set multi-tier figure counts; quote total matches config math.
+- Customer may optionally leave finished size or scale % (mutually exclusive).
+- Admin sees who submitted (email/name).
+- Admin can set multi-tier figure counts and **override unit prices**; quote total matches those lines.
 - Customer pays only after quote; Stripe amount matches quote.
 - Declined requests never create a charge.
 - Paid jobs fulfill and purge STL on ship like M21.
@@ -1841,10 +1852,12 @@ Reuse existing cart/checkout — no separate payment path.
      - Begin checkout
      - Purchase (after Stripe integration).
    - Optionally add:
-     - Meta pixel — **base PageView** in `index.html` + SPA PageView; **catalog events** (2026-08-16): `ViewContent` (public PDP), `AddToCart`, `InitiateCheckout`, `Purchase`, `Search`. `content_ids` = product slug (same as Merchant feed `id`). Vault and print-service SKUs omitted.
+     - Meta pixel — **ID `1442658717707319`** in `index.html` + SPA PageView; **catalog events** (2026-08-16): `ViewContent` (public PDP), `AddToCart`, `InitiateCheckout`, `Search`. `content_ids` = product slug (same as Merchant feed `id`). Vault SKUs omitted from browse/cart funnel events.
+     - **Purchase (2026-08-28, production verified):** fires once on `/checkout/success` after the Stripe session’s `Order` is **`paid`** (short poll for webhook). Params from the order: `value` = `totalCents/100`, `currency` = `USD`, `contents` / `content_ids` / `num_items` from line snapshots (**includes print quotes**). Do **not** paste a second static Purchase snippet from Events Manager (duplicate risk).
      - **Pixel catalog ingest** (Meta “add products from your website”): public PDPs emit Open Graph `product:*` tags + JSON-LD `productID`; PageView fires **after** those tags are in the DOM. Connect the pixel as a catalog data source in Commerce Manager.
      - TikTok pixel
    - Keep them behind config flags/env vars.
+   - **Follow-on (optional):** Meta Conversions API (server-side) for purchase reliability if the thank-you page is closed before tracking.
 
 3. **Email capture / newsletter** _(required — home form currently hidden)_
    - **Context (M23c):** Disabled “Join the Forge” block was **removed** from `HomePage` so unfinished chrome does not hurt trust. Do **not** ship a disabled form again.
@@ -1928,13 +1941,26 @@ Reuse existing cart/checkout — no separate payment path.
 
 ---
 
+### M20a — EmailProvider (Resend) — **shipped in repo** (2026-08-28)
+
+**Status:** Implemented in `amplify/functions/order-shared/emailProvider.ts`. Contract: `packages/shared/src/contracts/email.ts`.
+
+- **Provider:** Resend HTTP API (no SES). Requires `RESEND_API_KEY` + domain DNS (SPF/DKIM) for `emperiumforgeworks.com`.
+- **From:** `ORDER_EMAIL_FROM` default `orders@…` for purchase / fulfillment / new-order-to-inbox; `GENERAL_EMAIL_FROM` default `melissa@…` for print quote/decline and other non-order mail.
+- **Reply-To / inbox:** `EMAIL_REPLY_TO` / `SUPPORT_INBOX_EMAIL` → `melissa@…` only.
+- Notify helpers (`notifySupport`, `notifyCustomer`, `notifyPrintRequest`) call `sendEmail()` only — no `@aws-sdk/client-ses`.
+
+**Ops:** Create Resend account → verify domain → add `orders@` and `melissa@` as send-from → set `RESEND_API_KEY` on Amplify Hosting (and local sandbox). Optional alias `orders@` → `melissa@` at the mailbox host so stray replies still land in one inbox.
+
+---
+
 ### M20 — Cloud portability layer (post-v1 major release)
 
-**Status:** **Planned** — start **after** milestones through **M14** / **M9** / **M13** (current roadmap) are shipped or explicitly deferred. Not a big-bang rewrite.
+**Status:** **M20a done (Resend)** — remaining phases (**M20b–d**) start **after** milestones through **M14** / **M9** / **M13** (current roadmap) are shipped or explicitly deferred. Not a big-bang rewrite.
 
-**Goal:** Reduce vendor lock-in to AWS primitives (Amplify Data, Cognito, S3, SES, Lambda wiring) by introducing **ports + adapters** — the same pattern as `PaymentProvider` in `packages/shared/`. The storefront and admin keep stable domain APIs; cloud-specific SDKs live behind narrow interfaces.
+**Goal:** Reduce vendor lock-in to AWS primitives (Amplify Data, Cognito, S3, Lambda wiring) by introducing **ports + adapters** — the same pattern as `PaymentProvider` in `packages/shared/`. The storefront and admin keep stable domain APIs; cloud-specific SDKs live behind narrow interfaces.
 
-**Why now (documented, not implemented):** SES production approval friction and billing/tooling sprawl if each concern picks a one-off vendor without a shared abstraction. **M20** makes swaps (email, storage, auth, hosting) a configuration change + one adapter, not a repo-wide rewrite.
+**Why now (documented):** SES production approval friction drove **M20a** early; billing/tooling sprawl if each concern picks a one-off vendor without a shared abstraction. **M20** makes swaps (email, storage, auth, hosting) a configuration change + one adapter, not a repo-wide rewrite.
 
 **Non-goals:**
 - Multi-cloud active/active deployment in v1 of M20.
@@ -1945,7 +1971,7 @@ Reuse existing cart/checkout — no separate payment path.
 
 | Phase | Port | Today | Adapters (examples) | Lift |
 |-------|------|-------|---------------------|------|
-| **M20a** | `EmailProvider` | `order-shared/notifySupport.ts`, `notifyCustomer.ts` → SES | SES, Resend, Postmark, SendGrid, Azure ACS | **Small** — do first; unblocks customer email without SES prod |
+| **M20a** | `EmailProvider` | **Resend** (live) | Resend (default); Postmark/SendGrid optional later | **Done** |
 | **M20b** | `BlobStorageProvider` | `storefrontStorage`, image upload helpers → S3 | S3, Azure Blob | Medium |
 | **M20c** | `AuthProvider` / session | `customerAuth`, `adminAuth`, Cognito groups | Cognito (default), Entra External ID, Auth0 | Large — user migration risk |
 | **M20d** | `DataRepository` / domain stores | `src/services/*` → AppSync `generateClient` | Amplify Data (default), REST over Functions, future ORM | **Largest** — strangler per domain (orders, products, promos) |
@@ -1960,14 +1986,14 @@ Extend `packages/shared/` (or add `packages/platform/`):
 packages/shared/src/
   contracts/
     payments.ts          # exists — PaymentProvider
-    email.ts             # M20a — EmailProvider
+    email.ts             # M20a — EmailProvider (contract)
     storage.ts           # M20b
   providers/
-    ses/ resend/ …       # email adapters
+    …                    # optional shared adapters; Lambda uses order-shared/emailProvider.ts today
     s3/ blob/ …          # storage adapters
 ```
 
-Lambdas receive a factory: `createEmailProvider(env)` — same env keys pattern as `createPaymentProvider`.
+Lambdas: `sendEmail()` in `order-shared/emailProvider.ts` — env keys `RESEND_API_KEY`, `ORDER_EMAIL_FROM`, `GENERAL_EMAIL_FROM`, `EMAIL_REPLY_TO`, `SUPPORT_INBOX_EMAIL`.
 
 #### Frontend
 
@@ -1976,27 +2002,26 @@ Lambdas receive a factory: `createEmailProvider(env)` — same env keys pattern 
 
 #### Migration strategy
 
-1. **Strangler fig** — one port at a time; default adapter = current AWS implementation (no behavior change on merge).
+1. **Strangler fig** — one port at a time; default adapter = current implementation (no behavior change on merge).
 2. **Contract tests** — each adapter implements the same interface; smoke test send/upload/read.
 3. **No dual-write** unless migrating auth or data (M20c/d); email and storage are safe to swap per env.
 
 #### Email & billing sprawl (pragmatic note)
 
-- Stripe + AWS + one transactional email vendor is normal for a shop; email is typically **low volume / low cost** (often free tier).
-- **M20a** keeps email on **one interface** so you are not locked to SES *or* scattered one-off SDK calls.
+- Stripe + Amplify + one transactional email vendor is normal for a shop; email is typically **low volume / low cost** (often free tier).
+- **M20a** keeps email on **one interface** so you are not locked to a single vendor SDK call sites.
 
-#### Cursor rules (when M20 starts)
+#### Cursor rules (when M20 continues)
 
 - New cloud integrations **must** go behind a port in `packages/shared` (or `packages/platform`).
 - Do not delete Amplify backend until M20d coverage is explicit per domain.
 - Section §7 “do not replace Amplify” applies **until M20** is active for that concern.
 
-#### Acceptance (M20a — email only)
+#### Acceptance (M20a — email) — **met**
 
-- `notifySupport` / `notifyCustomer` call `EmailProvider.send()` only.
-- SES adapter passes existing production behavior.
-- Second adapter (e.g. Resend) works via env switch without code changes in order fulfillment.
-- No `@aws-sdk/client-ses` imports outside the SES adapter module.
+- `notifySupport` / `notifyCustomer` / `notifyPrintRequest` call `sendEmail()` only.
+- Resend works via env (`RESEND_API_KEY`); From split: order vs general.
+- No `@aws-sdk/client-ses` in the repo for outbound mail.
 
 #### Acceptance (M20 complete — long-term)
 

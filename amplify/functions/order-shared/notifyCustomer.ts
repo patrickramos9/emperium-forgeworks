@@ -1,4 +1,4 @@
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { sendEmail } from "./emailProvider.js";
 import type { OrderEmailPayload } from "./notifySupport.js";
 
 type FulfillmentStatus = "paid" | "received" | "processing" | "shipped";
@@ -104,9 +104,7 @@ export async function sendCustomerFulfillmentEmail(
   status: FulfillmentStatus,
 ): Promise<boolean> {
   const to = order.email?.trim();
-  const from = process.env.ORDER_NOTIFICATION_FROM_EMAIL?.trim();
-
-  if (!to || !from) {
+  if (!to) {
     return false;
   }
 
@@ -118,20 +116,11 @@ export async function sendCustomerFulfillmentEmail(
   const message = buildCustomerEmail(order, status, orderDetailUrl);
   if (!message) return false;
 
-  const client = new SESClient({});
-  await client.send(
-    new SendEmailCommand({
-      Source: from,
-      Destination: { ToAddresses: [to] },
-      Message: {
-        Subject: { Data: message.subject, Charset: "UTF-8" },
-        Body: {
-          Text: { Data: message.text, Charset: "UTF-8" },
-          Html: { Data: message.html, Charset: "UTF-8" },
-        },
-      },
-    }),
-  );
-
-  return true;
+  return sendEmail({
+    to,
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
+    kind: "order",
+  });
 }

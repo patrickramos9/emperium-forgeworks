@@ -1,4 +1,4 @@
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { sendEmail } from "./emailProvider.js";
 
 function siteBaseUrl(): string {
   return (process.env.SITE_URL ?? "https://emperiumforgeworks.com").replace(
@@ -12,33 +12,18 @@ async function sendPrintRequestEmail(input: {
   subject: string;
   text: string;
 }): Promise<boolean> {
-  const from = process.env.ORDER_NOTIFICATION_FROM_EMAIL?.trim();
   const to = input.to.trim();
-  if (!to || !from) {
-    console.warn(
-      "Print request email skipped — missing recipient or ORDER_NOTIFICATION_FROM_EMAIL.",
-    );
+  if (!to) {
+    console.warn("Print request email skipped — missing recipient.");
     return false;
   }
 
-  const client = new SESClient({});
-  await client.send(
-    new SendEmailCommand({
-      Source: from,
-      Destination: { ToAddresses: [to] },
-      Message: {
-        Subject: { Data: input.subject, Charset: "UTF-8" },
-        Body: {
-          Text: { Data: input.text, Charset: "UTF-8" },
-          Html: {
-            Data: input.text.replace(/\n/g, "<br>"),
-            Charset: "UTF-8",
-          },
-        },
-      },
-    }),
-  );
-  return true;
+  return sendEmail({
+    to,
+    subject: input.subject,
+    text: input.text,
+    kind: "general",
+  });
 }
 
 /** Email guest (or any request with contact email) when a quote is ready. */

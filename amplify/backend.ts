@@ -97,6 +97,29 @@ backend.cancelStripeCheckout.addEnvironment(
   process.env.STRIPE_SECRET_KEY ?? "",
 );
 
+/** M20a — Resend transactional email (orders@ vs melissa@). */
+const supportInboxEmail =
+  process.env.SUPPORT_INBOX_EMAIL ?? "melissa@emperiumforgeworks.com";
+const orderEmailFrom =
+  process.env.ORDER_EMAIL_FROM ?? "orders@emperiumforgeworks.com";
+const generalEmailFrom =
+  process.env.GENERAL_EMAIL_FROM ?? "melissa@emperiumforgeworks.com";
+const emailReplyTo =
+  process.env.EMAIL_REPLY_TO ?? supportInboxEmail;
+const resendApiKey = process.env.RESEND_API_KEY ?? "";
+
+function addTransactionalEmailEnv(fn: {
+  addEnvironment: (name: string, value: string) => void;
+}, opts?: { supportInbox?: boolean }) {
+  fn.addEnvironment("RESEND_API_KEY", resendApiKey);
+  fn.addEnvironment("ORDER_EMAIL_FROM", orderEmailFrom);
+  fn.addEnvironment("GENERAL_EMAIL_FROM", generalEmailFrom);
+  fn.addEnvironment("EMAIL_REPLY_TO", emailReplyTo);
+  if (opts?.supportInbox !== false) {
+    fn.addEnvironment("SUPPORT_INBOX_EMAIL", supportInboxEmail);
+  }
+}
+
 backend.stripeWebhook.addEnvironment(
   "STRIPE_SECRET_KEY",
   process.env.STRIPE_SECRET_KEY ?? "",
@@ -106,26 +129,10 @@ backend.stripeWebhook.addEnvironment(
   process.env.STRIPE_WEBHOOK_SECRET ?? "",
 );
 backend.stripeWebhook.addEnvironment("SITE_URL", siteUrl);
-backend.stripeWebhook.addEnvironment(
-  "SUPPORT_INBOX_EMAIL",
-  process.env.SUPPORT_INBOX_EMAIL ?? "melissa@emperiumforgeworks.com",
-);
-backend.stripeWebhook.addEnvironment(
-  "ORDER_NOTIFICATION_FROM_EMAIL",
-  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
-    "melissa@emperiumforgeworks.com",
-);
+addTransactionalEmailEnv(backend.stripeWebhook);
 
 backend.notifyOrderPlaced.addEnvironment("SITE_URL", siteUrl);
-backend.notifyOrderPlaced.addEnvironment(
-  "SUPPORT_INBOX_EMAIL",
-  process.env.SUPPORT_INBOX_EMAIL ?? "melissa@emperiumforgeworks.com",
-);
-backend.notifyOrderPlaced.addEnvironment(
-  "ORDER_NOTIFICATION_FROM_EMAIL",
-  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
-    "melissa@emperiumforgeworks.com",
-);
+addTransactionalEmailEnv(backend.notifyOrderPlaced);
 
 /** M6e — HMAC secret for guestToken (AppSync cannot receive Function URL HttpOnly cookies). */
 const guestSessionSecret =
@@ -190,17 +197,13 @@ backend.updatePrintLineReview.addEnvironment(
 backend.updatePrintLineReview.addEnvironment("SITE_URL", siteUrl);
 
 backend.adminQuotePrintRequest.addEnvironment("SITE_URL", siteUrl);
-backend.adminQuotePrintRequest.addEnvironment(
-  "ORDER_NOTIFICATION_FROM_EMAIL",
-  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
-    "melissa@emperiumforgeworks.com",
-);
+addTransactionalEmailEnv(backend.adminQuotePrintRequest, {
+  supportInbox: false,
+});
 backend.adminDeclinePrintRequest.addEnvironment("SITE_URL", siteUrl);
-backend.adminDeclinePrintRequest.addEnvironment(
-  "ORDER_NOTIFICATION_FROM_EMAIL",
-  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
-    "melissa@emperiumforgeworks.com",
-);
+addTransactionalEmailEnv(backend.adminDeclinePrintRequest, {
+  supportInbox: false,
+});
 
 backend.createPrintQuoteCheckout.addEnvironment(
   "STRIPE_SECRET_KEY",
@@ -209,11 +212,9 @@ backend.createPrintQuoteCheckout.addEnvironment(
 backend.createPrintQuoteCheckout.addEnvironment("SITE_URL", siteUrl);
 
 backend.updateOrderFulfillment.addEnvironment("SITE_URL", siteUrl);
-backend.updateOrderFulfillment.addEnvironment(
-  "ORDER_NOTIFICATION_FROM_EMAIL",
-  process.env.ORDER_NOTIFICATION_FROM_EMAIL ??
-    "melissa@emperiumforgeworks.com",
-);
+addTransactionalEmailEnv(backend.updateOrderFulfillment, {
+  supportInbox: false,
+});
 backend.updateOrderFulfillment.addEnvironment(
   "STORAGE_BUCKET_NAME",
   backend.storage.resources.bucket.bucketName,

@@ -1,4 +1,4 @@
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { sendEmail } from "./emailProvider.js";
 
 export type OrderEmailPayload = {
   id: string;
@@ -104,15 +104,14 @@ export async function sendSupportOrderEmail(
   order: OrderEmailPayload,
 ): Promise<boolean> {
   const to = process.env.SUPPORT_INBOX_EMAIL?.trim();
-  const from = process.env.ORDER_NOTIFICATION_FROM_EMAIL?.trim();
   const siteUrl = (process.env.SITE_URL ?? "https://emperiumforgeworks.com").replace(
     /\/$/,
     "",
   );
 
-  if (!to || !from) {
+  if (!to) {
     console.warn(
-      "Order notification email skipped — set SUPPORT_INBOX_EMAIL and ORDER_NOTIFICATION_FROM_EMAIL.",
+      "Order notification email skipped — set SUPPORT_INBOX_EMAIL.",
     );
     return false;
   }
@@ -123,20 +122,11 @@ export async function sendSupportOrderEmail(
     adminOrderUrl,
   );
 
-  const client = new SESClient({});
-  await client.send(
-    new SendEmailCommand({
-      Source: from,
-      Destination: { ToAddresses: [to] },
-      Message: {
-        Subject: { Data: subject, Charset: "UTF-8" },
-        Body: {
-          Text: { Data: text, Charset: "UTF-8" },
-          Html: { Data: html, Charset: "UTF-8" },
-        },
-      },
-    }),
-  );
-
-  return true;
+  return sendEmail({
+    to,
+    subject,
+    text,
+    html,
+    kind: "order",
+  });
 }

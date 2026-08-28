@@ -74,8 +74,11 @@ Checkout entry: `src/services/checkoutService.ts` → `createPaymentProvider(loa
 
 ## Email
 
-- Contact / commission: `mailto:melissa@emperiumforgeworks.com` (`CONTACT_EMAIL` in `config.ts`).  
-- No transactional email integration yet (order confirm, review solicit, etc.).
+- **Provider:** Resend (`order-shared/emailProvider.ts`, M20a). Set `RESEND_API_KEY` on Amplify / sandbox.
+- **From:** `orders@emperiumforgeworks.com` for order purchase / status mail; `melissa@emperiumforgeworks.com` for all other outbound (print quote/decline, etc.).
+- **Inbox / Reply-To:** `melissa@emperiumforgeworks.com` only (`SUPPORT_INBOX_EMAIL`, `EMAIL_REPLY_TO`).
+- Contact / commission mailto: `CONTACT_EMAIL` in `config.ts` → `melissa@emperiumforgeworks.com`.
+- Optional overrides: `ORDER_EMAIL_FROM`, `GENERAL_EMAIL_FROM`, `EMAIL_REPLY_TO`.
 
 ---
 
