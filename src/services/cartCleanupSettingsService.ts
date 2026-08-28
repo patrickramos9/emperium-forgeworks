@@ -10,10 +10,20 @@ export type CartCleanupSettings = {
   scope: CartCleanupScope;
 };
 
+export type StoreOpsSettings = {
+  emailNotificationsEnabled: boolean;
+  cartCleanup: CartCleanupSettings;
+};
+
 export const DEFAULT_CART_CLEANUP_SETTINGS: CartCleanupSettings = {
   enabled: false,
   idleDays: 90,
   scope: "guest",
+};
+
+export const DEFAULT_STORE_OPS_SETTINGS: StoreOpsSettings = {
+  emailNotificationsEnabled: true,
+  cartCleanup: { ...DEFAULT_CART_CLEANUP_SETTINGS },
 };
 
 export type IdleCartCleanupResult = {
@@ -29,7 +39,7 @@ function requireCatalogSettingsModel(client: AmplifyDataClient) {
   const model = client.models.CatalogSettings;
   if (!model) {
     throw new Error(
-      "Catalog settings are not available. Deploy the backend to edit cart cleanup.",
+      "Catalog settings are not available. Deploy the backend to edit settings.",
     );
   }
   return model;
@@ -47,33 +57,58 @@ function normalizeIdleDays(raw: number | null | undefined): number {
   return DEFAULT_CART_CLEANUP_SETTINGS.idleDays;
 }
 
-export async function fetchCartCleanupSettings(
+function mapRow(
+  data: {
+    emailNotificationsEnabled?: boolean | null;
+    cartCleanupEnabled?: boolean | null;
+    cartCleanupIdleDays?: number | null;
+    cartCleanupScope?: string | null;
+  } | null | undefined,
+): StoreOpsSettings {
+  return {
+    emailNotificationsEnabled: data?.emailNotificationsEnabled !== false,
+    cartCleanup: {
+      enabled: data?.cartCleanupEnabled === true,
+      idleDays: normalizeIdleDays(data?.cartCleanupIdleDays ?? undefined),
+      scope: normalizeScope(data?.cartCleanupScope ?? undefined),
+    },
+  };
+}
+
+export async function fetchStoreOpsSettings(
   client: AmplifyDataClient,
-): Promise<CartCleanupSettings> {
+): Promise<StoreOpsSettings> {
   const model = client.models.CatalogSettings;
-  if (!model) return { ...DEFAULT_CART_CLEANUP_SETTINGS };
+  if (!model) return { ...DEFAULT_STORE_OPS_SETTINGS, cartCleanup: { ...DEFAULT_CART_CLEANUP_SETTINGS } };
 
   const { data, errors } = await model.get({ settingsKey: CATALOG_SETTINGS_KEY });
   if (errors?.length) {
     throw new Error(errors.map((e) => e.message).join("; "));
   }
 
-  return {
-    enabled: data?.cartCleanupEnabled === true,
-    idleDays: normalizeIdleDays(data?.cartCleanupIdleDays ?? undefined),
-    scope: normalizeScope(data?.cartCleanupScope ?? undefined),
-  };
+  return mapRow(data);
 }
 
-export async function saveCartCleanupSettings(
+/** @deprecated Prefer fetchStoreOpsSettings */
+export async function fetchCartCleanupSettings(
   client: AmplifyDataClient,
-  settings: CartCleanupSettings,
 ): Promise<CartCleanupSettings> {
+  const settings = await fetchStoreOpsSettings(client);
+  return settings.cartCleanup;
+}
+
+export async function saveStoreOpsSettings(
+  client: AmplifyDataClient,
+  settings: StoreOpsSettings,
+): Promise<StoreOpsSettings> {
   const CatalogSettings = requireCatalogSettingsModel(client);
-  const next: CartCleanupSettings = {
-    enabled: settings.enabled,
-    idleDays: normalizeIdleDays(settings.idleDays),
-    scope: normalizeScope(settings.scope),
+  const next: StoreOpsSettings = {
+    emailNotificationsEnabled: settings.emailNotificationsEnabled !== false,
+    cartCleanup: {
+      enabled: settings.cartCleanup.enabled,
+      idleDays: normalizeIdleDays(settings.cartCleanup.idleDays),
+      scope: normalizeScope(settings.cartCleanup.scope),
+    },
   };
 
   const existing = await CatalogSettings.get({ settingsKey: CATALOG_SETTINGS_KEY });
@@ -81,12 +116,17 @@ export async function saveCartCleanupSettings(
     throw new Error(existing.errors.map((e) => e.message).join("; "));
   }
 
+  const payload = {
+    emailNotificationsEnabled: next.emailNotificationsEnabled,
+    cartCleanupEnabled: next.cartCleanup.enabled,
+    cartCleanupIdleDays: next.cartCleanup.idleDays,
+    cartCleanupScope: next.cartCleanup.scope,
+  };
+
   if (existing.data) {
     const result = await CatalogSettings.update({
       settingsKey: CATALOG_SETTINGS_KEY,
-      cartCleanupEnabled: next.enabled,
-      cartCleanupIdleDays: next.idleDays,
-      cartCleanupScope: next.scope,
+      ...payload,
     });
     if (result.errors?.length) {
       throw new Error(result.errors.map((e) => e.message).join("; "));
@@ -95,9 +135,7 @@ export async function saveCartCleanupSettings(
     const result = await CatalogSettings.create({
       settingsKey: CATALOG_SETTINGS_KEY,
       categoryFilters: [...DEFAULT_PRODUCT_CATEGORY_FILTERS],
-      cartCleanupEnabled: next.enabled,
-      cartCleanupIdleDays: next.idleDays,
-      cartCleanupScope: next.scope,
+      ...payload,
     });
     if (result.errors?.length) {
       throw new Error(result.errors.map((e) => e.message).join("; "));
@@ -105,6 +143,19 @@ export async function saveCartCleanupSettings(
   }
 
   return next;
+}
+
+/** @deprecated Prefer saveStoreOpsSettings */
+export async function saveCartCleanupSettings(
+  client: AmplifyDataClient,
+  settings: CartCleanupSettings,
+): Promise<CartCleanupSettings> {
+  const current = await fetchStoreOpsSettings(client);
+  const saved = await saveStoreOpsSettings(client, {
+    ...current,
+    cartCleanup: settings,
+  });
+  return saved.cartCleanup;
 }
 
 export async function runIdleCartCleanup(

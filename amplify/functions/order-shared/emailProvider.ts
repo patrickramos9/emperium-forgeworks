@@ -46,9 +46,15 @@ function normalizeTo(to: string | string[]): string[] {
 }
 
 /**
- * Sends via Resend HTTP API. Returns false when skipped (missing config) or API error.
+ * Sends via Resend HTTP API. Returns false when skipped (missing config,
+ * admin disabled email, or API error).
  */
 export async function sendEmail(input: SendEmailInput): Promise<boolean> {
+  if (!(await isEmailNotificationsEnabled())) {
+    console.warn("Email skipped — emailNotificationsEnabled is off in Settings.");
+    return false;
+  }
+
   const apiKey = trimEnv("RESEND_API_KEY");
   const recipients = normalizeTo(input.to);
 
@@ -86,4 +92,28 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
   }
 
   return true;
+}
+
+async function isEmailNotificationsEnabled(): Promise<boolean> {
+  try {
+    const { generateClient } = await import("aws-amplify/data");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = generateClient() as any;
+    const model = client.models?.CatalogSettings;
+    if (!model?.get) return true;
+
+    const { data, errors } = await model.get({ settingsKey: "store" });
+    if (errors?.length) {
+      console.warn(
+        "emailNotificationsEnabled read failed; sending anyway",
+        errors,
+      );
+      return true;
+    }
+    // Unset / missing row → on (safe default after deploy).
+    return data?.emailNotificationsEnabled !== false;
+  } catch (err) {
+    console.warn("emailNotificationsEnabled check failed; sending anyway", err);
+    return true;
+  }
 }

@@ -1203,6 +1203,11 @@ const schema = a.schema({
       cartCleanupIdleDays: a.integer(),
       /** Which snapshots the cleanup job targets. */
       cartCleanupScope: a.enum(["guest", "signed_in", "both"]),
+      /**
+       * When false, Lambdas skip Resend transactional email (orders, print quote, etc.).
+       * In-app notifications are unaffected. Default on when unset.
+       */
+      emailNotificationsEnabled: a.boolean().default(true),
     })
     .identifier(["settingsKey"])
     .authorization((allow) => [
