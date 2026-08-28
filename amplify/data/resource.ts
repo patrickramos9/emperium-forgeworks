@@ -197,6 +197,15 @@ const schema = a.schema({
     success: a.boolean().required(),
   }),
 
+  UpdateGuestConversationEmailResult: a.customType({
+    success: a.boolean().required(),
+    customerEmail: a.email(),
+  }),
+
+  NotifyGuestMessageEmailResult: a.customType({
+    sent: a.boolean().required(),
+  }),
+
   SyncCartSnapshotResult: a.customType({
     synced: a.boolean().required(),
     grantIssued: a.boolean().required(),
@@ -500,7 +509,8 @@ const schema = a.schema({
       guestToken: a.string().required(),
       subject: a.string().required(),
       body: a.string().required(),
-      email: a.email().required(),
+      /** Optional — enables email alerts when the shop replies. */
+      email: a.email(),
       orderId: a.id(),
       imagePaths: a.string().array(),
     })
@@ -541,6 +551,30 @@ const schema = a.schema({
     })
     .returns(a.ref("DeleteGuestConversationResult"))
     .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestMessagesFn)),
+
+  /** Guest can add/update contact email for shop reply alerts. */
+  updateGuestConversationEmail: a
+    .mutation()
+    .arguments({
+      guestId: a.string().required(),
+      guestToken: a.string().required(),
+      conversationId: a.id().required(),
+      email: a.email().required(),
+    })
+    .returns(a.ref("UpdateGuestConversationEmailResult"))
+    .authorization((allow) => [allow.guest(), allow.authenticated()])
+    .handler(a.handler.function(guestMessagesFn)),
+
+  /** After admin reply — email guest when Conversation.customerEmail is set. */
+  notifyGuestMessageEmail: a
+    .mutation()
+    .arguments({
+      conversationId: a.id().required(),
+      previewBody: a.string(),
+    })
+    .returns(a.ref("NotifyGuestMessageEmailResult"))
+    .authorization((allow) => [allow.group("admin")])
     .handler(a.handler.function(guestMessagesFn)),
 
   issueNewAccountWelcomeGrant: a

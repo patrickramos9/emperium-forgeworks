@@ -22,6 +22,7 @@ import {
   markConversationReadByGuest,
   replyAsCustomer,
   replyAsGuest,
+  updateGuestConversationEmail,
   type ConversationRecord,
   type MessageRecord,
 } from "@/services/messageInboxService";
@@ -42,6 +43,9 @@ export function AccountMessageThreadPage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [alertEmail, setAlertEmail] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailSaved, setEmailSaved] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -97,6 +101,34 @@ export function AccountMessageThreadPage() {
     }
     void load();
   }, [conversationId, navigate]);
+
+  async function handleSaveAlertEmail(e: FormEvent) {
+    e.preventDefault();
+    if (!conversationId || signedIn) return;
+    setSavingEmail(true);
+    setError(null);
+    setEmailSaved(false);
+    try {
+      const client = await getGuestDataClient();
+      if (!client) throw new Error("Could not start guest session.");
+      const saved = await updateGuestConversationEmail(
+        client,
+        conversationId,
+        alertEmail,
+      );
+      setConversation((prev) =>
+        prev ? { ...prev, customerEmail: saved } : prev,
+      );
+      setAlertEmail("");
+      setEmailSaved(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save email for alerts.",
+      );
+    } finally {
+      setSavingEmail(false);
+    }
+  }
 
   async function handleReply(e: FormEvent) {
     e.preventDefault();
@@ -218,6 +250,44 @@ export function AccountMessageThreadPage() {
           </Link>
         </p>
       )}
+
+      {!signedIn && conversation && !conversation.customerEmail?.trim() ? (
+        <form
+          onSubmit={(e) => void handleSaveAlertEmail(e)}
+          className="mb-6 space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel"
+        >
+          <p className="text-body-sm text-on-surface-variant">
+            Add an email to get an alert when the shop replies (optional). You
+            can still use the Messages inbox in this browser without it.
+          </p>
+          <label className="block">
+            <span className="font-label-sm uppercase text-on-surface-variant">
+              Email for alerts
+            </span>
+            <input
+              type="email"
+              value={alertEmail}
+              onChange={(e) => setAlertEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className="mt-1 w-full max-w-md border border-outline-variant/30 bg-surface-container px-3 py-2"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={savingEmail}
+            className="border border-outline-variant/40 bg-surface px-4 py-2 font-label-sm uppercase text-on-surface disabled:opacity-50"
+          >
+            {savingEmail ? "Saving…" : "Save email"}
+          </button>
+        </form>
+      ) : null}
+
+      {!signedIn && conversation?.customerEmail?.trim() && emailSaved ? (
+        <p className="mb-4 text-body-sm text-primary">
+          Alerts will go to {conversation.customerEmail}.
+        </p>
+      ) : null}
 
       {error && <p className="mb-4 text-error">{error}</p>}
 

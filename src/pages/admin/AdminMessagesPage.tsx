@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
+import { conversationParticipantLabel } from "@/lib/conversationParticipant";
 import { hasConversationModel } from "@/lib/dataModels";
 import {
   deleteConversationAsAdmin,
@@ -112,7 +113,19 @@ export function AdminMessagesPage() {
                 {row.subject}
               </p>
               <p className="mt-1 text-label-sm text-on-surface-variant">
-                {row.customerEmail ?? "Customer"}
+                {(() => {
+                  const participant = conversationParticipantLabel(row);
+                  return (
+                    <>
+                      {participant.isGuest ? (
+                        <span className="mr-2 inline-block border border-outline-variant/40 px-1.5 py-0.5 text-[0.65rem] uppercase tracking-wide text-on-surface-variant">
+                          Guest
+                        </span>
+                      ) : null}
+                      {participant.primary}
+                    </>
+                  );
+                })()}
                 {row.orderId ? ` · Order ${row.orderId.slice(0, 8)}…` : ""}
               </p>
               <p className="mt-1 text-label-sm text-on-surface-variant">

@@ -301,6 +301,22 @@ export async function replyAsAdmin(
   if (updateErrors?.length) {
     throw new Error(updateErrors.map((e) => e.message).join("; "));
   }
+
+  // Guest threads with a contact email get a Resend alert (best-effort).
+  if (
+    conversation.guestId &&
+    conversation.customerEmail?.trim() &&
+    client.mutations.notifyGuestMessageEmail
+  ) {
+    try {
+      await client.mutations.notifyGuestMessageEmail({
+        conversationId,
+        previewBody: body || "(Photo attached)",
+      });
+    } catch (err) {
+      console.warn("Guest message email notify failed", err);
+    }
+  }
 }
 
 export async function markConversationReadByCustomer(
@@ -529,7 +545,7 @@ export async function startGuestConversation(
   input: {
     subject: string;
     body: string;
-    email: string;
+    email?: string;
     orderId?: string;
     imagePaths?: string[];
   },
@@ -540,12 +556,13 @@ export async function startGuestConversation(
     );
   }
   const session = await requireGuestSessionArgs();
+  const email = input.email?.trim() || undefined;
   const { data, errors } = await client.mutations.startGuestConversation({
     guestId: session.guestId,
     guestToken: session.guestToken,
     subject: input.subject,
     body: input.body,
-    email: input.email,
+    ...(email ? { email } : {}),
     ...(input.orderId ? { orderId: input.orderId } : {}),
     ...(input.imagePaths?.length ? { imagePaths: input.imagePaths } : {}),
   });
@@ -556,6 +573,32 @@ export async function startGuestConversation(
     throw new Error("Could not start conversation.");
   }
   return mapGuestConversation(data.conversation);
+}
+
+export async function updateGuestConversationEmail(
+  client: AmplifyDataClient,
+  conversationId: string,
+  emailRaw: string,
+): Promise<string> {
+  if (!client.mutations.updateGuestConversationEmail) {
+    throw new Error(
+      "Guest messages are not available yet. Redeploy the Amplify backend.",
+    );
+  }
+  const session = await requireGuestSessionArgs();
+  const { data, errors } = await client.mutations.updateGuestConversationEmail({
+    guestId: session.guestId,
+    guestToken: session.guestToken,
+    conversationId,
+    email: emailRaw.trim(),
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  if (!data?.success) {
+    throw new Error("Could not save email.");
+  }
+  return data.customerEmail?.trim() || emailRaw.trim().toLowerCase();
 }
 
 export async function replyAsGuest(

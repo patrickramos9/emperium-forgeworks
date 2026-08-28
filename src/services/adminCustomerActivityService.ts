@@ -101,9 +101,42 @@ function shortId(id: string): string {
 function guestLabel(guestId: string, contactEmail?: string | null): string {
   const short = shortId(guestId);
   if (contactEmail?.trim()) {
-    return `Guest · ${contactEmail.trim()} · ${short}`;
+    return `${contactEmail.trim()} · ${short}`;
   }
-  return `Guest · ${short}`;
+  return short;
+}
+
+/** Contact email from guest print requests and message threads. */
+async function guestEmailsByGuestId(
+  client: AmplifyDataClient,
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+
+  if (client.models.PrintRequest) {
+    const rows = await listAllModelRows((args) =>
+      client.models.PrintRequest!.list(args),
+    );
+    for (const row of rows) {
+      const guestId = row.guestId?.trim();
+      const email = row.email?.trim().toLowerCase();
+      if (!guestId || !email || map.has(guestId)) continue;
+      map.set(guestId, email);
+    }
+  }
+
+  if (client.models.Conversation) {
+    const rows = await listAllModelRows((args) =>
+      client.models.Conversation!.list(args),
+    );
+    for (const row of rows) {
+      const guestId = row.guestId?.trim();
+      const email = row.customerEmail?.trim().toLowerCase();
+      if (!guestId || !email || map.has(guestId)) continue;
+      map.set(guestId, email);
+    }
+  }
+
+  return map;
 }
 
 function resolveProductRef(
@@ -170,25 +203,6 @@ async function listAllGuestCartSnapshots(
   return listAllModelRows((args) =>
     client.models.GuestCartSnapshot!.list(args),
   );
-}
-
-/** Best-effort contact email from guest print requests. */
-async function guestEmailsByGuestId(
-  client: AmplifyDataClient,
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  if (!client.models.PrintRequest) return map;
-
-  const rows = await listAllModelRows((args) =>
-    client.models.PrintRequest!.list(args),
-  );
-  for (const row of rows) {
-    const guestId = row.guestId?.trim();
-    const email = row.email?.trim().toLowerCase();
-    if (!guestId || !email || map.has(guestId)) continue;
-    map.set(guestId, email);
-  }
-  return map;
 }
 
 function buildProductLookup(

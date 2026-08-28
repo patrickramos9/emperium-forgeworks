@@ -171,6 +171,8 @@ backend.guestMessages.addEnvironment(
   "GUEST_SESSION_SECRET",
   guestSessionSecret,
 );
+backend.guestMessages.addEnvironment("SITE_URL", siteUrl);
+addTransactionalEmailEnv(backend.guestMessages, { supportInbox: false });
 backend.createStripeCheckout.addEnvironment(
   "GUEST_SESSION_SECRET",
   guestSessionSecret,

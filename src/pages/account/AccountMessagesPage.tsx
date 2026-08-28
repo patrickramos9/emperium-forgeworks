@@ -116,7 +116,7 @@ export function AccountMessagesPage() {
       const conversation = await startGuestConversation(client, {
         subject,
         body,
-        email,
+        ...(email.trim() ? { email: email.trim() } : {}),
         ...(orderId ? { orderId } : {}),
         ...(imagePaths ? { imagePaths } : {}),
       });
@@ -186,7 +186,7 @@ export function AccountMessagesPage() {
         Message the shop about an order or a product question. We usually
         respond within a couple of hours. You can attach photos
         {!signedIn
-          ? ". Guests: include your email so we can reach you; create an account anytime to keep your threads."
+          ? ". Guests: add your email (optional) to get an alert when we reply; create an account anytime to keep your threads."
           : "."}
       </p>
 
@@ -214,15 +214,18 @@ export function AccountMessagesPage() {
           {!signedIn && (
             <label className="block">
               <span className="font-label-sm uppercase text-on-surface-variant">
-                Your email
+                Your email{" "}
+                <span className="normal-case text-on-surface-variant/80">
+                  (optional)
+                </span>
               </span>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2"
-                required
                 autoComplete="email"
+                placeholder="Alerts when the shop replies"
               />
             </label>
           )}

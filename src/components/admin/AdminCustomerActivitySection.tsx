@@ -189,10 +189,17 @@ export function AdminCustomerActivitySection() {
                   className="border-t border-outline-variant/10 align-top"
                 >
                   <td className="p-3 text-on-surface">
-                    <div className="font-medium">{row.email}</div>
+                    <div className="flex flex-wrap items-center gap-2 font-medium">
+                      {row.kind === "guest" ? (
+                        <span className="inline-block border border-outline-variant/40 px-1.5 py-0.5 text-[0.65rem] uppercase tracking-wide text-on-surface-variant">
+                          Guest
+                        </span>
+                      ) : null}
+                      <span>{row.email}</span>
+                    </div>
                     {row.kind === "guest" ? (
-                      <div className="text-body-sm text-on-surface-variant">
-                        Guest session
+                      <div className="mt-1 text-body-sm text-on-surface-variant">
+                        Guest session (not registered)
                         {row.guestId ? (
                           <span className="ml-1 font-mono text-label-sm">
                             {row.guestId}
