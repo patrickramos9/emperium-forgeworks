@@ -4,6 +4,7 @@ import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtim
 import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import type { Schema } from "../../data/resource";
 import { verifyGuestToken } from "../guest-shared/cookie.js";
+import { sendNewMessageEmailAlert } from "../order-shared/notifyMessage.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -27,6 +28,7 @@ type AppSyncEvent = {
     email?: string | null;
     orderId?: string | null;
     imagePaths?: (string | null)[] | null;
+    previewBody?: string | null;
   };
 };
 
@@ -41,6 +43,17 @@ async function requireGuestId(event: AppSyncEvent): Promise<string> {
     throw new Error("Invalid or missing guest session.");
   }
   return guestId;
+}
+
+function normalizeOptionalEmail(
+  raw: string | null | undefined,
+): string | undefined {
+  const email = raw?.trim().toLowerCase() ?? "";
+  if (!email) return undefined;
+  if (!email.includes("@")) {
+    throw new Error("Enter a valid email address.");
+  }
+  return email;
 }
 
 function normalizeSubject(raw: string): string {
@@ -142,7 +155,10 @@ async function handleGetGuestConversations(event: AppSyncEvent) {
   return { conversations: rows };
 }
 
-async function requireGuestConversation(guestId: string, conversationId: string) {
+async function requireGuestConversation(
+  guestId: string,
+  conversationId: string,
+) {
   const Conversation = dataClient.models.Conversation;
   if (!Conversation) {
     throw new Error("Messages are not available yet.");
@@ -191,10 +207,7 @@ async function handleGetGuestConversationMessages(event: AppSyncEvent) {
 
 async function handleStartGuestConversation(event: AppSyncEvent) {
   const guestId = await requireGuestId(event);
-  const email = event.arguments.email?.trim().toLowerCase() ?? "";
-  if (!email || !email.includes("@")) {
-    throw new Error("Enter a valid email so we can reply.");
-  }
+  const email = normalizeOptionalEmail(event.arguments.email);
 
   const imagePaths = normalizeImagePaths(event.arguments.imagePaths);
   const subject = normalizeSubject(event.arguments.subject ?? "");
@@ -220,7 +233,7 @@ async function handleStartGuestConversation(event: AppSyncEvent) {
     lastMessageAt: now,
     unreadForCustomer: false,
     unreadForAdmin: true,
-    customerEmail: email,
+    ...(email ? { customerEmail: email } : {}),
     ...(orderId ? { orderId } : {}),
   });
   if (errors?.length) {
@@ -288,6 +301,89 @@ async function handleReplyGuestConversation(event: AppSyncEvent) {
   }
 
   return { success: true };
+}
+
+async function handleUpdateGuestConversationEmail(event: AppSyncEvent) {
+  const guestId = await requireGuestId(event);
+  const conversationId = event.arguments.conversationId?.trim() ?? "";
+  if (!conversationId) throw new Error("Conversation id is required.");
+
+  const email = normalizeOptionalEmail(event.arguments.email);
+  if (!email) {
+    throw new Error("Enter a valid email address.");
+  }
+
+  await requireGuestConversation(guestId, conversationId);
+
+  const Conversation = dataClient.models.Conversation;
+  if (!Conversation) {
+    throw new Error("Messages are not available yet.");
+  }
+
+  const { data, errors } = await Conversation.update({
+    id: conversationId,
+    customerEmail: email,
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+
+  return {
+    success: true,
+    customerEmail: data?.customerEmail ?? email,
+  };
+}
+
+/**
+ * Email the thread's customerEmail when the shop replies.
+ * Works for guests and signed-in accounts (as long as customerEmail is set).
+ */
+async function handleNotifyGuestMessageEmail(event: AppSyncEvent) {
+  const conversationId = event.arguments.conversationId?.trim() ?? "";
+  if (!conversationId) throw new Error("Conversation id is required.");
+
+  const Conversation = dataClient.models.Conversation;
+  if (!Conversation) {
+    throw new Error("Messages are not available yet.");
+  }
+
+  const { data, errors } = await Conversation.get({ id: conversationId });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  if (!data) {
+    throw new Error("Conversation not found.");
+  }
+
+  const to = data.customerEmail?.trim() ?? "";
+  if (!to) {
+    console.warn(
+      `Message email skipped — conversation ${conversationId} has no customerEmail.`,
+    );
+    return { sent: false };
+  }
+
+  const preview =
+    event.arguments.previewBody?.trim() ||
+    "The shop replied to your conversation.";
+
+  try {
+    const sent = await sendNewMessageEmailAlert({
+      to,
+      subject: data.subject,
+      conversationId: data.id,
+      previewBody: preview,
+    });
+    if (!sent) {
+      console.warn(
+        `Message email not sent to ${to} (check RESEND_API_KEY / Settings toggle).`,
+      );
+    }
+    return { sent };
+  } catch (err) {
+    console.error("Message email failed", err);
+    return { sent: false };
+  }
 }
 
 async function handleMarkGuestConversationRead(event: AppSyncEvent) {
@@ -375,6 +471,10 @@ export const handler = async (event: AppSyncEvent) => {
       return handleStartGuestConversation(event);
     case "replyGuestConversation":
       return handleReplyGuestConversation(event);
+    case "updateGuestConversationEmail":
+      return handleUpdateGuestConversationEmail(event);
+    case "notifyGuestMessageEmail":
+      return handleNotifyGuestMessageEmail(event);
     case "markGuestConversationRead":
       return handleMarkGuestConversationRead(event);
     case "deleteGuestConversation":

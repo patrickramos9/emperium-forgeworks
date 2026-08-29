@@ -302,19 +302,31 @@ export async function replyAsAdmin(
     throw new Error(updateErrors.map((e) => e.message).join("; "));
   }
 
-  // Guest threads with a contact email get a Resend alert (best-effort).
-  if (
-    conversation.guestId &&
-    conversation.customerEmail?.trim() &&
-    client.mutations.notifyGuestMessageEmail
-  ) {
-    try {
-      await client.mutations.notifyGuestMessageEmail({
-        conversationId,
-        previewBody: body || "(Photo attached)",
-      });
-    } catch (err) {
-      console.warn("Guest message email notify failed", err);
+  // Any thread with customerEmail gets a Resend alert (guest or signed-in).
+  if (conversation.customerEmail?.trim()) {
+    if (!client.mutations.notifyGuestMessageEmail) {
+      console.warn(
+        "notifyGuestMessageEmail mutation missing — redeploy the Amplify backend.",
+      );
+    } else {
+      try {
+        const { data, errors } = await client.mutations.notifyGuestMessageEmail({
+          conversationId,
+          previewBody: body || "(Photo attached)",
+        });
+        if (errors?.length) {
+          console.warn(
+            "Message email notify errors",
+            errors.map((e) => e.message).join("; "),
+          );
+        } else if (!data?.sent) {
+          console.warn(
+            "Message email was not sent (no address, Resend key, or Settings toggle off).",
+          );
+        }
+      } catch (err) {
+        console.warn("Message email notify failed", err);
+      }
     }
   }
 }
