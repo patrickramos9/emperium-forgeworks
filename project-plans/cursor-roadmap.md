@@ -187,7 +187,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M21c** — Print quote-first (multi-figure) — **production verified** (2026-08-01): upload → admin review/tiers → quote → pay → fulfill; pay-first cart path disabled; admin print-request badge; notification deep links
 - **M21c UX polish** — `/print` how-it-works steps + sample price table from live `PrintServiceConfig.sizeTiers` (and resin deltas) — **shipped** (repo 2026-08-02)
 - **M21c admin/customer polish** — **production verified** (2026-08-28): admin shows submitter email/name; optional finished size **or** scale % on submit (build-volume note + field tooltips); admin quote lines support editable unit price ($)
-- **Meta Pixel (M13b partial)** — Pixel ID `1442658717707319`; catalog events + **Purchase from paid `Order`** (final `totalCents`, line contents including print quotes; wait for webhook) — **production verified** (2026-08-28)
+- **Meta Pixel (M13b partial)** — Pixel ID `1772000520810676`; catalog events + **Purchase from paid `Order`** (final `totalCents`, line contents including print quotes; wait for webhook) — **production verified** (2026-08-28)
 - **M22** — Stripe Tax — **production verified** (2026-06-24)
 - **M13a** — Public product image URLs (`products/*` S3 policy) + Merchant Center CSV feed (`npm run export:merchant-feed`) — **production verified** (2026-07-07); storefront + Google Ads image links stable
 - **Merchant transparency (Misrepresentation)** — street address, phone, `/contact`, Organization JSON-LD, footer/About/Shipping contact details — **shipped** (repo 2026-08-02); **ops:** Merchant Center identity **done**; keep MC business info matched to live site
@@ -1852,7 +1852,7 @@ Reuse existing cart/checkout — no separate payment path.
      - Begin checkout
      - Purchase (after Stripe integration).
    - Optionally add:
-     - Meta pixel — **ID `1442658717707319`** in `index.html` + SPA PageView; **catalog events** (2026-08-16): `ViewContent` (public PDP), `AddToCart`, `InitiateCheckout`, `Search`. `content_ids` = product slug (same as Merchant feed `id`). Vault SKUs omitted from browse/cart funnel events.
+     - Meta pixel — **ID `1772000520810676`** in `index.html` + SPA PageView; **catalog events** (2026-08-16): `ViewContent` (public PDP), `AddToCart`, `InitiateCheckout`, `Search`. `content_ids` = product slug (same as Merchant feed `id`). Vault SKUs omitted from browse/cart funnel events.
      - **Purchase (2026-08-28, production verified):** fires once on `/checkout/success` after the Stripe session’s `Order` is **`paid`** (short poll for webhook). Params from the order: `value` = `totalCents/100`, `currency` = `USD`, `contents` / `content_ids` / `num_items` from line snapshots (**includes print quotes**). Do **not** paste a second static Purchase snippet from Events Manager (duplicate risk).
      - **Pixel catalog ingest** (Meta “add products from your website”): public PDPs emit Open Graph `product:*` tags + JSON-LD `productID`; PageView fires **after** those tags are in the DOM. Connect the pixel as a catalog data source in Commerce Manager.
      - TikTok pixel
