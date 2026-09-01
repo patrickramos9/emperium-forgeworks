@@ -10,8 +10,20 @@ export type CartCleanupSettings = {
   scope: CartCleanupScope;
 };
 
+/** Per-path Resend toggles (Admin → Settings). Defaults on when unset. */
+export type EmailChannelSettings = {
+  newOrderSupport: boolean;
+  orderPaid: boolean;
+  orderShipped: boolean;
+  shopMessage: boolean;
+  printQuote: boolean;
+  printDeclined: boolean;
+};
+
 export type StoreOpsSettings = {
+  /** Master switch — off skips all Resend mail. */
   emailNotificationsEnabled: boolean;
+  emailChannels: EmailChannelSettings;
   cartCleanup: CartCleanupSettings;
 };
 
@@ -21,8 +33,18 @@ export const DEFAULT_CART_CLEANUP_SETTINGS: CartCleanupSettings = {
   scope: "guest",
 };
 
+export const DEFAULT_EMAIL_CHANNEL_SETTINGS: EmailChannelSettings = {
+  newOrderSupport: true,
+  orderPaid: true,
+  orderShipped: true,
+  shopMessage: true,
+  printQuote: true,
+  printDeclined: true,
+};
+
 export const DEFAULT_STORE_OPS_SETTINGS: StoreOpsSettings = {
   emailNotificationsEnabled: true,
+  emailChannels: { ...DEFAULT_EMAIL_CHANNEL_SETTINGS },
   cartCleanup: { ...DEFAULT_CART_CLEANUP_SETTINGS },
 };
 
@@ -57,16 +79,34 @@ function normalizeIdleDays(raw: number | null | undefined): number {
   return DEFAULT_CART_CLEANUP_SETTINGS.idleDays;
 }
 
+function flagOn(raw: boolean | null | undefined): boolean {
+  return raw !== false;
+}
+
 function mapRow(
   data: {
     emailNotificationsEnabled?: boolean | null;
+    emailNewOrderSupportEnabled?: boolean | null;
+    emailOrderPaidEnabled?: boolean | null;
+    emailOrderShippedEnabled?: boolean | null;
+    emailShopMessageEnabled?: boolean | null;
+    emailPrintQuoteEnabled?: boolean | null;
+    emailPrintDeclinedEnabled?: boolean | null;
     cartCleanupEnabled?: boolean | null;
     cartCleanupIdleDays?: number | null;
     cartCleanupScope?: string | null;
   } | null | undefined,
 ): StoreOpsSettings {
   return {
-    emailNotificationsEnabled: data?.emailNotificationsEnabled !== false,
+    emailNotificationsEnabled: flagOn(data?.emailNotificationsEnabled),
+    emailChannels: {
+      newOrderSupport: flagOn(data?.emailNewOrderSupportEnabled),
+      orderPaid: flagOn(data?.emailOrderPaidEnabled),
+      orderShipped: flagOn(data?.emailOrderShippedEnabled),
+      shopMessage: flagOn(data?.emailShopMessageEnabled),
+      printQuote: flagOn(data?.emailPrintQuoteEnabled),
+      printDeclined: flagOn(data?.emailPrintDeclinedEnabled),
+    },
     cartCleanup: {
       enabled: data?.cartCleanupEnabled === true,
       idleDays: normalizeIdleDays(data?.cartCleanupIdleDays ?? undefined),
@@ -79,7 +119,13 @@ export async function fetchStoreOpsSettings(
   client: AmplifyDataClient,
 ): Promise<StoreOpsSettings> {
   const model = client.models.CatalogSettings;
-  if (!model) return { ...DEFAULT_STORE_OPS_SETTINGS, cartCleanup: { ...DEFAULT_CART_CLEANUP_SETTINGS } };
+  if (!model) {
+    return {
+      ...DEFAULT_STORE_OPS_SETTINGS,
+      emailChannels: { ...DEFAULT_EMAIL_CHANNEL_SETTINGS },
+      cartCleanup: { ...DEFAULT_CART_CLEANUP_SETTINGS },
+    };
+  }
 
   const { data, errors } = await model.get({ settingsKey: CATALOG_SETTINGS_KEY });
   if (errors?.length) {
@@ -104,6 +150,14 @@ export async function saveStoreOpsSettings(
   const CatalogSettings = requireCatalogSettingsModel(client);
   const next: StoreOpsSettings = {
     emailNotificationsEnabled: settings.emailNotificationsEnabled !== false,
+    emailChannels: {
+      newOrderSupport: settings.emailChannels.newOrderSupport !== false,
+      orderPaid: settings.emailChannels.orderPaid !== false,
+      orderShipped: settings.emailChannels.orderShipped !== false,
+      shopMessage: settings.emailChannels.shopMessage !== false,
+      printQuote: settings.emailChannels.printQuote !== false,
+      printDeclined: settings.emailChannels.printDeclined !== false,
+    },
     cartCleanup: {
       enabled: settings.cartCleanup.enabled,
       idleDays: normalizeIdleDays(settings.cartCleanup.idleDays),
@@ -118,6 +172,12 @@ export async function saveStoreOpsSettings(
 
   const payload = {
     emailNotificationsEnabled: next.emailNotificationsEnabled,
+    emailNewOrderSupportEnabled: next.emailChannels.newOrderSupport,
+    emailOrderPaidEnabled: next.emailChannels.orderPaid,
+    emailOrderShippedEnabled: next.emailChannels.orderShipped,
+    emailShopMessageEnabled: next.emailChannels.shopMessage,
+    emailPrintQuoteEnabled: next.emailChannels.printQuote,
+    emailPrintDeclinedEnabled: next.emailChannels.printDeclined,
     cartCleanupEnabled: next.cartCleanup.enabled,
     cartCleanupIdleDays: next.cartCleanup.idleDays,
     cartCleanupScope: next.cartCleanup.scope,

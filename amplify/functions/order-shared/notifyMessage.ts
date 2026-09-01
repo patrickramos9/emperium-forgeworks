@@ -36,5 +36,6 @@ export async function sendNewMessageEmailAlert(input: {
     subject: `New message — ${input.subject}`,
     text,
     kind: "general",
+    channel: "shop_message",
   });
 }

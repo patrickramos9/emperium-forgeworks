@@ -129,5 +129,6 @@ export async function sendCustomerFulfillmentEmail(
     text: message.text,
     html: message.html,
     kind: "order",
+    channel: status === "shipped" ? "order_shipped" : "order_paid",
   });
 }

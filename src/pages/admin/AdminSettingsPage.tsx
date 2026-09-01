@@ -8,6 +8,7 @@ import {
   runIdleCartCleanup,
   saveStoreOpsSettings,
   type CartCleanupScope,
+  type EmailChannelSettings,
   type StoreOpsSettings,
 } from "@/services/cartCleanupSettingsService";
 
@@ -29,6 +30,43 @@ const SCOPE_OPTIONS: { value: CartCleanupScope; label: string; hint: string }[] 
       hint: "Runs both cleanups using the same idle threshold.",
     },
   ];
+
+const EMAIL_CHANNEL_OPTIONS: {
+  key: keyof EmailChannelSettings;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    key: "newOrderSupport",
+    label: "New order → support inbox",
+    hint: "Paid order alert to melissa@ (from orders@).",
+  },
+  {
+    key: "orderPaid",
+    label: "Customer — order confirmed",
+    hint: "Payment received / order confirmed email.",
+  },
+  {
+    key: "orderShipped",
+    label: "Customer — order shipped",
+    hint: "Shipped email with carrier and tracking.",
+  },
+  {
+    key: "shopMessage",
+    label: "Messages — shop reply alert",
+    hint: "Email when you reply in Messages (guest or account with email).",
+  },
+  {
+    key: "printQuote",
+    label: "Print quote ready",
+    hint: "Quote-ready email for print requests.",
+  },
+  {
+    key: "printDeclined",
+    label: "Print request declined",
+    hint: "Decline email for print requests.",
+  },
+];
 
 export function AdminSettingsPage() {
   const navigate = useNavigate();
@@ -94,9 +132,18 @@ export function AdminSettingsPage() {
     }
   }
 
+  function setChannel(key: keyof EmailChannelSettings, checked: boolean) {
+    setSettings((prev) => ({
+      ...prev,
+      emailChannels: { ...prev.emailChannels, [key]: checked },
+    }));
+  }
+
   if (loading) {
     return <p className="text-on-surface-variant">Loading settings…</p>;
   }
+
+  const emailMasterOn = settings.emailNotificationsEnabled;
 
   return (
     <div>
@@ -131,13 +178,12 @@ export function AdminSettingsPage() {
       >
         <section className="space-y-6 border border-outline-variant/20 bg-surface-container-low p-stack-lg iron-bevel">
           <div>
-            <h2 className="font-label-md uppercase text-on-surface">
-              Email notifications
-            </h2>
+            <h2 className="font-label-md uppercase text-on-surface">Email</h2>
             <p className="mt-2 text-body-sm text-on-surface-variant">
-              Controls automated Resend mail (order confirmations, shipped
-              updates, new-order alerts to Melissa, print quote/decline). In-app
-              inbox messages are not affected.
+              Resend transactional mail. In-app inbox notifications are never
+              gated by these toggles. Requires{" "}
+              <code className="text-on-surface">RESEND_API_KEY</code> when any
+              path is on.
             </p>
           </div>
 
@@ -145,7 +191,7 @@ export function AdminSettingsPage() {
             <input
               type="checkbox"
               className="mt-1"
-              checked={settings.emailNotificationsEnabled}
+              checked={emailMasterOn}
               onChange={(e) =>
                 setSettings((prev) => ({
                   ...prev,
@@ -155,15 +201,42 @@ export function AdminSettingsPage() {
             />
             <span>
               <span className="font-label-md text-on-surface">
-                Send transactional emails
+                Enable email sending
               </span>
               <span className="mt-1 block text-body-sm text-on-surface-variant">
-                When off, Lambdas skip Resend entirely (useful for testing or a
-                temporary pause). Requires{" "}
-                <code className="text-on-surface">RESEND_API_KEY</code> when on.
+                Master switch. When off, every path below is skipped.
               </span>
             </span>
           </label>
+
+          <fieldset
+            disabled={!emailMasterOn}
+            className={!emailMasterOn ? "opacity-60" : undefined}
+          >
+            <legend className="font-label-sm uppercase text-on-surface-variant">
+              Paths
+            </legend>
+            <div className="mt-3 space-y-3">
+              {EMAIL_CHANNEL_OPTIONS.map((option) => (
+                <label key={option.key} className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={settings.emailChannels[option.key]}
+                    onChange={(e) => setChannel(option.key, e.target.checked)}
+                  />
+                  <span>
+                    <span className="font-label-md text-on-surface">
+                      {option.label}
+                    </span>
+                    <span className="mt-1 block text-body-sm text-on-surface-variant">
+                      {option.hint}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </section>
 
         <section className="space-y-6 border border-outline-variant/20 bg-surface-container-low p-stack-lg iron-bevel">

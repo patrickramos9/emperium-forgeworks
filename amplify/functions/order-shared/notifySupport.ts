@@ -136,5 +136,6 @@ export async function sendSupportOrderEmail(
     text,
     html,
     kind: "order",
+    channel: "new_order_support",
   });
 }

@@ -1,9 +1,19 @@
 /**
  * Transactional email via Resend (M20a).
  * Order-related → orders@; everything else → melissa@. Reply-To always melissa@.
+ * Per-path toggles live on CatalogSettings (Admin → Settings).
  */
 
 export type EmailKind = "order" | "general";
+
+/** Matches Admin Settings email channel toggles. */
+export type EmailChannel =
+  | "new_order_support"
+  | "order_paid"
+  | "order_shipped"
+  | "shop_message"
+  | "print_quote"
+  | "print_declined";
 
 export type SendEmailInput = {
   to: string | string[];
@@ -11,12 +21,22 @@ export type SendEmailInput = {
   text: string;
   html?: string;
   kind: EmailKind;
+  channel: EmailChannel;
 };
 
 const DEFAULT_ORDER_FROM = "orders@emperiumforgeworks.com";
 const DEFAULT_GENERAL_FROM = "melissa@emperiumforgeworks.com";
 const DEFAULT_REPLY_TO = "melissa@emperiumforgeworks.com";
 const FROM_DISPLAY = "Emperium Forgeworks";
+
+const CHANNEL_FIELD: Record<EmailChannel, string> = {
+  new_order_support: "emailNewOrderSupportEnabled",
+  order_paid: "emailOrderPaidEnabled",
+  order_shipped: "emailOrderShippedEnabled",
+  shop_message: "emailShopMessageEnabled",
+  print_quote: "emailPrintQuoteEnabled",
+  print_declined: "emailPrintDeclinedEnabled",
+};
 
 function trimEnv(name: string): string | undefined {
   const v = process.env[name]?.trim();
@@ -50,8 +70,9 @@ function normalizeTo(to: string | string[]): string[] {
  * admin disabled email, or API error).
  */
 export async function sendEmail(input: SendEmailInput): Promise<boolean> {
-  if (!(await isEmailNotificationsEnabled())) {
-    console.warn("Email skipped — emailNotificationsEnabled is off in Settings.");
+  const gate = await loadEmailGate(input.channel);
+  if (!gate.allowed) {
+    console.warn(`Email skipped — ${gate.reason}`);
     return false;
   }
 
@@ -94,26 +115,40 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
   return true;
 }
 
-async function isEmailNotificationsEnabled(): Promise<boolean> {
+async function loadEmailGate(
+  channel: EmailChannel,
+): Promise<{ allowed: boolean; reason: string }> {
   try {
     const { generateClient } = await import("aws-amplify/data");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client = generateClient() as any;
     const model = client.models?.CatalogSettings;
-    if (!model?.get) return true;
+    if (!model?.get) return { allowed: true, reason: "" };
 
     const { data, errors } = await model.get({ settingsKey: "store" });
     if (errors?.length) {
-      console.warn(
-        "emailNotificationsEnabled read failed; sending anyway",
-        errors,
-      );
-      return true;
+      console.warn("Email settings read failed; sending anyway", errors);
+      return { allowed: true, reason: "" };
     }
-    // Unset / missing row → on (safe default after deploy).
-    return data?.emailNotificationsEnabled !== false;
+
+    if (data?.emailNotificationsEnabled === false) {
+      return {
+        allowed: false,
+        reason: "master emailNotificationsEnabled is off in Settings",
+      };
+    }
+
+    const field = CHANNEL_FIELD[channel];
+    if (data?.[field] === false) {
+      return {
+        allowed: false,
+        reason: `${field} is off in Settings`,
+      };
+    }
+
+    return { allowed: true, reason: "" };
   } catch (err) {
-    console.warn("emailNotificationsEnabled check failed; sending anyway", err);
-    return true;
+    console.warn("Email settings check failed; sending anyway", err);
+    return { allowed: true, reason: "" };
   }
 }

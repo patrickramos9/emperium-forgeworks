@@ -1238,10 +1238,22 @@ const schema = a.schema({
       /** Which snapshots the cleanup job targets. */
       cartCleanupScope: a.enum(["guest", "signed_in", "both"]),
       /**
-       * When false, Lambdas skip Resend transactional email (orders, print quote, etc.).
+       * Master switch — when false, all Resend transactional mail is skipped.
        * In-app notifications are unaffected. Default on when unset.
        */
       emailNotificationsEnabled: a.boolean().default(true),
+      /** New paid order → support inbox (melissa@). */
+      emailNewOrderSupportEnabled: a.boolean().default(true),
+      /** Customer order confirmed (paid). */
+      emailOrderPaidEnabled: a.boolean().default(true),
+      /** Customer order shipped + tracking. */
+      emailOrderShippedEnabled: a.boolean().default(true),
+      /** Shop replied in Messages. */
+      emailShopMessageEnabled: a.boolean().default(true),
+      /** Print quote ready. */
+      emailPrintQuoteEnabled: a.boolean().default(true),
+      /** Print request declined. */
+      emailPrintDeclinedEnabled: a.boolean().default(true),
     })
     .identifier(["settingsKey"])
     .authorization((allow) => [

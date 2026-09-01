@@ -11,6 +11,7 @@ async function sendPrintRequestEmail(input: {
   to: string;
   subject: string;
   text: string;
+  channel: "print_quote" | "print_declined";
 }): Promise<boolean> {
   const to = input.to.trim();
   if (!to) {
@@ -23,6 +24,7 @@ async function sendPrintRequestEmail(input: {
     subject: input.subject,
     text: input.text,
     kind: "general",
+    channel: input.channel,
   });
 }
 
@@ -52,6 +54,7 @@ export async function sendPrintQuoteReadyEmail(input: {
     to: input.email,
     subject: "Your print quote is ready — Emperium Forgeworks",
     text,
+    channel: "print_quote",
   });
 }
 
@@ -78,5 +81,6 @@ export async function sendPrintRequestDeclinedEmail(input: {
     to: input.email,
     subject: "Print request update — Emperium Forgeworks",
     text,
+    channel: "print_declined",
   });
 }
