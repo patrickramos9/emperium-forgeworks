@@ -1,9 +1,11 @@
 import { sendEmail } from "./emailProvider.js";
+import { resolveContactEmail } from "./resolveContactEmail.js";
 
 export type OrderEmailPayload = {
   id: string;
   status?: string | null;
   paymentProvider?: string | null;
+  userId?: string | null;
   email?: string | null;
   customerName?: string | null;
   customerPhone?: string | null;
@@ -116,9 +118,15 @@ export async function sendSupportOrderEmail(
     return false;
   }
 
+  const resolvedEmail =
+    (await resolveContactEmail({
+      email: order.email,
+      userId: order.userId,
+    })) ?? order.email;
+
   const adminOrderUrl = `${siteUrl}/admin/orders/${order.id}`;
   const { subject, text, html } = buildOrderNotificationBody(
-    order,
+    { ...order, email: resolvedEmail },
     adminOrderUrl,
   );
 

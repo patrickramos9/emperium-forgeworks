@@ -22,6 +22,7 @@ import {
   listAllTemplates,
 } from "../promo-shared/grantIssuance.js";
 import { adjustProductFavoriteCount } from "../favorite-shared/productFavoriteCounts.js";
+import { resolveContactEmail } from "../order-shared/resolveContactEmail.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -407,6 +408,8 @@ async function mergeGuestConversationsIntoUser(
   } while (nextToken);
 
   let merged = 0;
+  const accountEmail = await resolveContactEmail({ userId });
+
   for (const row of rows) {
     if (!row.id) continue;
 
@@ -414,6 +417,9 @@ async function mergeGuestConversationsIntoUser(
       id: row.id,
       userId,
       guestId: null,
+      ...(!row.customerEmail?.trim() && accountEmail
+        ? { customerEmail: accountEmail }
+        : {}),
     });
     if (errors?.length) {
       throw new Error(errors.map((e) => e.message).join("; "));

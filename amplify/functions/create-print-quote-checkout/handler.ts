@@ -25,6 +25,7 @@ import {
   markPendingOrderCancelled,
 } from "../order-shared/stripeOrderStatus.js";
 import { verifyGuestToken } from "../guest-shared/cookie.js";
+import { resolveContactEmail } from "../order-shared/resolveContactEmail.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -258,6 +259,11 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
       if (userId) metadata.userId = userId;
       if (verifiedGuestId) metadata.guestId = verifiedGuestId;
 
+      const contactEmail = await resolveContactEmail({
+        email: request.email,
+        userId: request.userId ?? userId,
+      });
+
       checkoutSession = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items: [
@@ -278,9 +284,7 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
         success_url: successUrl,
         cancel_url: cancelUrl,
         metadata,
-        ...(request.email?.trim()
-          ? { customer_email: request.email.trim() }
-          : {}),
+        ...(contactEmail ? { customer_email: contactEmail } : {}),
         automatic_tax: { enabled: true },
         billing_address_collection: "required",
         shipping_address_collection: {
@@ -315,7 +319,7 @@ export const handler: Schema["createPrintQuoteCheckoutSession"]["functionHandler
         totalCents: request.quoteCents,
         ...(userId ? { userId } : {}),
         ...(verifiedGuestId ? { guestId: verifiedGuestId } : {}),
-        ...(request.email?.trim() ? { email: request.email.trim() } : {}),
+        ...(contactEmail ? { email: contactEmail } : {}),
       });
       if (createResult.errors?.length) {
         throw new Error(createResult.errors.map((e) => e.message).join("; "));

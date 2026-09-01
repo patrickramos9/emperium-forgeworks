@@ -6,24 +6,23 @@ import {
 const cognito = new CognitoIdentityProviderClient({});
 
 /**
- * Contact email for print quote/decline mail.
- * Guests: stored on PrintRequest.email.
- * Accounts: often Cognito-only — look up when the row has no email.
+ * Prefer a stored contact email; fall back to Cognito for signed-in users.
+ * Admin UI often shows Cognito email while Dynamo rows only have userId.
  */
-export async function resolvePrintRequestContactEmail(request: {
+export async function resolveContactEmail(input: {
   email?: string | null;
   userId?: string | null;
 }): Promise<string | undefined> {
-  const stored = request.email?.trim();
+  const stored = input.email?.trim();
   if (stored) return stored;
 
-  const userId = request.userId?.trim();
+  const userId = input.userId?.trim();
   if (!userId) return undefined;
 
   const userPoolId = process.env.USER_POOL_ID?.trim();
   if (!userPoolId) {
     console.warn(
-      "Print email skipped for account request — USER_POOL_ID not set on Lambda.",
+      "Contact email lookup skipped — USER_POOL_ID not set on Lambda.",
     );
     return undefined;
   }
@@ -35,10 +34,15 @@ export async function resolvePrintRequestContactEmail(request: {
         Username: userId,
       }),
     );
-    const email = result.UserAttributes?.find((a) => a.Name === "email")?.Value?.trim();
+    const email = result.UserAttributes?.find(
+      (a) => a.Name === "email",
+    )?.Value?.trim();
     return email || undefined;
   } catch (err) {
-    console.error("Cognito email lookup failed for print request", err);
+    console.error("Cognito contact email lookup failed", err);
     return undefined;
   }
 }
+
+/** @deprecated Prefer resolveContactEmail */
+export const resolvePrintRequestContactEmail = resolveContactEmail;

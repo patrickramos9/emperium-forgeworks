@@ -302,31 +302,28 @@ export async function replyAsAdmin(
     throw new Error(updateErrors.map((e) => e.message).join("; "));
   }
 
-  // Any thread with customerEmail gets a Resend alert (guest or signed-in).
-  if (conversation.customerEmail?.trim()) {
-    if (!client.mutations.notifyGuestMessageEmail) {
-      console.warn(
-        "notifyGuestMessageEmail mutation missing — redeploy the Amplify backend.",
-      );
-    } else {
-      try {
-        const { data, errors } = await client.mutations.notifyGuestMessageEmail({
-          conversationId,
-          previewBody: body || "(Photo attached)",
-        });
-        if (errors?.length) {
-          console.warn(
-            "Message email notify errors",
-            errors.map((e) => e.message).join("; "),
-          );
-        } else if (!data?.sent) {
-          console.warn(
-            "Message email was not sent (no address, Resend key, or Settings toggle off).",
-          );
-        }
-      } catch (err) {
-        console.warn("Message email notify failed", err);
+  // Notify when we have a stored email, or a signed-in userId (Lambda resolves Cognito).
+  if (
+    (conversation.customerEmail?.trim() || conversation.userId) &&
+    client.mutations.notifyGuestMessageEmail
+  ) {
+    try {
+      const { data, errors } = await client.mutations.notifyGuestMessageEmail({
+        conversationId,
+        previewBody: body || "(Photo attached)",
+      });
+      if (errors?.length) {
+        console.warn(
+          "Message email notify errors",
+          errors.map((e) => e.message).join("; "),
+        );
+      } else if (!data?.sent) {
+        console.warn(
+          "Message email was not sent (no address, Resend key, or Settings toggle off).",
+        );
       }
+    } catch (err) {
+      console.warn("Message email notify failed", err);
     }
   }
 }

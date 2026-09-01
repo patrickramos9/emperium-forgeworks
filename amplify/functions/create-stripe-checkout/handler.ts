@@ -27,6 +27,7 @@ import {
   withPendingPrintReview,
 } from "../order-shared/printService.js";
 import { verifyGuestToken } from "../guest-shared/cookie.js";
+import { resolveContactEmail } from "../order-shared/resolveContactEmail.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -159,6 +160,7 @@ async function createStripeCheckoutSession(
     metadata?: Record<string, string>;
     promoLabel?: string;
     discountCents?: number;
+    customerEmail?: string;
   },
 ) {
   const shippingOptions = buildStripeShippingOptions(shipping);
@@ -193,6 +195,8 @@ async function createStripeCheckoutSession(
         )} before shipping.`
       : undefined;
 
+  const customerEmail = options.customerEmail?.trim();
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: items.map((item, index) => {
@@ -222,6 +226,7 @@ async function createStripeCheckoutSession(
     success_url: options.successUrl,
     cancel_url: options.cancelUrl,
     metadata: options.metadata,
+    ...(customerEmail ? { customer_email: customerEmail } : {}),
     ...(options.metadata?.orderId
       ? {
           payment_intent_data: {
@@ -453,6 +458,17 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
     let checkoutSession: Stripe.Checkout.Session | null = null;
     let orderId: string | null = null;
 
+    const contactEmail = await resolveContactEmail({
+      userId,
+      email:
+        event.identity &&
+        "claims" in event.identity &&
+        typeof (event.identity as { claims?: { email?: unknown } }).claims
+          ?.email === "string"
+          ? ((event.identity as { claims: { email: string } }).claims.email)
+          : undefined,
+    });
+
     try {
       const sessionResult = await createStripeCheckoutSession(
         stripe,
@@ -474,6 +490,7 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
                 discountCents,
               }
             : {}),
+          ...(contactEmail ? { customerEmail: contactEmail } : {}),
         },
       );
       checkoutSession = sessionResult.session;
@@ -496,6 +513,7 @@ export const handler: Schema["createStripeCheckoutSession"]["functionHandler"] =
           : {}),
         ...(userId ? { userId } : {}),
         ...(verifiedGuestId ? { guestId: verifiedGuestId } : {}),
+        ...(contactEmail ? { email: contactEmail } : {}),
       });
 
       if (createResult.errors?.length) {

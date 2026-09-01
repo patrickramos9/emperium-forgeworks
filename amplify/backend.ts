@@ -70,6 +70,13 @@ backend.lookupCustomerByEmail.addEnvironment("USER_POOL_ID", userPoolId);
 backend.listCustomers.addEnvironment("USER_POOL_ID", userPoolId);
 backend.adminQuotePrintRequest.addEnvironment("USER_POOL_ID", userPoolId);
 backend.adminDeclinePrintRequest.addEnvironment("USER_POOL_ID", userPoolId);
+backend.updateOrderFulfillment.addEnvironment("USER_POOL_ID", userPoolId);
+backend.stripeWebhook.addEnvironment("USER_POOL_ID", userPoolId);
+backend.guestMessages.addEnvironment("USER_POOL_ID", userPoolId);
+backend.createStripeCheckout.addEnvironment("USER_POOL_ID", userPoolId);
+backend.createPrintQuoteCheckout.addEnvironment("USER_POOL_ID", userPoolId);
+backend.mergeGuestIdentity.addEnvironment("USER_POOL_ID", userPoolId);
+backend.notifyOrderPlaced.addEnvironment("USER_POOL_ID", userPoolId);
 backend.getGa4Dashboard.addEnvironment(
   "GA4_PROPERTY_ID",
   process.env.GA4_PROPERTY_ID ?? "539229345",

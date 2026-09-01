@@ -5,7 +5,7 @@ import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import type { Schema } from "../../data/resource";
 import { sendPrintRequestDeclinedEmail } from "../order-shared/notifyPrintRequest.js";
 import { createGuestPrintNotification } from "../order-shared/guestPrintNotification.js";
-import { resolvePrintRequestContactEmail } from "../order-shared/resolvePrintContactEmail.js";
+import { resolveContactEmail } from "../order-shared/resolveContactEmail.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -85,7 +85,7 @@ export const handler: Schema["adminDeclinePrintRequest"]["functionHandler"] =
       }
     }
 
-    const email = await resolvePrintRequestContactEmail(request);
+    const email = await resolveContactEmail(request);
     if (email) {
       try {
         const emailed = await sendPrintRequestDeclinedEmail({

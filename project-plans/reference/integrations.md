@@ -76,7 +76,8 @@ Checkout entry: `src/services/checkoutService.ts` → `createPaymentProvider(loa
 
 - **Provider:** Resend (`order-shared/emailProvider.ts`, M20a). Set `RESEND_API_KEY` on Amplify / sandbox.
 - **Kill switch:** Admin → Settings → **Send transactional emails** (`CatalogSettings.emailNotificationsEnabled`; default on). When off, Resend is skipped; in-app inbox still works.
-- **Messages (M10):** Guest compose email is optional; if set, shop replies trigger a Resend alert (`notifyGuestMessageEmail`, from `melissa@`). Admin message list/thread shows a **Guest** badge plus email when known.
+- **Messages (M10):** Guest compose email is optional; if set (or Cognito email for accounts), shop replies trigger a Resend alert (`notifyGuestMessageEmail`, from `melissa@`). Admin message list/thread shows a **Guest** badge plus email when known.
+- **Contact resolution:** Customer-facing mail uses `resolveContactEmail` (stored email, else Cognito `AdminGetUser` by `userId`) so admin UI Cognito labels and Resend recipients stay aligned.
 - **From:** `orders@emperiumforgeworks.com` for order purchase / status mail; `melissa@emperiumforgeworks.com` for all other outbound (print quote/decline, etc.).
 - **Inbox / Reply-To:** `melissa@emperiumforgeworks.com` only (`SUPPORT_INBOX_EMAIL`, `EMAIL_REPLY_TO`).
 - Contact / commission mailto: `CONTACT_EMAIL` in `config.ts` → `melissa@emperiumforgeworks.com`.

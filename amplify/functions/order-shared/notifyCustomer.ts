@@ -1,4 +1,5 @@
 import { sendEmail } from "./emailProvider.js";
+import { resolveContactEmail } from "./resolveContactEmail.js";
 import type { OrderEmailPayload } from "./notifySupport.js";
 
 type FulfillmentStatus = "paid" | "received" | "processing" | "shipped";
@@ -103,8 +104,14 @@ export async function sendCustomerFulfillmentEmail(
   },
   status: FulfillmentStatus,
 ): Promise<boolean> {
-  const to = order.email?.trim();
+  const to = await resolveContactEmail({
+    email: order.email,
+    userId: order.userId,
+  });
   if (!to) {
+    console.warn(
+      `Customer fulfillment email skipped — no email on order ${order.id} (and Cognito lookup failed or no userId).`,
+    );
     return false;
   }
 

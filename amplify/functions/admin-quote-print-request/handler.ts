@@ -9,7 +9,7 @@ import {
 } from "../order-shared/printRequest.js";
 import { sendPrintQuoteReadyEmail } from "../order-shared/notifyPrintRequest.js";
 import { createGuestPrintNotification } from "../order-shared/guestPrintNotification.js";
-import { resolvePrintRequestContactEmail } from "../order-shared/resolvePrintContactEmail.js";
+import { resolveContactEmail } from "../order-shared/resolveContactEmail.js";
 import {
   normalizePrintServiceConfigRow,
   PRINT_SERVICE_CONFIG_KEY,
@@ -124,7 +124,7 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
       }
     }
 
-    const email = await resolvePrintRequestContactEmail(request);
+    const email = await resolveContactEmail(request);
     if (email) {
       try {
         const emailed = await sendPrintQuoteReadyEmail({

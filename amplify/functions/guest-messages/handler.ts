@@ -5,6 +5,7 @@ import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import type { Schema } from "../../data/resource";
 import { verifyGuestToken } from "../guest-shared/cookie.js";
 import { sendNewMessageEmailAlert } from "../order-shared/notifyMessage.js";
+import { resolveContactEmail } from "../order-shared/resolveContactEmail.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -355,12 +356,27 @@ async function handleNotifyGuestMessageEmail(event: AppSyncEvent) {
     throw new Error("Conversation not found.");
   }
 
-  const to = data.customerEmail?.trim() ?? "";
+  const to = await resolveContactEmail({
+    email: data.customerEmail,
+    userId: data.userId,
+  });
   if (!to) {
     console.warn(
-      `Message email skipped — conversation ${conversationId} has no customerEmail.`,
+      `Message email skipped — conversation ${conversationId} has no customerEmail (and Cognito lookup failed or no userId).`,
     );
     return { sent: false };
+  }
+
+  // Backfill so later replies and admin UI stay consistent.
+  if (!data.customerEmail?.trim()) {
+    try {
+      await Conversation.update({
+        id: conversationId,
+        customerEmail: to,
+      });
+    } catch (err) {
+      console.warn("Could not backfill conversation customerEmail", err);
+    }
   }
 
   const preview =
