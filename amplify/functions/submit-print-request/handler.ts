@@ -19,7 +19,10 @@ const dataClient = generateClient<Schema>();
 type AppSyncEvent = {
   fieldName?: string;
   info?: { fieldName?: string };
-  identity?: { sub?: string } | null;
+  identity?: {
+    sub?: string;
+    claims?: Record<string, unknown> | null;
+  } | null;
   arguments: {
     uploadId?: string;
     storagePath?: string;
@@ -214,6 +217,12 @@ async function handleSubmit(event: AppSyncEvent) {
   if (!userId) {
     guestId = await requireGuestId(event);
     email = normalizeEmail(event.arguments.email);
+  } else {
+    // Snapshot Cognito email so quote/decline mail works without a live lookup.
+    const claimEmail = event.identity?.claims?.email;
+    if (typeof claimEmail === "string" && claimEmail.includes("@")) {
+      email = claimEmail.trim().toLowerCase();
+    }
   }
 
   const uploadId = event.arguments.uploadId?.trim() ?? "";

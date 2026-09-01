@@ -68,6 +68,8 @@ const userPoolId = backend.auth.resources.userPool.userPoolId;
 
 backend.lookupCustomerByEmail.addEnvironment("USER_POOL_ID", userPoolId);
 backend.listCustomers.addEnvironment("USER_POOL_ID", userPoolId);
+backend.adminQuotePrintRequest.addEnvironment("USER_POOL_ID", userPoolId);
+backend.adminDeclinePrintRequest.addEnvironment("USER_POOL_ID", userPoolId);
 backend.getGa4Dashboard.addEnvironment(
   "GA4_PROPERTY_ID",
   process.env.GA4_PROPERTY_ID ?? "539229345",

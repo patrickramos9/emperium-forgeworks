@@ -5,6 +5,7 @@ import type { DataClientEnv } from "@aws-amplify/backend-function/runtime";
 import type { Schema } from "../../data/resource";
 import { sendPrintRequestDeclinedEmail } from "../order-shared/notifyPrintRequest.js";
 import { createGuestPrintNotification } from "../order-shared/guestPrintNotification.js";
+import { resolvePrintRequestContactEmail } from "../order-shared/resolvePrintContactEmail.js";
 
 const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig(
   process.env as DataClientEnv,
@@ -84,7 +85,7 @@ export const handler: Schema["adminDeclinePrintRequest"]["functionHandler"] =
       }
     }
 
-    const email = request.email?.trim();
+    const email = await resolvePrintRequestContactEmail(request);
     if (email) {
       try {
         const emailed = await sendPrintRequestDeclinedEmail({
@@ -94,9 +95,18 @@ export const handler: Schema["adminDeclinePrintRequest"]["functionHandler"] =
           adminNotes,
         });
         if (emailed) notificationSent = true;
+        else {
+          console.warn(
+            `Decline email not sent to ${email} (Resend key / Settings toggle / API error).`,
+          );
+        }
       } catch (err) {
         console.error("Decline email failed", err);
       }
+    } else {
+      console.warn(
+        `Decline email skipped — no contact email on print request ${printRequestId}.`,
+      );
     }
 
     return {

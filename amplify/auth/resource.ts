@@ -2,6 +2,8 @@ import { defineAuth } from "@aws-amplify/backend";
 import { addCustomerToGroup } from "../functions/add-customer-to-group/resource";
 import { listCustomers } from "../functions/list-customers/resource";
 import { lookupCustomerByEmail } from "../functions/lookup-customer-by-email/resource";
+import { adminQuotePrintRequest } from "../functions/admin-quote-print-request/resource";
+import { adminDeclinePrintRequest } from "../functions/admin-decline-print-request/resource";
 
 const siteUrl = (
   process.env.SITE_URL ??
@@ -38,5 +40,7 @@ export const auth = defineAuth({
     allow.resource(addCustomerToGroup).to(["addUserToGroup"]),
     allow.resource(lookupCustomerByEmail).to(["listUsers"]),
     allow.resource(listCustomers).to(["listUsersInGroup"]),
+    allow.resource(adminQuotePrintRequest).to(["getUser"]),
+    allow.resource(adminDeclinePrintRequest).to(["getUser"]),
   ],
 });

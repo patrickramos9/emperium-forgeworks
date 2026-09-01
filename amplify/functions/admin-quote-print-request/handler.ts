@@ -9,6 +9,7 @@ import {
 } from "../order-shared/printRequest.js";
 import { sendPrintQuoteReadyEmail } from "../order-shared/notifyPrintRequest.js";
 import { createGuestPrintNotification } from "../order-shared/guestPrintNotification.js";
+import { resolvePrintRequestContactEmail } from "../order-shared/resolvePrintContactEmail.js";
 import {
   normalizePrintServiceConfigRow,
   PRINT_SERVICE_CONFIG_KEY,
@@ -123,7 +124,7 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
       }
     }
 
-    const email = request.email?.trim();
+    const email = await resolvePrintRequestContactEmail(request);
     if (email) {
       try {
         const emailed = await sendPrintQuoteReadyEmail({
@@ -134,9 +135,18 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
           quoteCents,
         });
         if (emailed) notificationSent = true;
+        else {
+          console.warn(
+            `Quote email not sent to ${email} (Resend key / Settings toggle / API error).`,
+          );
+        }
       } catch (err) {
         console.error("Quote email failed", err);
       }
+    } else {
+      console.warn(
+        `Quote email skipped — no contact email on print request ${printRequestId} (guest email empty or Cognito lookup failed).`,
+      );
     }
 
     return {
