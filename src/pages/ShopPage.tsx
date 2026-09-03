@@ -13,9 +13,13 @@ import {
 import {
   catalogPageRange,
   catalogTotalPages,
+  isShopProductsPageSize,
+  loadShopPageSize,
   paginateCatalogItems,
   parseCatalogPage,
-  SHOP_PRODUCTS_PAGE_SIZE,
+  saveShopPageSize,
+  SHOP_PRODUCTS_PAGE_SIZE_OPTIONS,
+  type ShopProductsPageSize,
 } from "@/lib/catalogPagination";
 import { CONTACT_EMAIL } from "@/lib/config";
 import { useSiteLayout } from "@/context/AnnouncementContext";
@@ -30,6 +34,7 @@ export function ShopPage() {
   const initialCategory = searchParams.get("category") ?? ALL_CATEGORY_FILTER;
   const initialQuery = searchParams.get("q") ?? "";
   const [category, setCategory] = useState(initialCategory);
+  const [pageSize, setPageSize] = useState<ShopProductsPageSize>(loadShopPageSize);
   const search = initialQuery;
   const prevFiltersRef = useRef({ category: initialCategory, search: initialQuery });
 
@@ -57,22 +62,14 @@ export function ShopPage() {
       .sort((a, b) => a.sortOrder - b.sortOrder);
   }, [products, category, categoryFilters, search]);
 
-  const totalPages = catalogTotalPages(
-    filtered.length,
-    SHOP_PRODUCTS_PAGE_SIZE,
-  );
+  const totalPages = catalogTotalPages(filtered.length, pageSize);
   const requestedPage = searchParams.get("page");
   const currentPage = parseCatalogPage(requestedPage, totalPages);
   const pagedProducts = useMemo(
-    () =>
-      paginateCatalogItems(filtered, currentPage, SHOP_PRODUCTS_PAGE_SIZE),
-    [filtered, currentPage],
+    () => paginateCatalogItems(filtered, currentPage, pageSize),
+    [filtered, currentPage, pageSize],
   );
-  const pageRange = catalogPageRange(
-    currentPage,
-    SHOP_PRODUCTS_PAGE_SIZE,
-    filtered.length,
-  );
+  const pageRange = catalogPageRange(currentPage, pageSize, filtered.length);
 
   useEffect(() => {
     if (requestedPage == null && currentPage === 1) return;
@@ -116,6 +113,16 @@ export function ShopPage() {
     const next = new URLSearchParams(searchParams);
     if (cat === ALL_CATEGORY_FILTER) next.delete("category");
     else next.set("category", cat);
+    next.delete("page");
+    setSearchParams(next, { replace: true });
+  }
+
+  function selectPageSize(nextSize: number) {
+    if (!isShopProductsPageSize(nextSize) || nextSize === pageSize) return;
+    setPageSize(nextSize);
+    saveShopPageSize(nextSize);
+    if (!searchParams.get("page")) return;
+    const next = new URLSearchParams(searchParams);
     next.delete("page");
     setSearchParams(next, { replace: true });
   }
@@ -177,12 +184,34 @@ export function ShopPage() {
         </p>
       ) : (
         <>
-          {filtered.length > SHOP_PRODUCTS_PAGE_SIZE && (
-            <p className="mb-4 text-body-sm text-on-surface-variant">
-              Showing {pageRange.start}–{pageRange.end} of {filtered.length}{" "}
-              {filtered.length === 1 ? "product" : "products"}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-body-sm text-on-surface-variant">
+              {filtered.length > pageSize
+                ? `Showing ${pageRange.start}–${pageRange.end} of ${filtered.length} ${
+                    filtered.length === 1 ? "product" : "products"
+                  }`
+                : `${filtered.length} ${filtered.length === 1 ? "product" : "products"}`}
             </p>
-          )}
+            <label className="flex items-center gap-2 text-body-sm text-on-surface-variant">
+              <span className="font-label-sm uppercase tracking-widest">
+                Per page
+              </span>
+              <select
+                value={pageSize}
+                onChange={(e) =>
+                  selectPageSize(Number.parseInt(e.target.value, 10))
+                }
+                className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 font-label-md uppercase tracking-widest text-on-surface"
+                aria-label="Products per page"
+              >
+                {SHOP_PRODUCTS_PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 lg:grid-cols-4">
             {pagedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
