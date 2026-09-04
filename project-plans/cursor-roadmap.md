@@ -321,7 +321,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 |------|----------------|
 | **Fulfillment** | `fulfillmentStatus` on `Order`; admin advance paid → received → processing → shipped; carrier + tracking required on ship |
 | **Customer** | `/account/orders/:orderId` timeline, ship-to, tracking; order history fulfillment labels; `kind: order` notifications |
-| **Admin** | Fulfillment stepper on order detail; orders list/dashboard show **fulfillment** (not payment status only) |
+| **Admin** | Fulfillment stepper on order detail; orders list/dashboard show **fulfillment** (not payment status only); **edit tracking after shipped** (2026-09) |
 | **Checkout hardening** | Stripe session before DB order; cancel superseded pending orders; hide orphan `pending_*` rows on customer orders |
 | **Order line items** | Variant labels on snapshots; product links (customer: shop/vault; admin: product edit); cart vault-only links |
 

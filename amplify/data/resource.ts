@@ -656,6 +656,8 @@ const schema = a.schema({
       carrier: a.string(),
       trackingNumber: a.string(),
       trackingUrl: a.string(),
+      /** When already shipped, set true to send an in-app “tracking updated” notice. */
+      notifyCustomer: a.boolean(),
     })
     .returns(a.ref("UpdateOrderFulfillmentResult"))
     .authorization((allow) => [allow.group("admin")])

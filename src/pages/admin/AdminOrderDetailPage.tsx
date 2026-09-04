@@ -51,9 +51,11 @@ export function AdminOrderDetailPage() {
   const [carrier, setCarrier] = useState("USPS");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingUrl, setTrackingUrl] = useState("");
+  const [notifyTrackingUpdate, setNotifyTrackingUpdate] = useState(true);
   const [loading, setLoading] = useState(true);
   const [savingPayment, setSavingPayment] = useState(false);
   const [advancingFulfillment, setAdvancingFulfillment] = useState(false);
+  const [savingShipping, setSavingShipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const { products: catalogProducts, loading: catalogLoading } = useProducts("all");
@@ -212,6 +214,49 @@ export function AdminOrderDetailPage() {
     }
   }
 
+  async function handleSaveShippingDetails() {
+    if (!order || !id) return;
+
+    setSavingShipping(true);
+    setError(null);
+    setMessage(null);
+
+    const client = await requireAdminSession(navigate);
+    if (!client) {
+      setSavingShipping(false);
+      return;
+    }
+
+    try {
+      const result = await updateOrderFulfillment(client, {
+        orderId: id,
+        fulfillmentStatus: "shipped",
+        carrier,
+        trackingNumber,
+        trackingUrl: trackingUrl.trim(),
+        notifyCustomer: notifyTrackingUpdate,
+      });
+
+      const refreshed = await getOrderById(client, id);
+      if (refreshed) {
+        setOrder(refreshed);
+        setCarrier(refreshed.carrier ?? "USPS");
+        setTrackingNumber(refreshed.trackingNumber ?? "");
+        setTrackingUrl(refreshed.trackingUrl ?? "");
+      }
+
+      const parts = ["Shipping details saved."];
+      if (result.notificationSent) parts.push("Customer notified in-app.");
+      setMessage(parts.join(" "));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not update shipping details",
+      );
+    } finally {
+      setSavingShipping(false);
+    }
+  }
+
   if (loading) {
     return <p className="text-on-surface-variant">Loading order...</p>;
   }
@@ -331,8 +376,14 @@ export function AdminOrderDetailPage() {
             </p>
           ) : (
             <>
-              {nextStage === "shipped" && (
+              {(nextStage === "shipped" || fulfillment === "shipped") && (
                 <div className="mt-4 space-y-3">
+                  {fulfillment === "shipped" && (
+                    <p className="text-body-sm text-on-surface-variant">
+                      Order is already shipped. You can correct carrier, tracking
+                      number, or tracking URL below.
+                    </p>
+                  )}
                   <label className="block">
                     <span className="font-label-sm uppercase text-on-surface-variant">
                       Carrier
@@ -373,6 +424,37 @@ export function AdminOrderDetailPage() {
                       className="mt-1 w-full border border-outline-variant/30 bg-surface-container px-3 py-2"
                     />
                   </label>
+                  {fulfillment === "shipped" && (
+                    <>
+                      <label className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={notifyTrackingUpdate}
+                          onChange={(e) =>
+                            setNotifyTrackingUpdate(e.target.checked)
+                          }
+                          className="mt-1"
+                        />
+                        <span className="text-body-sm text-on-surface">
+                          Notify customer in-app that tracking was updated
+                        </span>
+                      </label>
+                      <button
+                        type="button"
+                        disabled={
+                          savingShipping ||
+                          !carrier.trim() ||
+                          !trackingNumber.trim()
+                        }
+                        onClick={() => void handleSaveShippingDetails()}
+                        className="molten-glow bg-primary px-6 py-3 font-label-md uppercase text-on-primary disabled:opacity-50"
+                      >
+                        {savingShipping
+                          ? "Saving…"
+                          : "Save shipping details"}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
               {canAdvance && nextStage && (
@@ -405,11 +487,6 @@ export function AdminOrderDetailPage() {
                   Deploy the latest <strong>backend</strong> (M11) to enable
                   fulfillment updates. The payment dropdown below does not
                   change customer order status.
-                </p>
-              )}
-              {fulfillment === "shipped" && order.trackingNumber && (
-                <p className="mt-3 text-body-sm text-on-surface-variant">
-                  Shipped via {order.carrier ?? "carrier"} — {order.trackingNumber}
                 </p>
               )}
             </>

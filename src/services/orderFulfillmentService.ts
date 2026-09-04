@@ -7,6 +7,8 @@ export type UpdateFulfillmentInput = {
   carrier?: string;
   trackingNumber?: string;
   trackingUrl?: string;
+  /** When correcting shipping on an already-shipped order, notify the customer in-app. */
+  notifyCustomer?: boolean;
 };
 
 export type UpdateFulfillmentResult = {
@@ -31,7 +33,12 @@ export async function updateOrderFulfillment(
     fulfillmentStatus: input.fulfillmentStatus,
     ...(input.carrier ? { carrier: input.carrier } : {}),
     ...(input.trackingNumber ? { trackingNumber: input.trackingNumber } : {}),
-    ...(input.trackingUrl ? { trackingUrl: input.trackingUrl } : {}),
+    ...(input.trackingUrl !== undefined
+      ? { trackingUrl: input.trackingUrl }
+      : {}),
+    ...(input.notifyCustomer != null
+      ? { notifyCustomer: input.notifyCustomer }
+      : {}),
   });
 
   if (errors?.length) {

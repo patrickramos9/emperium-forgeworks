@@ -930,6 +930,7 @@ Add test sections here when each **new** milestone ships.
 - [x] Paid order gets `fulfillmentStatus = paid` (webhook + mock path)
 - [x] Admin can advance: paid → received → processing → shipped (forward only)
 - [x] **Shipped** requires carrier + tracking number; `shippedAt` set
+- [ ] Admin can **edit** carrier / tracking number / tracking URL after shipped (Save shipping details); optional in-app notify
 - [x] Payment `status` separate from fulfillment (`pending` / `paid` / `failed` / `cancelled` / `refunded`)
 - [x] Admin orders list shows **fulfillment** status (not payment-only)
 

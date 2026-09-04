@@ -101,7 +101,27 @@ function notificationCopy(
   status: FulfillmentStatus,
   order: OrderRow,
   orderDetailUrl: string,
+  kind: "status" | "tracking_update" = "status",
 ): { title: string; body: string } {
+  if (kind === "tracking_update") {
+    const carrier = order.carrier?.trim() || "carrier";
+    const tracking = order.trackingNumber?.trim() || "";
+    const trackUrl = buildTrackingUrl(
+      order.carrier,
+      order.trackingNumber,
+      order.trackingUrl,
+    );
+    const trackingPart = trackUrl
+      ? ` Track it here: ${trackUrl}`
+      : tracking
+        ? ` Tracking: ${tracking}`
+        : "";
+    return {
+      title: "Tracking updated",
+      body: `Shipping details for your order were updated (${carrier}).${trackingPart} View details: ${orderDetailUrl}`,
+    };
+  }
+
   switch (status) {
     case "paid":
       return {
@@ -148,6 +168,7 @@ export async function createFulfillmentNotification(
   client: FulfillmentDataClient,
   order: OrderRow,
   status: FulfillmentStatus,
+  kind: "status" | "tracking_update" = "status",
 ): Promise<boolean> {
   const userId = order.userId?.trim();
   if (!userId) return false;
@@ -157,7 +178,7 @@ export async function createFulfillmentNotification(
     "",
   );
   const orderDetailUrl = `${siteUrl}/account/orders/${order.id}`;
-  const copy = notificationCopy(status, order, orderDetailUrl);
+  const copy = notificationCopy(status, order, orderDetailUrl, kind);
 
   const result = await client.models.Notification.create({
     title: copy.title,
@@ -180,6 +201,64 @@ export type ApplyFulfillmentInput = {
   trackingNumber?: string | null;
   trackingUrl?: string | null;
 };
+
+/** Update carrier / tracking on an order that is already shipped (no stage change). */
+export async function updateShippedOrderShipping(
+  client: FulfillmentDataClient,
+  order: OrderRow,
+  input: ApplyFulfillmentInput,
+  options: { notifyCustomer?: boolean } = {},
+): Promise<{
+  order: OrderRow;
+  notificationSent: boolean;
+  emailSent: boolean;
+}> {
+  if (order.status !== "paid") {
+    throw new Error("Shipping details can only be updated on paid orders.");
+  }
+  if (effectiveFulfillmentStatus(order) !== "shipped") {
+    throw new Error(
+      "Order must already be shipped to edit carrier and tracking.",
+    );
+  }
+
+  const carrier = input.carrier?.trim();
+  const trackingNumber = input.trackingNumber?.trim();
+  if (!carrier || !trackingNumber) {
+    throw new Error("Carrier and tracking number are required.");
+  }
+
+  const updateResult = await client.models.Order.update({
+    id: order.id,
+    carrier,
+    trackingNumber,
+    trackingUrl: input.trackingUrl?.trim() || null,
+    fulfillmentUpdatedAt: new Date().toISOString(),
+  });
+  if (updateResult.errors?.length) {
+    throw new Error(updateResult.errors.map((e) => e.message).join("; "));
+  }
+  const updated = updateResult.data;
+  if (!updated) {
+    throw new Error("Shipping details update failed.");
+  }
+
+  let notificationSent = false;
+  if (options.notifyCustomer) {
+    try {
+      notificationSent = await createFulfillmentNotification(
+        client,
+        updated,
+        "shipped",
+        "tracking_update",
+      );
+    } catch (err) {
+      console.error("Tracking-update notification failed", err);
+    }
+  }
+
+  return { order: updated, notificationSent, emailSent: false };
+}
 
 export async function applyFulfillmentStatus(
   client: FulfillmentDataClient,
