@@ -65,6 +65,7 @@ const backend = defineBackend({
 });
 
 const userPoolId = backend.auth.resources.userPool.userPoolId;
+const userPoolArn = backend.auth.resources.userPool.userPoolArn;
 
 backend.lookupCustomerByEmail.addEnvironment("USER_POOL_ID", userPoolId);
 backend.listCustomers.addEnvironment("USER_POOL_ID", userPoolId);
@@ -77,6 +78,30 @@ backend.createStripeCheckout.addEnvironment("USER_POOL_ID", userPoolId);
 backend.createPrintQuoteCheckout.addEnvironment("USER_POOL_ID", userPoolId);
 backend.mergeGuestIdentity.addEnvironment("USER_POOL_ID", userPoolId);
 backend.notifyOrderPlaced.addEnvironment("USER_POOL_ID", userPoolId);
+
+/**
+ * Data-stack Lambdas need Cognito AdminGetUser for contact-email lookup.
+ * Grant via IAM (function→auth) — do NOT use auth `allow.resource` for these,
+ * or Amplify creates auth→data and a circular nested-stack dependency with storage.
+ */
+for (const fn of [
+  backend.adminQuotePrintRequest,
+  backend.adminDeclinePrintRequest,
+  backend.updateOrderFulfillment,
+  backend.stripeWebhook,
+  backend.guestMessages,
+  backend.createStripeCheckout,
+  backend.createPrintQuoteCheckout,
+  backend.mergeGuestIdentity,
+  backend.notifyOrderPlaced,
+] as const) {
+  fn.resources.lambda.addToRolePolicy(
+    new PolicyStatement({
+      actions: ["cognito-idp:AdminGetUser"],
+      resources: [userPoolArn],
+    }),
+  );
+}
 backend.getGa4Dashboard.addEnvironment(
   "GA4_PROPERTY_ID",
   process.env.GA4_PROPERTY_ID ?? "539229345",
