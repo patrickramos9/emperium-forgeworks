@@ -1,6 +1,6 @@
-export const SHOP_PRODUCTS_PAGE_SIZE = 12;
+export const SHOP_PRODUCTS_PAGE_SIZE = 20;
 
-export const SHOP_PRODUCTS_PAGE_SIZE_OPTIONS = [12, 24, 48] as const;
+export const SHOP_PRODUCTS_PAGE_SIZE_OPTIONS = [20, 40, 60] as const;
 
 export type ShopProductsPageSize =
   (typeof SHOP_PRODUCTS_PAGE_SIZE_OPTIONS)[number];
