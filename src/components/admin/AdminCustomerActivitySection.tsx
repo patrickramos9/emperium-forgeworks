@@ -17,6 +17,80 @@ import {
 const PAGE_SIZE_OPTIONS = [10, 20, 40] as const;
 type ActivityPageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
+type SortColumn = "customer" | "favorites" | "cart" | "lastActivity";
+type SortDirection = "asc" | "desc";
+
+function cartQuantity(row: CustomerActivityRow): number {
+  return row.cartLines.reduce((sum, line) => sum + line.quantity, 0);
+}
+
+function compareActivityRows(
+  a: CustomerActivityRow,
+  b: CustomerActivityRow,
+  column: SortColumn,
+  direction: SortDirection,
+): number {
+  const dir = direction === "asc" ? 1 : -1;
+  let cmp = 0;
+  switch (column) {
+    case "customer":
+      cmp = a.email.localeCompare(b.email, undefined, { sensitivity: "base" });
+      if (cmp === 0) cmp = a.kind.localeCompare(b.kind);
+      break;
+    case "favorites":
+      cmp = a.favorites.length - b.favorites.length;
+      break;
+    case "cart":
+      cmp = cartQuantity(a) - cartQuantity(b);
+      if (cmp === 0) cmp = a.cartLines.length - b.cartLines.length;
+      break;
+    case "lastActivity": {
+      const aMs = Date.parse(a.lastActivityAt ?? "") || 0;
+      const bMs = Date.parse(b.lastActivityAt ?? "") || 0;
+      cmp = aMs - bMs;
+      break;
+    }
+  }
+  if (cmp !== 0) return cmp * dir;
+  return a.email.localeCompare(b.email, undefined, { sensitivity: "base" });
+}
+
+function SortHeader({
+  label,
+  column,
+  sortColumn,
+  sortDirection,
+  onSort,
+}: {
+  label: string;
+  column: SortColumn;
+  sortColumn: SortColumn;
+  sortDirection: SortDirection;
+  onSort: (column: SortColumn) => void;
+}) {
+  const active = sortColumn === column;
+  const ariaSort = active
+    ? sortDirection === "asc"
+      ? "ascending"
+      : "descending"
+    : "none";
+
+  return (
+    <th className="p-3" aria-sort={ariaSort}>
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className="inline-flex items-center gap-1 uppercase tracking-wide text-on-surface-variant transition-colors hover:text-primary"
+      >
+        {label}
+        <span aria-hidden className="font-mono text-[0.7rem] opacity-80">
+          {active ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 function formatActivityAt(value: string | undefined): string {
   if (!value) return "—";
   const parsed = Date.parse(value);
@@ -246,6 +320,8 @@ export function AdminCustomerActivitySection() {
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<ActivityPageSize>(10);
+  const [sortColumn, setSortColumn] = useState<SortColumn>("lastActivity");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
@@ -303,19 +379,22 @@ export function AdminCustomerActivitySection() {
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return rows.filter(
+    const matched = rows.filter(
       (row) =>
         rowMatchesSearch(row, query) &&
         rowMatchesDateRange(row, fromMs, toMs),
     );
-  }, [rows, search, fromMs, toMs]);
+    return [...matched].sort((a, b) =>
+      compareActivityRows(a, b, sortColumn, sortDirection),
+    );
+  }, [rows, search, fromMs, toMs, sortColumn, sortDirection]);
 
   const totalPages = catalogTotalPages(filteredRows.length, pageSize);
   const safePage = Math.min(page, totalPages);
 
   useEffect(() => {
     setPage(1);
-  }, [search, dateFrom, dateTo, pageSize]);
+  }, [search, dateFrom, dateTo, pageSize, sortColumn, sortDirection]);
 
   useEffect(() => {
     if (page !== safePage) setPage(safePage);
@@ -328,6 +407,15 @@ export function AdminCustomerActivitySection() {
   const pageRange = catalogPageRange(safePage, pageSize, filteredRows.length);
 
   const guestCount = rows.filter((row) => row.kind === "guest").length;
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortColumn(column);
+    setSortDirection(column === "customer" ? "asc" : "desc");
+  };
 
   const toggleExpanded = (key: string) => {
     setExpandedKeys((prev) => {
@@ -440,10 +528,34 @@ export function AdminCustomerActivitySection() {
                   <th className="w-12 p-3">
                     <span className="sr-only">Expand</span>
                   </th>
-                  <th className="p-3">Customer</th>
-                  <th className="p-3">Favorites</th>
-                  <th className="p-3">Cart</th>
-                  <th className="p-3">Last activity</th>
+                  <SortHeader
+                    label="Customer"
+                    column="customer"
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortHeader
+                    label="Favorites"
+                    column="favorites"
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortHeader
+                    label="Cart"
+                    column="cart"
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                  />
+                  <SortHeader
+                    label="Last activity"
+                    column="lastActivity"
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
+                  />
                 </tr>
               </thead>
               <tbody>
