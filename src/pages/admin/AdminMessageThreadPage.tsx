@@ -32,6 +32,7 @@ export function AdminMessageThreadPage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -70,6 +71,7 @@ export function AdminMessageThreadPage() {
     if (!conversationId) return;
     setSending(true);
     setError(null);
+    setStatusMessage(null);
     try {
       const client = await requireAdminSession(navigate);
       if (!client) return;
@@ -77,12 +79,22 @@ export function AdminMessageThreadPage() {
         imageFiles.length > 0
           ? await uploadMessageAttachments(imageFiles)
           : undefined;
-      await replyAsAdmin(client, conversationId, body, imagePaths);
+      const result = await replyAsAdmin(
+        client,
+        conversationId,
+        body,
+        imagePaths,
+      );
       setBody("");
       setImageFiles([]);
       setMessages(await listMessagesForConversation(client, conversationId));
       const row = await getConversationById(client, conversationId);
       if (row) setConversation(row);
+      if (result.emailSent) {
+        setStatusMessage("Reply sent. Customer email notification delivered.");
+      } else if (result.emailNote) {
+        setStatusMessage(result.emailNote);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send reply.");
     } finally {
@@ -181,6 +193,25 @@ export function AdminMessageThreadPage() {
       </div>
 
       {error && <p className="mb-4 text-error">{error}</p>}
+      {statusMessage && (
+        <p className="mb-4 text-body-sm text-on-surface-variant">{statusMessage}</p>
+      )}
+      {conversation &&
+        !conversation.customerEmail?.trim() &&
+        !conversation.userId && (
+          <p className="mb-4 border border-outline-variant/30 bg-surface-container-low px-4 py-3 text-body-sm text-on-surface-variant">
+            This guest thread has no email on file — replies stay in-app only
+            unless the customer adds an email.
+          </p>
+        )}
+      {conversation &&
+        !conversation.customerEmail?.trim() &&
+        Boolean(conversation.userId) && (
+          <p className="mb-4 border border-outline-variant/30 bg-surface-container-low px-4 py-3 text-body-sm text-on-surface-variant">
+            No email stored on this thread yet — the reply email will try Cognito
+            lookup for the account.
+          </p>
+        )}
 
       <ul className="space-y-3">
         {messages.map((message) => {

@@ -173,6 +173,11 @@ export async function startCustomerConversation(
   }
   const now = new Date().toISOString();
   const email = await getCustomerEmail();
+  if (!email) {
+    throw new Error(
+      "Could not read your account email. Re-sign in and try again.",
+    );
+  }
 
   const Conversation = requireConversationModel(client);
   const Message = requireMessageModel(client);
@@ -183,8 +188,8 @@ export async function startCustomerConversation(
     lastMessageAt: now,
     unreadForCustomer: false,
     unreadForAdmin: true,
+    customerEmail: email,
     ...(input.orderId ? { orderId: input.orderId } : {}),
-    ...(email ? { customerEmail: email } : {}),
   });
   if (errors?.length) {
     throw new Error(errors.map((e) => e.message).join("; "));
@@ -254,12 +259,18 @@ export async function replyAsCustomer(
   }
 }
 
+export type AdminReplyResult = {
+  emailSent: boolean;
+  /** Set when we attempted (or skipped) email and it did not send. */
+  emailNote?: string;
+};
+
 export async function replyAsAdmin(
   client: AmplifyDataClient,
   conversationId: string,
   bodyRaw: string,
   imagePathsRaw?: string[],
-): Promise<void> {
+): Promise<AdminReplyResult> {
   const conversation = await getConversationById(client, conversationId);
   if (!conversation) {
     throw new Error("Conversation not found.");
@@ -302,29 +313,52 @@ export async function replyAsAdmin(
     throw new Error(updateErrors.map((e) => e.message).join("; "));
   }
 
-  // Notify when we have a stored email, or a signed-in userId (Lambda resolves Cognito).
-  if (
-    (conversation.customerEmail?.trim() || conversation.userId) &&
-    client.mutations.notifyGuestMessageEmail
-  ) {
-    try {
-      const { data, errors } = await client.mutations.notifyGuestMessageEmail({
+  const canNotify =
+    Boolean(conversation.customerEmail?.trim() || conversation.userId) &&
+    Boolean(client.mutations.notifyGuestMessageEmail);
+
+  if (!canNotify) {
+    return {
+      emailSent: false,
+      emailNote: conversation.guestId
+        ? "Reply saved. No email sent — this guest thread has no email on file."
+        : "Reply saved. No email sent — no customer email on this thread.",
+    };
+  }
+
+  try {
+    const { data, errors: notifyErrors } =
+      await client.mutations.notifyGuestMessageEmail({
         conversationId,
         previewBody: body || "(Photo attached)",
       });
-      if (errors?.length) {
-        console.warn(
-          "Message email notify errors",
-          errors.map((e) => e.message).join("; "),
-        );
-      } else if (!data?.sent) {
-        console.warn(
-          "Message email was not sent (no address, Resend key, or Settings toggle off).",
-        );
-      }
-    } catch (err) {
-      console.warn("Message email notify failed", err);
+    if (notifyErrors?.length) {
+      console.warn(
+        "Message email notify errors",
+        notifyErrors.map((e) => e.message).join("; "),
+      );
+      return {
+        emailSent: false,
+        emailNote: `Reply saved, but email failed: ${notifyErrors.map((e) => e.message).join("; ")}`,
+      };
     }
+    if (!data?.sent) {
+      return {
+        emailSent: false,
+        emailNote:
+          "Reply saved, but email was not sent (no address found, Resend key missing, or Messages email toggle is off in Settings).",
+      };
+    }
+    return { emailSent: true };
+  } catch (err) {
+    console.warn("Message email notify failed", err);
+    return {
+      emailSent: false,
+      emailNote:
+        err instanceof Error
+          ? `Reply saved, but email failed: ${err.message}`
+          : "Reply saved, but email failed.",
+    };
   }
 }
 

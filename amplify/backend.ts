@@ -97,7 +97,7 @@ for (const fn of [
 ] as const) {
   fn.resources.lambda.addToRolePolicy(
     new PolicyStatement({
-      actions: ["cognito-idp:AdminGetUser"],
+      actions: ["cognito-idp:AdminGetUser", "cognito-idp:ListUsers"],
       resources: [userPoolArn],
     }),
   );
