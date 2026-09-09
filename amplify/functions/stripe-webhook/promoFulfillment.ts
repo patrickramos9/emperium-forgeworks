@@ -1,4 +1,5 @@
 import type { Schema } from "../../data/resource";
+import type { SharedDataClient } from "../promo-shared/dataClient.js";
 import {
   createPromoGrantWithNotification,
   findActiveTemplate,
@@ -6,9 +7,7 @@ import {
   reissueFavoriteGrantsAfterOrder,
 } from "../promo-shared/grantIssuance.js";
 
-type DataClient = ReturnType<
-  typeof import("aws-amplify/data").generateClient<Schema>
->;
+type DataClient = SharedDataClient;
 
 export async function redeemPromoGrantForOrder(
   client: DataClient,

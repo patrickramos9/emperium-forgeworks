@@ -1,7 +1,6 @@
-import type { generateClient } from "aws-amplify/data";
-import type { Schema } from "../../data/resource";
+import type { SharedDataClient } from "../promo-shared/dataClient.js";
 
-type DataClient = ReturnType<typeof generateClient<Schema>>;
+type DataClient = SharedDataClient;
 
 export async function adjustProductFavoriteCount(
   client: DataClient,
@@ -14,7 +13,7 @@ export async function adjustProductFavoriteCount(
     id: productId,
   });
   if (errors?.length) {
-    throw new Error(errors.map((e) => e.message).join("; "));
+    throw new Error(errors.map((e: { message: string }) => e.message).join("; "));
   }
   if (!product) return;
 
@@ -27,6 +26,8 @@ export async function adjustProductFavoriteCount(
     favoriteCount: next,
   });
   if (updateErrors?.length) {
-    throw new Error(updateErrors.map((e) => e.message).join("; "));
+    throw new Error(
+      updateErrors.map((e: { message: string }) => e.message).join("; "),
+    );
   }
 }

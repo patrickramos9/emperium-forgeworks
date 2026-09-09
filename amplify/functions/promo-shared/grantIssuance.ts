@@ -1,13 +1,12 @@
 import type { Schema } from "../../data/resource";
 import { sendPromoGrantEmailAlert } from "../order-shared/notifyPromo.js";
+import type { SharedDataClient } from "./dataClient.js";
 import {
   expiresAtFromTemplateDays,
   isGrantOpen,
 } from "./promoTemplateUtils.js";
 
-type DataClient = ReturnType<
-  typeof import("aws-amplify/data").generateClient<Schema>
->;
+type DataClient = SharedDataClient;
 
 type PromoTemplate = Schema["PromoTemplate"]["type"];
 type PromoGrant = Schema["PromoGrant"]["type"];
