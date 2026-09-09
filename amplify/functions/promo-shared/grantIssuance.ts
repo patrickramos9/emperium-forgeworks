@@ -11,6 +11,13 @@ type DataClient = SharedDataClient;
 type PromoTemplate = Schema["PromoTemplate"]["type"];
 type PromoGrant = Schema["PromoGrant"]["type"];
 
+/** SharedDataClient is `any`, so GraphQL error callbacks need an explicit type. */
+function formatClientErrors(
+  errors: ReadonlyArray<{ message?: string }>,
+): string {
+  return errors.map((e: { message?: string }) => e.message ?? "Unknown error").join("; ");
+}
+
 export async function listAllTemplates(
   client: DataClient,
 ): Promise<PromoTemplate[]> {
@@ -22,7 +29,7 @@ export async function listAllTemplates(
       nextToken,
     });
     if (response.errors?.length) {
-      throw new Error(response.errors.map((e) => e.message).join("; "));
+      throw new Error(formatClientErrors(response.errors));
     }
     for (const row of response.data ?? []) {
       if (row) rows.push(row);
@@ -45,7 +52,7 @@ export async function listGrantsForUser(
       nextToken,
     });
     if (response.errors?.length) {
-      throw new Error(response.errors.map((e) => e.message).join("; "));
+      throw new Error(formatClientErrors(response.errors));
     }
     for (const row of response.data ?? []) {
       if (row) rows.push(row);
@@ -121,7 +128,7 @@ export async function createPromoGrantWithNotification(
     ...(input.cartSnapshotId ? { cartSnapshotId: input.cartSnapshotId } : {}),
   });
   if (grantResult.errors?.length) {
-    throw new Error(grantResult.errors.map((e) => e.message).join("; "));
+    throw new Error(formatClientErrors(grantResult.errors));
   }
   const grant = grantResult.data;
   if (!grant) return null;
@@ -145,7 +152,7 @@ export async function createPromoGrantWithNotification(
   });
   if (notificationResult.errors?.length) {
     throw new Error(
-      `Promo grant created but notification failed: ${notificationResult.errors.map((e) => e.message).join("; ")}`,
+      `Promo grant created but notification failed: ${formatClientErrors(notificationResult.errors)}`,
     );
   }
 
@@ -230,7 +237,7 @@ export async function revokeOpenAbandonedCartGrants(
     });
     if (result.errors?.length) {
       throw new Error(
-        `Failed to revoke abandon grant ${grant.id}: ${result.errors.map((e) => e.message).join("; ")}`,
+        `Failed to revoke abandon grant ${grant.id}: ${formatClientErrors(result.errors)}`,
       );
     }
     revoked += 1;

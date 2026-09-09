@@ -22,7 +22,11 @@ export async function redeemPromoGrantForOrder(
     orderId: order.id,
   });
   if (errors?.length) {
-    throw new Error(errors.map((e) => e.message).join("; "));
+    throw new Error(
+      errors
+        .map((e: { message?: string }) => e.message ?? "Unknown error")
+        .join("; "),
+    );
   }
 }
 
