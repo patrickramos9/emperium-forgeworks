@@ -112,11 +112,31 @@ export async function issuePromoGrant(
       template.data.kind === "percent"
         ? `${template.data.percent}% off`
         : formatPrice(template.data.amountCents ?? 0);
+    const title = "New offer on your account";
+    const body = `${template.data.name}: ${discountPreview}. Expires ${formatPromoExpiry(expiresAt)}. Applies automatically at checkout.`;
     await createPromoGrantNotification(client, {
       userId: input.userId,
-      title: "New offer on your account",
-      body: `${template.data.name}: ${discountPreview}. Expires ${formatPromoExpiry(expiresAt)}. Applies automatically at checkout.`,
+      title,
+      body,
     });
+
+    if (client.mutations.notifyPromoGrantEmail) {
+      try {
+        const { errors: emailErrors } = await client.mutations.notifyPromoGrantEmail({
+          userId: input.userId,
+          title,
+          body,
+        });
+        if (emailErrors?.length) {
+          console.warn(
+            "Promo grant email notify errors",
+            emailErrors.map((e) => e.message).join("; "),
+          );
+        }
+      } catch (err) {
+        console.warn("Promo grant email notify failed", err);
+      }
+    }
   }
 
   return data;

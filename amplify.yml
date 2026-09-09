@@ -8,6 +8,8 @@ backend:
         - npm ci --prefix amplify --cache .npm-amplify --prefer-offline
         - npm ci --prefix amplify/functions/add-customer-to-group --cache .npm-fn-add-customer --prefer-offline
         - npm ci --prefix amplify/functions/issue-new-account-grant --cache .npm-fn-issue-new-account --prefer-offline
+        - npm ci --prefix amplify/functions/toggle-product-favorite --cache .npm-fn-toggle-favorite --prefer-offline
+        - npm ci --prefix amplify/functions/sync-cart-snapshot --cache .npm-fn-sync-cart --prefer-offline
         - npm ci --prefix amplify/functions/lookup-customer-by-email --cache .npm-fn-lookup-customer --prefer-offline
         - npm ci --prefix amplify/functions/list-customers --cache .npm-fn-list-customers --prefer-offline
         - npm ci --prefix amplify/functions/get-ga4-dashboard --cache .npm-fn-ga4-dashboard --prefer-offline
@@ -46,6 +48,10 @@ backend:
       - .npm-fn-add-customer/**/*
       - amplify/functions/issue-new-account-grant/node_modules/**/*
       - .npm-fn-issue-new-account/**/*
+      - amplify/functions/toggle-product-favorite/node_modules/**/*
+      - .npm-fn-toggle-favorite/**/*
+      - amplify/functions/sync-cart-snapshot/node_modules/**/*
+      - .npm-fn-sync-cart/**/*
       - amplify/functions/lookup-customer-by-email/node_modules/**/*
       - .npm-fn-lookup-customer/**/*
       - amplify/functions/list-customers/node_modules/**/*

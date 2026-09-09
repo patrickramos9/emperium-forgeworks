@@ -206,6 +206,10 @@ const schema = a.schema({
     sent: a.boolean().required(),
   }),
 
+  NotifyPromoGrantEmailResult: a.customType({
+    sent: a.boolean().required(),
+  }),
+
   SyncCartSnapshotResult: a.customType({
     synced: a.boolean().required(),
     grantIssued: a.boolean().required(),
@@ -581,6 +585,18 @@ const schema = a.schema({
     .mutation()
     .returns(a.ref("IssueNewAccountGrantResult"))
     .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(issueNewAccountGrantFn)),
+
+  /** After admin (or client) issues a promo grant — email the customer. */
+  notifyPromoGrantEmail: a
+    .mutation()
+    .arguments({
+      userId: a.string().required(),
+      title: a.string().required(),
+      body: a.string().required(),
+    })
+    .returns(a.ref("NotifyPromoGrantEmailResult"))
+    .authorization((allow) => [allow.group("admin")])
     .handler(a.handler.function(issueNewAccountGrantFn)),
 
   /** M6e — verify HMAC guestToken + merge guest data into signed-in user (stub until guest rows exist). */
@@ -1252,6 +1268,8 @@ const schema = a.schema({
       emailOrderShippedEnabled: a.boolean().default(true),
       /** Shop replied in Messages. */
       emailShopMessageEnabled: a.boolean().default(true),
+      /** Promo / account offer issued. */
+      emailPromoGrantEnabled: a.boolean().default(true),
       /** Print quote ready. */
       emailPrintQuoteEnabled: a.boolean().default(true),
       /** Print request declined. */

@@ -16,6 +16,7 @@ export type EmailChannelSettings = {
   orderPaid: boolean;
   orderShipped: boolean;
   shopMessage: boolean;
+  promoGrant: boolean;
   printQuote: boolean;
   printDeclined: boolean;
 };
@@ -38,6 +39,7 @@ export const DEFAULT_EMAIL_CHANNEL_SETTINGS: EmailChannelSettings = {
   orderPaid: true,
   orderShipped: true,
   shopMessage: true,
+  promoGrant: true,
   printQuote: true,
   printDeclined: true,
 };
@@ -90,6 +92,7 @@ function mapRow(
     emailOrderPaidEnabled?: boolean | null;
     emailOrderShippedEnabled?: boolean | null;
     emailShopMessageEnabled?: boolean | null;
+    emailPromoGrantEnabled?: boolean | null;
     emailPrintQuoteEnabled?: boolean | null;
     emailPrintDeclinedEnabled?: boolean | null;
     cartCleanupEnabled?: boolean | null;
@@ -104,6 +107,7 @@ function mapRow(
       orderPaid: flagOn(data?.emailOrderPaidEnabled),
       orderShipped: flagOn(data?.emailOrderShippedEnabled),
       shopMessage: flagOn(data?.emailShopMessageEnabled),
+      promoGrant: flagOn(data?.emailPromoGrantEnabled),
       printQuote: flagOn(data?.emailPrintQuoteEnabled),
       printDeclined: flagOn(data?.emailPrintDeclinedEnabled),
     },
@@ -155,6 +159,7 @@ export async function saveStoreOpsSettings(
       orderPaid: settings.emailChannels.orderPaid !== false,
       orderShipped: settings.emailChannels.orderShipped !== false,
       shopMessage: settings.emailChannels.shopMessage !== false,
+      promoGrant: settings.emailChannels.promoGrant !== false,
       printQuote: settings.emailChannels.printQuote !== false,
       printDeclined: settings.emailChannels.printDeclined !== false,
     },
@@ -176,6 +181,7 @@ export async function saveStoreOpsSettings(
     emailOrderPaidEnabled: next.emailChannels.orderPaid,
     emailOrderShippedEnabled: next.emailChannels.orderShipped,
     emailShopMessageEnabled: next.emailChannels.shopMessage,
+    emailPromoGrantEnabled: next.emailChannels.promoGrant,
     emailPrintQuoteEnabled: next.emailChannels.printQuote,
     emailPrintDeclinedEnabled: next.emailChannels.printDeclined,
     cartCleanupEnabled: next.cartCleanup.enabled,

@@ -13,7 +13,8 @@ export type EmailChannel =
   | "order_shipped"
   | "shop_message"
   | "print_quote"
-  | "print_declined";
+  | "print_declined"
+  | "promo_grant";
 
 export type SendEmailInput = {
   to: string | string[];
@@ -36,6 +37,7 @@ const CHANNEL_FIELD: Record<EmailChannel, string> = {
   shop_message: "emailShopMessageEnabled",
   print_quote: "emailPrintQuoteEnabled",
   print_declined: "emailPrintDeclinedEnabled",
+  promo_grant: "emailPromoGrantEnabled",
 };
 
 function trimEnv(name: string): string | undefined {

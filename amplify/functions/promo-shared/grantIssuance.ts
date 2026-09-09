@@ -1,4 +1,5 @@
 import type { Schema } from "../../data/resource";
+import { sendPromoGrantEmailAlert } from "../order-shared/notifyPromo.js";
 import {
   expiresAtFromTemplateDays,
   isGrantOpen,
@@ -132,9 +133,12 @@ export async function createPromoGrantWithNotification(
       ? ` Expires ${new Date(expiresAt).toLocaleDateString("en-US")}.`
       : "";
 
+  const notificationBody = `${input.notification.bodyPrefix} ${input.template.name}: ${discountPreview(input.template)}.${expiryText} Applies automatically at checkout when signed in.`;
+  const notificationTitle = input.notification.title;
+
   const notificationResult = await client.models.Notification.create({
-    title: input.notification.title,
-    body: `${input.notification.bodyPrefix} ${input.template.name}: ${discountPreview(input.template)}.${expiryText} Applies automatically at checkout when signed in.`,
+    title: notificationTitle,
+    body: notificationBody,
     kind: "marketing",
     userId: input.userId,
     active: true,
@@ -144,6 +148,16 @@ export async function createPromoGrantWithNotification(
     throw new Error(
       `Promo grant created but notification failed: ${notificationResult.errors.map((e) => e.message).join("; ")}`,
     );
+  }
+
+  try {
+    await sendPromoGrantEmailAlert({
+      userId: input.userId,
+      title: notificationTitle,
+      body: notificationBody,
+    });
+  } catch (err) {
+    console.error("Promo grant email failed", err);
   }
 
   return grant;

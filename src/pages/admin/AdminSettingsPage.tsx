@@ -57,6 +57,11 @@ const EMAIL_CHANNEL_OPTIONS: {
     hint: "Email when you reply in Messages (guest or account with email).",
   },
   {
+    key: "promoGrant",
+    label: "Promo / account offer issued",
+    hint: "Email when a promo grant is issued (admin, welcome, favorite, thank-you, abandoned cart).",
+  },
+  {
     key: "printQuote",
     label: "Print quote ready",
     hint: "Quote-ready email for print requests.",

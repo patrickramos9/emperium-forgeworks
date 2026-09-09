@@ -78,9 +78,12 @@ backend.createStripeCheckout.addEnvironment("USER_POOL_ID", userPoolId);
 backend.createPrintQuoteCheckout.addEnvironment("USER_POOL_ID", userPoolId);
 backend.mergeGuestIdentity.addEnvironment("USER_POOL_ID", userPoolId);
 backend.notifyOrderPlaced.addEnvironment("USER_POOL_ID", userPoolId);
+backend.issueNewAccountGrant.addEnvironment("USER_POOL_ID", userPoolId);
+backend.toggleProductFavorite.addEnvironment("USER_POOL_ID", userPoolId);
+backend.syncCartSnapshot.addEnvironment("USER_POOL_ID", userPoolId);
 
 /**
- * Data-stack Lambdas need Cognito AdminGetUser for contact-email lookup.
+ * Data-stack Lambdas need Cognito AdminGetUser / ListUsers for contact-email lookup.
  * Grant via IAM (function→auth) — do NOT use auth `allow.resource` for these,
  * or Amplify creates auth→data and a circular nested-stack dependency with storage.
  */
@@ -94,6 +97,9 @@ for (const fn of [
   backend.createPrintQuoteCheckout,
   backend.mergeGuestIdentity,
   backend.notifyOrderPlaced,
+  backend.issueNewAccountGrant,
+  backend.toggleProductFavorite,
+  backend.syncCartSnapshot,
 ] as const) {
   fn.resources.lambda.addToRolePolicy(
     new PolicyStatement({
@@ -167,6 +173,15 @@ addTransactionalEmailEnv(backend.stripeWebhook);
 
 backend.notifyOrderPlaced.addEnvironment("SITE_URL", siteUrl);
 addTransactionalEmailEnv(backend.notifyOrderPlaced);
+
+backend.issueNewAccountGrant.addEnvironment("SITE_URL", siteUrl);
+addTransactionalEmailEnv(backend.issueNewAccountGrant, { supportInbox: false });
+backend.toggleProductFavorite.addEnvironment("SITE_URL", siteUrl);
+addTransactionalEmailEnv(backend.toggleProductFavorite, { supportInbox: false });
+backend.syncCartSnapshot.addEnvironment("SITE_URL", siteUrl);
+addTransactionalEmailEnv(backend.syncCartSnapshot, { supportInbox: false });
+backend.mergeGuestIdentity.addEnvironment("SITE_URL", siteUrl);
+addTransactionalEmailEnv(backend.mergeGuestIdentity, { supportInbox: false });
 
 /** M6e — HMAC secret for guestToken (AppSync cannot receive Function URL HttpOnly cookies). */
 const guestSessionSecret =
