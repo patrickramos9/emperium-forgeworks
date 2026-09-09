@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { CatalogPagination } from "@/components/CatalogPagination";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
+import {
+  catalogPageRange,
+  catalogTotalPages,
+  paginateCatalogItems,
+} from "@/lib/catalogPagination";
 import { getCustomerUserId } from "@/lib/customerAuth";
 import { listAllProducts } from "@/lib/listAllProducts";
 import {
@@ -8,19 +14,89 @@ import {
   type CustomerActivityRow,
 } from "@/services/adminCustomerActivityService";
 
-function formatCartUpdatedAt(value: string | undefined): string {
+const PAGE_SIZE_OPTIONS = [10, 20, 40] as const;
+type ActivityPageSize = (typeof PAGE_SIZE_OPTIONS)[number];
+
+function formatActivityAt(value: string | undefined): string {
   if (!value) return "—";
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return "—";
   return new Date(parsed).toLocaleString();
 }
 
+/** Local calendar day → start/end of day (ms) for inclusive date filters. */
+function dayStartMs(yyyyMmDd: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(yyyyMmDd.trim());
+  if (!match) return null;
+  const ms = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    0,
+    0,
+    0,
+    0,
+  ).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function dayEndMs(yyyyMmDd: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(yyyyMmDd.trim());
+  if (!match) return null;
+  const ms = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    23,
+    59,
+    59,
+    999,
+  ).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function rowMatchesSearch(row: CustomerActivityRow, query: string): boolean {
+  if (!query) return true;
+  const haystack = [
+    row.email,
+    row.name ?? "",
+    row.userId,
+    row.guestId ?? "",
+    row.kind,
+    ...row.favorites.map((f) => `${f.title} ${f.slug}`),
+    ...row.cartLines.map((l) => `${l.title} ${l.slug}`),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
+function rowMatchesDateRange(
+  row: CustomerActivityRow,
+  fromMs: number | null,
+  toMs: number | null,
+): boolean {
+  if (fromMs == null && toMs == null) return true;
+  const activityMs = Date.parse(row.lastActivityAt ?? "");
+  if (!Number.isFinite(activityMs)) return false;
+  if (fromMs != null && activityMs < fromMs) return false;
+  if (toMs != null && activityMs > toMs) return false;
+  return true;
+}
+
 function ProductLinks({
   items,
   emptyLabel,
+  showFavoritedAt,
 }: {
-  items: { title: string; slug: string; quantity?: number }[];
+  items: {
+    title: string;
+    slug: string;
+    quantity?: number;
+    favoritedAt?: string;
+  }[];
   emptyLabel: string;
+  showFavoritedAt?: boolean;
 }) {
   if (!items.length) {
     return <span className="text-on-surface-variant">{emptyLabel}</span>;
@@ -29,7 +105,7 @@ function ProductLinks({
   return (
     <ul className="space-y-1">
       {items.map((item) => (
-        <li key={`${item.slug}-${item.quantity ?? 0}`}>
+        <li key={`${item.slug}-${item.quantity ?? 0}-${item.favoritedAt ?? ""}`}>
           <Link
             to={`/admin/products/${item.slug}`}
             className="text-primary hover:underline"
@@ -39,9 +115,124 @@ function ProductLinks({
           {item.quantity != null && item.quantity > 1 ? (
             <span className="text-on-surface-variant"> × {item.quantity}</span>
           ) : null}
+          {showFavoritedAt && item.favoritedAt ? (
+            <span className="ml-2 text-label-sm text-on-surface-variant">
+              {formatActivityAt(item.favoritedAt)}
+            </span>
+          ) : null}
         </li>
       ))}
     </ul>
+  );
+}
+
+function ActivityRow({
+  row,
+  expanded,
+  onToggle,
+}: {
+  row: CustomerActivityRow;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const favoriteCount = row.favorites.length;
+  const cartQty = row.cartLines.reduce((sum, line) => sum + line.quantity, 0);
+  const cartSkuCount = row.cartLines.length;
+
+  return (
+    <>
+      <tr className="border-t border-outline-variant/10">
+        <td className="p-3 align-middle">
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={expanded}
+            className="inline-flex h-8 w-8 items-center justify-center border border-outline-variant/30 bg-surface-container text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+            title={expanded ? "Collapse details" : "Expand details"}
+          >
+            <span className="sr-only">
+              {expanded ? "Collapse" : "Expand"} {row.email}
+            </span>
+            <span aria-hidden className="font-label-md">
+              {expanded ? "−" : "+"}
+            </span>
+          </button>
+        </td>
+        <td className="p-3 align-middle text-on-surface">
+          <div className="flex flex-wrap items-center gap-2 font-medium">
+            {row.kind === "guest" ? (
+              <span className="inline-block border border-outline-variant/40 px-1.5 py-0.5 text-[0.65rem] uppercase tracking-wide text-on-surface-variant">
+                Guest
+              </span>
+            ) : null}
+            <span>{row.email}</span>
+          </div>
+          {row.kind === "guest" ? (
+            <div className="mt-1 text-body-sm text-on-surface-variant">
+              Guest session
+              {row.guestId ? (
+                <span className="ml-1 font-mono text-label-sm">
+                  {row.guestId}
+                </span>
+              ) : null}
+            </div>
+          ) : row.name ? (
+            <div className="text-body-sm text-on-surface-variant">{row.name}</div>
+          ) : null}
+        </td>
+        <td className="p-3 align-middle tabular-nums text-on-surface">
+          {favoriteCount}
+        </td>
+        <td className="p-3 align-middle tabular-nums text-on-surface">
+          {cartSkuCount === 0
+            ? "—"
+            : `${cartSkuCount} item${cartSkuCount === 1 ? "" : "s"} · ${cartQty} qty`}
+        </td>
+        <td className="p-3 align-middle text-on-surface-variant">
+          {formatActivityAt(row.lastActivityAt)}
+        </td>
+      </tr>
+      {expanded ? (
+        <tr className="border-t border-outline-variant/10 bg-surface-container/40">
+          <td colSpan={5} className="p-4">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <h3 className="font-label-sm uppercase tracking-widest text-on-surface-variant">
+                  Favorites ({favoriteCount})
+                </h3>
+                <div className="mt-2 text-body-md">
+                  <ProductLinks
+                    items={row.favorites}
+                    emptyLabel="No favorites"
+                    showFavoritedAt
+                  />
+                </div>
+              </div>
+              <div>
+                <h3 className="font-label-sm uppercase tracking-widest text-on-surface-variant">
+                  Cart ({cartSkuCount})
+                </h3>
+                {row.cartUpdatedAt ? (
+                  <p className="mt-1 text-label-sm text-on-surface-variant">
+                    Cart updated {formatActivityAt(row.cartUpdatedAt)}
+                  </p>
+                ) : null}
+                <div className="mt-2 text-body-md">
+                  <ProductLinks
+                    items={row.cartLines.map((line) => ({
+                      title: line.title,
+                      slug: line.slug,
+                      quantity: line.quantity,
+                    }))}
+                    emptyLabel="Empty cart"
+                  />
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      ) : null}
+    </>
   );
 }
 
@@ -51,7 +242,11 @@ export function AdminCustomerActivitySection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [onlyActive, setOnlyActive] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<ActivityPageSize>(10);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -100,29 +295,48 @@ export function AdminCustomerActivitySection() {
     };
   }, [navigate]);
 
+  const fromMs = useMemo(
+    () => (dateFrom ? dayStartMs(dateFrom) : null),
+    [dateFrom],
+  );
+  const toMs = useMemo(() => (dateTo ? dayEndMs(dateTo) : null), [dateTo]);
+
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return rows.filter((row) => {
-      const hasActivity = row.favorites.length > 0 || row.cartLines.length > 0;
-      if (onlyActive && !hasActivity) return false;
-      if (!query) return true;
-      const haystack = [
-        row.email,
-        row.name ?? "",
-        row.userId,
-        row.guestId ?? "",
-        row.kind,
-      ]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [rows, search, onlyActive]);
+    return rows.filter(
+      (row) =>
+        rowMatchesSearch(row, query) &&
+        rowMatchesDateRange(row, fromMs, toMs),
+    );
+  }, [rows, search, fromMs, toMs]);
 
-  const activeCount = rows.filter(
-    (row) => row.favorites.length > 0 || row.cartLines.length > 0,
-  ).length;
+  const totalPages = catalogTotalPages(filteredRows.length, pageSize);
+  const safePage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, dateFrom, dateTo, pageSize]);
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+
+  const pageRows = useMemo(
+    () => paginateCatalogItems(filteredRows, safePage, pageSize),
+    [filteredRows, safePage, pageSize],
+  );
+  const pageRange = catalogPageRange(safePage, pageSize, filteredRows.length);
+
   const guestCount = rows.filter((row) => row.kind === "guest").length;
+
+  const toggleExpanded = (key: string) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <section className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-6 iron-bevel">
@@ -132,34 +346,77 @@ export function AdminCustomerActivitySection() {
             Customer carts &amp; favorites
           </h2>
           <p className="mt-1 text-body-sm text-on-surface-variant">
-            Signed-in Cognito accounts plus active guest sessions (cart /
-            favorites). Guests disappear from this list after sign-in merge.
+            Accounts and guest sessions with cart items or favorites. Expand a
+            row for product details. Guests drop off after sign-in merge.
           </p>
         </div>
         <p className="text-label-sm text-on-surface-variant">
-          {activeCount} with cart or favorites · {guestCount} guest
-          {guestCount === 1 ? "" : "s"} · {rows.length} total
+          {rows.length} with activity · {guestCount} guest
+          {guestCount === 1 ? "" : "s"}
         </p>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        <label className="flex min-w-[14rem] flex-1 items-center gap-2 text-body-sm text-on-surface-variant">
-          <span className="sr-only">Search customers</span>
+      <div className="mt-4 flex flex-wrap items-end gap-4">
+        <label className="flex min-w-[14rem] flex-1 flex-col gap-1 text-label-sm text-on-surface-variant">
+          Search
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search email, name, or guest id"
-            className="w-full max-w-md border border-outline-variant/30 bg-surface-container px-3 py-2 text-on-surface"
+            placeholder="Email, name, guest id, or product"
+            className="w-full max-w-md border border-outline-variant/30 bg-surface-container px-3 py-2 text-body-sm text-on-surface"
           />
         </label>
-        <label className="flex items-center gap-2 text-body-sm text-on-surface-variant">
+        <label className="flex flex-col gap-1 text-label-sm text-on-surface-variant">
+          From
           <input
-            type="checkbox"
-            checked={onlyActive}
-            onChange={(e) => setOnlyActive(e.target.checked)}
+            type="date"
+            value={dateFrom}
+            max={dateTo || undefined}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="border border-outline-variant/30 bg-surface-container px-3 py-2 text-body-sm text-on-surface"
           />
-          Only accounts with cart or favorites
+        </label>
+        <label className="flex flex-col gap-1 text-label-sm text-on-surface-variant">
+          To
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="border border-outline-variant/30 bg-surface-container px-3 py-2 text-body-sm text-on-surface"
+          />
+        </label>
+        {(dateFrom || dateTo) && (
+          <button
+            type="button"
+            onClick={() => {
+              setDateFrom("");
+              setDateTo("");
+            }}
+            className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 font-label-sm uppercase tracking-widest text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
+          >
+            Clear dates
+          </button>
+        )}
+        <label className="flex flex-col gap-1 text-label-sm text-on-surface-variant">
+          Per page
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              const next = Number.parseInt(e.target.value, 10);
+              if ((PAGE_SIZE_OPTIONS as readonly number[]).includes(next)) {
+                setPageSize(next as ActivityPageSize);
+              }
+            }}
+            className="border border-outline-variant/30 bg-surface-container px-3 py-2 text-body-sm text-on-surface"
+          >
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 
@@ -169,70 +426,48 @@ export function AdminCustomerActivitySection() {
         <p className="mt-4 text-on-surface-variant">Loading customer activity…</p>
       ) : filteredRows.length === 0 ? (
         <p className="mt-4 text-on-surface-variant">
-          No matching customer accounts.
+          No matching carts or favorites.
         </p>
       ) : (
-        <div className="mt-4 overflow-x-auto border border-outline-variant/20 iron-bevel">
-          <table className="w-full min-w-[48rem] text-left text-body-md">
-            <thead className="bg-surface-container-high font-label-sm uppercase text-on-surface-variant">
-              <tr>
-                <th className="p-3">Customer</th>
-                <th className="p-3">Favorites</th>
-                <th className="p-3">Cart</th>
-                <th className="p-3">Cart updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.map((row) => (
-                <tr
-                  key={`${row.kind}:${row.userId}`}
-                  className="border-t border-outline-variant/10 align-top"
-                >
-                  <td className="p-3 text-on-surface">
-                    <div className="flex flex-wrap items-center gap-2 font-medium">
-                      {row.kind === "guest" ? (
-                        <span className="inline-block border border-outline-variant/40 px-1.5 py-0.5 text-[0.65rem] uppercase tracking-wide text-on-surface-variant">
-                          Guest
-                        </span>
-                      ) : null}
-                      <span>{row.email}</span>
-                    </div>
-                    {row.kind === "guest" ? (
-                      <div className="mt-1 text-body-sm text-on-surface-variant">
-                        Guest session (not registered)
-                        {row.guestId ? (
-                          <span className="ml-1 font-mono text-label-sm">
-                            {row.guestId}
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : row.name ? (
-                      <div className="text-body-sm text-on-surface-variant">
-                        {row.name}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="p-3">
-                    <ProductLinks items={row.favorites} emptyLabel="—" />
-                  </td>
-                  <td className="p-3">
-                    <ProductLinks
-                      items={row.cartLines.map((line) => ({
-                        title: line.title,
-                        slug: line.slug,
-                        quantity: line.quantity,
-                      }))}
-                      emptyLabel="—"
-                    />
-                  </td>
-                  <td className="p-3 text-on-surface-variant">
-                    {formatCartUpdatedAt(row.cartUpdatedAt)}
-                  </td>
+        <>
+          <p className="mt-4 text-label-sm text-on-surface-variant">
+            Showing {pageRange.start}–{pageRange.end} of {filteredRows.length}
+          </p>
+          <div className="mt-2 overflow-x-auto border border-outline-variant/20 iron-bevel">
+            <table className="w-full min-w-[40rem] text-left text-body-md">
+              <thead className="bg-surface-container-high font-label-sm uppercase text-on-surface-variant">
+                <tr>
+                  <th className="w-12 p-3">
+                    <span className="sr-only">Expand</span>
+                  </th>
+                  <th className="p-3">Customer</th>
+                  <th className="p-3">Favorites</th>
+                  <th className="p-3">Cart</th>
+                  <th className="p-3">Last activity</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {pageRows.map((row) => {
+                  const key = `${row.kind}:${row.userId}`;
+                  return (
+                    <ActivityRow
+                      key={key}
+                      row={row}
+                      expanded={expandedKeys.has(key)}
+                      onToggle={() => toggleExpanded(key)}
+                    />
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <CatalogPagination
+            page={safePage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            className="mt-4"
+          />
+        </>
       )}
     </section>
   );

@@ -17,6 +17,8 @@ export type CustomerActivityProductRef = {
   productId: string;
   title: string;
   slug: string;
+  /** Favorite saved at (when known). */
+  favoritedAt?: string;
 };
 
 export type CustomerActivityRow = {
@@ -30,6 +32,8 @@ export type CustomerActivityRow = {
   favorites: CustomerActivityProductRef[];
   cartLines: CartSnapshotLine[];
   cartUpdatedAt?: string;
+  /** Latest of cart update / favorite timestamps for filtering & sorting. */
+  lastActivityAt?: string;
 };
 
 type ProductLookup = Map<string, { title: string; slug: string }>;
@@ -143,11 +147,38 @@ function resolveProductRef(
   productId: string,
   slugHint: string | null | undefined,
   products: ProductLookup,
+  favoritedAt?: string | null,
 ): CustomerActivityProductRef {
   const product = products.get(productId);
-  if (product) return { productId, ...product };
-  const slug = slugHint?.trim() || productId;
-  return { productId, title: slug, slug };
+  const base = product
+    ? { productId, ...product }
+    : {
+        productId,
+        title: slugHint?.trim() || productId,
+        slug: slugHint?.trim() || productId,
+      };
+  const at = favoritedAt?.trim();
+  return at ? { ...base, favoritedAt: at } : base;
+}
+
+function maxIso(...values: (string | null | undefined)[]): string | undefined {
+  let bestMs = Number.NEGATIVE_INFINITY;
+  let best: string | undefined;
+  for (const value of values) {
+    if (!value?.trim()) continue;
+    const ms = Date.parse(value);
+    if (!Number.isFinite(ms) || ms <= bestMs) continue;
+    bestMs = ms;
+    best = value;
+  }
+  return best;
+}
+
+function refreshLastActivity(row: CustomerActivityRow): void {
+  row.lastActivityAt = maxIso(
+    row.cartUpdatedAt,
+    ...row.favorites.map((f) => f.favoritedAt),
+  );
 }
 
 async function listAllModelRows<T>(
@@ -276,15 +307,8 @@ export async function fetchCustomerActivity(
   const isHiddenCustomer = (userId: string | null | undefined) =>
     !userId || hiddenUserIds.has(userId) || !accountsById.has(userId);
 
-  for (const account of accounts) {
-    if (isHiddenCustomer(account.userId)) continue;
-    rowsByKey.set(
-      `customer:${account.userId}`,
-      emptyCustomerRow(accountsById, account.userId),
-    );
-  }
-
   // Skip admin/staff (not in the customer group) and the signed-in admin.
+  // Only build rows that have cart or favorite activity (keeps the admin grid usable).
   for (const favorite of favorites) {
     const userId = favorite.userId;
     if (isHiddenCustomer(userId)) continue;
@@ -296,8 +320,10 @@ export async function fetchCustomerActivity(
         favorite.productId,
         favorite.productSlug,
         productsById,
+        favorite.createdAt,
       ),
     );
+    refreshLastActivity(row);
     rowsByKey.set(key, row);
   }
 
@@ -315,6 +341,7 @@ export async function fetchCustomerActivity(
       ...resolveProductRef(line.productId, line.slug, productsById),
     }));
     row.cartUpdatedAt = snapshot.updatedAt ?? undefined;
+    refreshLastActivity(row);
     rowsByKey.set(key, row);
   }
 
@@ -330,8 +357,10 @@ export async function fetchCustomerActivity(
         favorite.productId,
         favorite.productSlug,
         productsById,
+        favorite.createdAt,
       ),
     );
+    refreshLastActivity(row);
     rowsByKey.set(key, row);
   }
 
@@ -350,13 +379,14 @@ export async function fetchCustomerActivity(
       ...resolveProductRef(line.productId, line.slug, productsById),
     }));
     row.cartUpdatedAt = snapshot.updatedAt ?? undefined;
+    refreshLastActivity(row);
     rowsByKey.set(key, row);
   }
 
   return [...rowsByKey.values()].sort((a, b) => {
-    const aActive = a.favorites.length > 0 || a.cartLines.length > 0;
-    const bActive = b.favorites.length > 0 || b.cartLines.length > 0;
-    if (aActive !== bActive) return aActive ? -1 : 1;
+    const aMs = Date.parse(a.lastActivityAt ?? "") || 0;
+    const bMs = Date.parse(b.lastActivityAt ?? "") || 0;
+    if (aMs !== bMs) return bMs - aMs;
     if (a.kind !== b.kind) return a.kind === "customer" ? -1 : 1;
     return a.email.localeCompare(b.email);
   });
