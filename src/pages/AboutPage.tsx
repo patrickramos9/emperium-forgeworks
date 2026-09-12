@@ -196,8 +196,8 @@ export function AboutPage() {
               <div className="absolute inset-0 -z-10 translate-x-4 translate-y-4 border-2 border-primary/20" />
               <img
                 src={LEGACY_IMAGES.process.workshop}
-                alt="Workshop"
-                className="aspect-square w-full object-cover shadow-2xl"
+                alt="Melissa of Emperium Forgeworks with a resin miniature"
+                className="aspect-[4/5] w-full object-cover object-center shadow-2xl md:aspect-square"
               />
             </div>
           </div>
