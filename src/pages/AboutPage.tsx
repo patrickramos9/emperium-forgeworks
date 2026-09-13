@@ -22,37 +22,6 @@ import {
   formatSuccessfulForgings,
 } from "@/services/storefrontStatsService";
 
-const STEPS = [
-  {
-    step: "01 / INITIALIZATION",
-    title: "3D Printing",
-    description:
-      "Utilizing high-density liquid resin and ultra-high-resolution monochromatic screens to capture every serrated edge and gothic detail.",
-    image: LEGACY_IMAGES.process.printing,
-  },
-  {
-    step: "02 / PURIFICATION",
-    title: "Chemical Wash",
-    description:
-      "Submerged in specialized chemical baths to remove excess resin, ensuring intricate sculpts remain sharp and free of residue.",
-    image: LEGACY_IMAGES.process.wash,
-  },
-  {
-    step: "03 / EXTRACTION",
-    title: "Support Removal",
-    description:
-      "Meticulous removal of lattice structures. Each miniature is inspected under magnification for surgical precision.",
-    image: LEGACY_IMAGES.process.supports,
-  },
-  {
-    step: "04 / HARDENING",
-    title: "UV Curing",
-    description:
-      "Targeted UV radiation stabilizes the molecular structure, solidifying the resin into its permanent, rigid form.",
-    image: LEGACY_IMAGES.process.curing,
-  },
-];
-
 export function AboutPage() {
   const { mainTopPadding } = useSiteLayout();
   const [qualityIndex, setQualityIndex] = useState("—");
@@ -161,42 +130,6 @@ export function AboutPage() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
-        <div className="mb-12 flex flex-col items-end gap-stack-lg md:flex-row">
-          <h2 className="border-l-4 border-primary pl-6 font-display-lg text-headline-lg uppercase text-primary">
-            The Ritual of Fabrication
-          </h2>
-          <p className="mb-2 font-label-md uppercase tracking-widest text-on-surface-variant/60">
-            Protocol 449-B: Quality Assurance
-          </p>
-        </div>
-        <div className="grid grid-cols-1 gap-gutter md:grid-cols-4">
-          {STEPS.map((step) => (
-            <article
-              key={step.title}
-              className="group relative border border-outline-variant/10 bg-surface-container-low p-stack-lg inner-bevel transition-all duration-500 hover:border-primary/30"
-            >
-              <span className="mb-4 block font-label-sm text-plasma-glow">
-                {step.step}
-              </span>
-              <h3 className="mb-stack-md font-headline-md text-on-surface">
-                {step.title}
-              </h3>
-              <p className="mb-6 font-body-md text-on-surface-variant">
-                {step.description}
-              </p>
-              <div className="aspect-square overflow-hidden bg-iron-gray">
-                <img
-                  src={step.image}
-                  alt={step.title}
-                  className="h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110"
-                />
-              </div>
-            </article>
-          ))}
         </div>
       </section>
 
