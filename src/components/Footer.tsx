@@ -7,6 +7,7 @@ import {
   CONTACT_PHONE_TEL,
 } from "@/lib/config";
 import { Icon } from "./Icon";
+import { SocialLinks } from "./SocialLinks";
 import { TrustedSiteBadges } from "./TrustedSiteBadges";
 
 type FooterLink =
@@ -83,21 +84,24 @@ export function Footer({ showPowerLine = false }: { showPowerLine?: boolean }) {
             ),
           )}
         </nav>
-        <div className="flex items-center gap-stack-md">
-          <a
-            className="text-on-surface-variant transition-colors hover:text-primary"
-            href={`tel:${CONTACT_PHONE_TEL}`}
-            aria-label={`Call ${CONTACT_PHONE_DISPLAY}`}
-          >
-            <Icon name="call" />
-          </a>
-          <a
-            className="text-on-surface-variant transition-colors hover:text-primary"
-            href={`mailto:${CONTACT_EMAIL}`}
-            aria-label={`Email ${CONTACT_EMAIL}`}
-          >
-            <Icon name="alternate_email" />
-          </a>
+        <div className="flex flex-col items-center gap-stack-md md:items-end">
+          <SocialLinks />
+          <div className="flex items-center gap-stack-md">
+            <a
+              className="text-on-surface-variant transition-colors hover:text-primary"
+              href={`tel:${CONTACT_PHONE_TEL}`}
+              aria-label={`Call ${CONTACT_PHONE_DISPLAY}`}
+            >
+              <Icon name="call" />
+            </a>
+            <a
+              className="text-on-surface-variant transition-colors hover:text-primary"
+              href={`mailto:${CONTACT_EMAIL}`}
+              aria-label={`Email ${CONTACT_EMAIL}`}
+            >
+              <Icon name="alternate_email" />
+            </a>
+          </div>
         </div>
       </div>
       {showPowerLine && (

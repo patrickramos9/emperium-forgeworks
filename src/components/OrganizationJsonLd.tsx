@@ -5,6 +5,7 @@ import {
   CONTACT_EMAIL,
   CONTACT_PHONE_TEL,
   SITE_URL,
+  SOCIAL_LINKS,
 } from "@/lib/config";
 
 /** Organization JSON-LD for Merchant Center / Google business identity matching. */
@@ -43,6 +44,7 @@ export function OrganizationJsonLd() {
         areaServed: "US",
         availableLanguage: "English",
       },
+      sameAs: SOCIAL_LINKS.map((link) => link.href),
     };
 
     const script = document.createElement("script");

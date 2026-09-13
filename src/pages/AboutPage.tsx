@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { SocialLinks } from "@/components/SocialLinks";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
 import {
@@ -86,14 +87,17 @@ export function AboutPage() {
 
   return (
     <main className={`pb-section-gap ${mainTopPadding}`}>
-      <section className="relative flex h-[614px] items-center overflow-hidden border-b border-outline-variant/10">
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/80 to-transparent" />
+      <section
+        id="forge-story"
+        className="relative overflow-hidden border-b border-outline-variant/10"
+      >
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/85 to-background/40" />
         <img
           src={LEGACY_IMAGES.process.hero}
-          alt="Industrial forge workshop"
-          className="absolute inset-0 h-full w-full object-cover opacity-40 grayscale"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-30 grayscale"
         />
-        <div className="relative z-20 mx-auto w-full max-w-container-max px-margin-mobile md:px-margin-desktop">
+        <div className="relative z-20 mx-auto w-full max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
           <div className="max-w-2xl space-y-stack-md">
             <div className="inline-block rounded-sm border border-secondary/20 bg-void-purple/30 px-3 py-1">
               <span className="font-label-sm uppercase tracking-widest text-secondary">
@@ -105,11 +109,57 @@ export function AboutPage() {
               <br />
               Born in Shadow.
             </h1>
-            <p className="font-body-lg text-on-surface-variant">
-              Based in Miramar, Florida, Emperium Forgeworks is more than a
-              studio—it&apos;s a digital foundry dedicated to manifesting the
-              dark and the divine through premium resin miniatures.
-            </p>
+          </div>
+
+          <div className="mt-stack-lg grid grid-cols-1 items-center gap-margin-desktop md:mt-10 md:grid-cols-2">
+            <div className="relative order-1">
+              <div className="absolute inset-0 -z-10 translate-x-4 translate-y-4 border-2 border-primary/20" />
+              <img
+                src={LEGACY_IMAGES.process.workshop}
+                alt="Melissa of Emperium Forgeworks with a resin miniature"
+                className="aspect-[4/5] w-full object-cover object-center shadow-2xl md:aspect-square"
+              />
+            </div>
+            <div className="order-2 space-y-stack-md">
+              <span className="font-label-md uppercase tracking-[0.3em] text-primary">
+                Miramar Protocol
+              </span>
+              <h2 className="font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">
+                Forge Story
+              </h2>
+              <div className="h-px w-full bg-gradient-to-r from-primary/50 to-transparent" />
+              <p className="font-body-lg leading-relaxed text-on-surface-variant">
+                Based in Miramar, Florida, Emperium Forgeworks is more than a
+                studio—it&apos;s a digital foundry dedicated to manifesting the
+                dark and the divine through premium resin miniatures.
+              </p>
+              <p className="font-body-lg leading-relaxed text-on-surface-variant">
+                Emperium Forgeworks emerged from a singular obsession: the pursuit
+                of the perfect print. We&apos;ve established a sanctuary for
+                wargamers and RPG enthusiasts who refuse to settle for the
+                standard.
+              </p>
+              <p className="font-body-md text-on-surface-variant/80">
+                Every artifact that leaves our studio has been personally vetted
+                for structural integrity and aesthetic fidelity.
+              </p>
+              <div className="grid grid-cols-2 gap-gutter pt-stack-md">
+                <div>
+                  <h5 className="font-headline-md text-primary">
+                    {successfulForgings}
+                  </h5>
+                  <p className="font-label-sm uppercase text-on-surface-variant">
+                    Successful Forgings
+                  </p>
+                </div>
+                <div>
+                  <h5 className="font-headline-md text-primary">{qualityIndex}</h5>
+                  <p className="font-label-sm uppercase text-on-surface-variant">
+                    Quality Index
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -151,60 +201,6 @@ export function AboutPage() {
       </section>
 
       <section
-        id="forge-story"
-        className="mx-auto max-w-container-max overflow-hidden px-margin-mobile py-section-gap md:px-margin-desktop"
-      >
-        <div className="relative border border-outline-variant/20 bg-surface-container-high p-stack-lg inner-bevel md:p-margin-desktop">
-          <div className="absolute right-0 top-0 h-64 w-64 bg-primary/5 blur-[100px]" />
-          <div className="grid grid-cols-1 items-center gap-margin-desktop md:grid-cols-2">
-            <div className="order-2 space-y-stack-md md:order-1">
-              <span className="font-label-md uppercase tracking-[0.3em] text-primary">
-                Miramar Protocol
-              </span>
-              <h2 className="font-display-lg text-display-lg uppercase tracking-tighter text-on-surface">
-                Forge Story
-              </h2>
-              <div className="h-px w-full bg-gradient-to-r from-primary/50 to-transparent" />
-              <p className="font-body-lg leading-relaxed text-on-surface-variant">
-                Emperium Forgeworks emerged from a singular obsession: the pursuit
-                of the perfect print. In Miramar, Florida, we&apos;ve established
-                a sanctuary for wargamers and RPG enthusiasts who refuse to settle
-                for the standard.
-              </p>
-              <p className="font-body-md text-on-surface-variant/80">
-                Every artifact that leaves our studio has been personally vetted
-                for structural integrity and aesthetic fidelity.
-              </p>
-              <div className="grid grid-cols-2 gap-gutter pt-stack-md">
-                <div>
-                  <h5 className="font-headline-md text-primary">
-                    {successfulForgings}
-                  </h5>
-                  <p className="font-label-sm uppercase text-on-surface-variant">
-                    Successful Forgings
-                  </p>
-                </div>
-                <div>
-                  <h5 className="font-headline-md text-primary">{qualityIndex}</h5>
-                  <p className="font-label-sm uppercase text-on-surface-variant">
-                    Quality Index
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="relative order-1 md:order-2">
-              <div className="absolute inset-0 -z-10 translate-x-4 translate-y-4 border-2 border-primary/20" />
-              <img
-                src={LEGACY_IMAGES.process.workshop}
-                alt="Melissa of Emperium Forgeworks with a resin miniature"
-                className="aspect-[4/5] w-full object-cover object-center shadow-2xl md:aspect-square"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
         id="contact"
         className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop"
       >
@@ -240,6 +236,7 @@ export function AboutPage() {
                 <Icon name="alternate_email" className="text-xl" />
                 {CONTACT_EMAIL}
               </a>
+              <SocialLinks className="mt-2 justify-center" iconClassName="h-6 w-6" />
               <Link
                 to="/contact"
                 className="font-label-sm uppercase tracking-widest text-on-surface-variant underline-offset-4 hover:text-on-surface hover:underline"

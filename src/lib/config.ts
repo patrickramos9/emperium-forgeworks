@@ -41,9 +41,37 @@ export const BUSINESS_LOGO_URL = `${SITE_URL.replace(/\/$/, "")}/favicon.svg`;
 /** Shown to customers when a return is approved (M16). */
 export const RETURN_SHIP_INSTRUCTIONS = `Ship returns to: ${BUSINESS_LEGAL_NAME}, ${BUSINESS_ADDRESS_ONE_LINE}. Contact ${CONTACT_EMAIL} or ${CONTACT_PHONE_DISPLAY} with your order number before shipping. Buyer pays return shipping per our returns policy.`;
 
+/** Public Etsy shop — storefront social link. */
+export const ETSY_SHOP_URL = "https://www.etsy.com/shop/EmperiumForgeworks";
+
 /** Public Etsy shop reviews page — default outbound link for imported reviews. */
-export const ETSY_SHOP_REVIEWS_URL =
-  "https://www.etsy.com/shop/EmperiumForgeworks/reviews";
+export const ETSY_SHOP_REVIEWS_URL = `${ETSY_SHOP_URL}/reviews`;
+
+/** Brand social profiles (footer / contact). Admin Settings editor is M23e. */
+export const SOCIAL_LINKS = [
+  {
+    network: "instagram",
+    label: "Instagram",
+    href: "https://www.instagram.com/emperiumforgeworks/",
+  },
+  {
+    network: "threads",
+    label: "Threads",
+    href: "https://www.threads.com/@emperiumforgeworks",
+  },
+  {
+    network: "facebook",
+    label: "Facebook",
+    href: "https://www.facebook.com/profile.php?id=61591911696521",
+  },
+  {
+    network: "etsy",
+    label: "Etsy",
+    href: ETSY_SHOP_URL,
+  },
+] as const;
+
+export type SocialNetwork = (typeof SOCIAL_LINKS)[number]["network"];
 
 export const PLAUSIBLE_DOMAIN =
   import.meta.env.VITE_PLAUSIBLE_DOMAIN?.trim() || undefined;

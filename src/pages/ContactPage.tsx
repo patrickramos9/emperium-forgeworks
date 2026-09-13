@@ -7,6 +7,7 @@ import {
   CONTACT_PHONE_TEL,
 } from "@/lib/config";
 import { Icon } from "@/components/Icon";
+import { SocialLinks } from "@/components/SocialLinks";
 
 export function ContactPage() {
   return (
@@ -91,6 +92,14 @@ export function ContactPage() {
                   <Icon name="alternate_email" className="text-xl" />
                   {CONTACT_EMAIL}
                 </a>
+              </dd>
+            </div>
+            <div>
+              <dt className="font-label-sm uppercase text-on-surface-variant">
+                Social
+              </dt>
+              <dd className="mt-3">
+                <SocialLinks showLabels iconClassName="h-5 w-5" />
               </dd>
             </div>
           </dl>
