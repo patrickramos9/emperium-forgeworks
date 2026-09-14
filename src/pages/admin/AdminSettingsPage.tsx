@@ -183,6 +183,51 @@ export function AdminSettingsPage() {
       >
         <section className="space-y-6 border border-outline-variant/20 bg-surface-container-low p-stack-lg iron-bevel">
           <div>
+            <h2 className="font-label-md uppercase text-on-surface">
+              About page
+            </h2>
+            <p className="mt-2 text-body-sm text-on-surface-variant">
+              Public stats on{" "}
+              <code className="text-on-surface">/about</code>. Quality Index is
+              always the average rating of all approved reviews.
+            </p>
+          </div>
+
+          <label className="block">
+            <span className="font-label-sm uppercase text-on-surface-variant">
+              Successful Forgings
+            </span>
+            <input
+              type="number"
+              min={0}
+              max={99999999}
+              value={
+                settings.aboutSuccessfulForgings == null
+                  ? ""
+                  : settings.aboutSuccessfulForgings
+              }
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                setSettings((prev) => ({
+                  ...prev,
+                  aboutSuccessfulForgings:
+                    raw === ""
+                      ? null
+                      : Math.max(0, Math.floor(Number(raw)) || 0),
+                }));
+              }}
+              placeholder="Live paid order count"
+              className="mt-1 w-full max-w-xs border border-outline-variant/30 bg-surface px-3 py-2"
+            />
+            <span className="mt-1 block text-body-sm text-on-surface-variant">
+              Leave blank to show the live paid-order count. Enter a number to
+              override (includes Etsy / historical sales if you want).
+            </span>
+          </label>
+        </section>
+
+        <section className="space-y-6 border border-outline-variant/20 bg-surface-container-low p-stack-lg iron-bevel">
+          <div>
             <h2 className="font-label-md uppercase text-on-surface">Email</h2>
             <p className="mt-2 text-body-sm text-on-surface-variant">
               Resend transactional mail. In-app inbox notifications are never

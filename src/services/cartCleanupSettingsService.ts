@@ -26,6 +26,10 @@ export type StoreOpsSettings = {
   emailNotificationsEnabled: boolean;
   emailChannels: EmailChannelSettings;
   cartCleanup: CartCleanupSettings;
+  /**
+   * About page Successful Forgings. `null` = use live paid order count.
+   */
+  aboutSuccessfulForgings: number | null;
 };
 
 export const DEFAULT_CART_CLEANUP_SETTINGS: CartCleanupSettings = {
@@ -48,6 +52,7 @@ export const DEFAULT_STORE_OPS_SETTINGS: StoreOpsSettings = {
   emailNotificationsEnabled: true,
   emailChannels: { ...DEFAULT_EMAIL_CHANNEL_SETTINGS },
   cartCleanup: { ...DEFAULT_CART_CLEANUP_SETTINGS },
+  aboutSuccessfulForgings: null,
 };
 
 export type IdleCartCleanupResult = {
@@ -85,6 +90,15 @@ function flagOn(raw: boolean | null | undefined): boolean {
   return raw !== false;
 }
 
+function normalizeSuccessfulForgings(
+  raw: number | null | undefined,
+): number | null {
+  if (raw == null || !Number.isFinite(raw)) return null;
+  const n = Math.floor(raw);
+  if (n < 0) return null;
+  return Math.min(n, 99_999_999);
+}
+
 function mapRow(
   data: {
     emailNotificationsEnabled?: boolean | null;
@@ -98,6 +112,7 @@ function mapRow(
     cartCleanupEnabled?: boolean | null;
     cartCleanupIdleDays?: number | null;
     cartCleanupScope?: string | null;
+    aboutSuccessfulForgings?: number | null;
   } | null | undefined,
 ): StoreOpsSettings {
   return {
@@ -116,6 +131,9 @@ function mapRow(
       idleDays: normalizeIdleDays(data?.cartCleanupIdleDays ?? undefined),
       scope: normalizeScope(data?.cartCleanupScope ?? undefined),
     },
+    aboutSuccessfulForgings: normalizeSuccessfulForgings(
+      data?.aboutSuccessfulForgings,
+    ),
   };
 }
 
@@ -128,6 +146,7 @@ export async function fetchStoreOpsSettings(
       ...DEFAULT_STORE_OPS_SETTINGS,
       emailChannels: { ...DEFAULT_EMAIL_CHANNEL_SETTINGS },
       cartCleanup: { ...DEFAULT_CART_CLEANUP_SETTINGS },
+      aboutSuccessfulForgings: null,
     };
   }
 
@@ -168,6 +187,9 @@ export async function saveStoreOpsSettings(
       idleDays: normalizeIdleDays(settings.cartCleanup.idleDays),
       scope: normalizeScope(settings.cartCleanup.scope),
     },
+    aboutSuccessfulForgings: normalizeSuccessfulForgings(
+      settings.aboutSuccessfulForgings,
+    ),
   };
 
   const existing = await CatalogSettings.get({ settingsKey: CATALOG_SETTINGS_KEY });
@@ -187,6 +209,7 @@ export async function saveStoreOpsSettings(
     cartCleanupEnabled: next.cartCleanup.enabled,
     cartCleanupIdleDays: next.cartCleanup.idleDays,
     cartCleanupScope: next.cartCleanup.scope,
+    aboutSuccessfulForgings: next.aboutSuccessfulForgings,
   };
 
   if (existing.data) {

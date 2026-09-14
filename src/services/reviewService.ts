@@ -172,6 +172,14 @@ export async function listApprovedReviews(
   client: AmplifyDataClient,
   limit = 50,
 ): Promise<ReviewRecord[]> {
+  const rows = await listAllApprovedReviews(client);
+  return rows.slice(0, limit);
+}
+
+/** Every approved review (site + imported) — used for About Quality Index. */
+export async function listAllApprovedReviews(
+  client: AmplifyDataClient,
+): Promise<ReviewRecord[]> {
   const rows: ReviewRecord[] = [];
   let nextToken: string | undefined;
 
@@ -189,7 +197,7 @@ export async function listApprovedReviews(
     nextToken = response.nextToken ?? undefined;
   } while (nextToken);
 
-  return rows.sort(compareReviewsByDate).slice(0, limit);
+  return rows.sort(compareReviewsByDate);
 }
 
 export async function listAllReviews(

@@ -1274,6 +1274,11 @@ const schema = a.schema({
       emailPrintQuoteEnabled: a.boolean().default(true),
       /** Print request declined. */
       emailPrintDeclinedEnabled: a.boolean().default(true),
+      /**
+       * About page “Successful Forgings” display count.
+       * When unset, the storefront falls back to live paid order count.
+       */
+      aboutSuccessfulForgings: a.integer(),
     })
     .identifier(["settingsKey"])
     .authorization((allow) => [

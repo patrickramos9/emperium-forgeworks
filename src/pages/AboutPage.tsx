@@ -16,9 +16,9 @@ import {
   computeAverageReviewRating,
   formatQualityIndex,
 } from "@/lib/reviewStats";
-import { listApprovedReviews } from "@/services/reviewService";
+import { listAllApprovedReviews } from "@/services/reviewService";
 import {
-  fetchPaidSalesCount,
+  fetchSuccessfulForgingsCount,
   formatSuccessfulForgings,
 } from "@/services/storefrontStatsService";
 
@@ -34,7 +34,7 @@ export function AboutPage() {
 
       try {
         if (hasReviewModel(client)) {
-          const reviews = await listApprovedReviews(client, 500);
+          const reviews = await listAllApprovedReviews(client);
           setQualityIndex(
             formatQualityIndex(computeAverageReviewRating(reviews)),
           );
@@ -44,10 +44,10 @@ export function AboutPage() {
       }
 
       try {
-        const paidSalesCount = await fetchPaidSalesCount(client);
-        setSuccessfulForgings(formatSuccessfulForgings(paidSalesCount));
+        const count = await fetchSuccessfulForgingsCount(client);
+        setSuccessfulForgings(formatSuccessfulForgings(count));
       } catch {
-        /* Sales count requires the storefront stats query after deploy. */
+        /* Settings / sales count may be unavailable before deploy. */
       }
     }
 
