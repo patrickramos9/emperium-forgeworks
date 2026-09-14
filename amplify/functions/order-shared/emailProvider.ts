@@ -2,6 +2,9 @@
  * Transactional email via Resend (M20a).
  * Order-related → orders@; everything else → melissa@. Reply-To always melissa@.
  * Per-path toggles live on CatalogSettings (Admin → Settings).
+ *
+ * Callers should pass `dataClient` (the Lambda's Amplify client) so the settings
+ * read uses the same IAM/AppSync identity as the rest of the handler.
  */
 
 export type EmailKind = "order" | "general";
@@ -16,6 +19,10 @@ export type EmailChannel =
   | "print_declined"
   | "promo_grant";
 
+/** Loose Amplify Data client (avoids cross-bundle V6Client mismatches). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type EmailDataClient = any;
+
 export type SendEmailInput = {
   to: string | string[];
   subject: string;
@@ -23,12 +30,15 @@ export type SendEmailInput = {
   html?: string;
   kind: EmailKind;
   channel: EmailChannel;
+  /** Preferred: Lambda handler's generateClient() so CatalogSettings is readable. */
+  dataClient?: EmailDataClient;
 };
 
 const DEFAULT_ORDER_FROM = "orders@emperiumforgeworks.com";
 const DEFAULT_GENERAL_FROM = "melissa@emperiumforgeworks.com";
 const DEFAULT_REPLY_TO = "melissa@emperiumforgeworks.com";
 const FROM_DISPLAY = "Emperium Forgeworks";
+const CATALOG_SETTINGS_KEY = "store";
 
 const CHANNEL_FIELD: Record<EmailChannel, string> = {
   new_order_support: "emailNewOrderSupportEnabled",
@@ -67,12 +77,16 @@ function normalizeTo(to: string | string[]): string[] {
   return list.map((a) => a.trim()).filter(Boolean);
 }
 
+function isExplicitlyOff(value: unknown): boolean {
+  return value === false || value === "false" || value === 0;
+}
+
 /**
  * Sends via Resend HTTP API. Returns false when skipped (missing config,
- * admin disabled email, or API error).
+ * admin disabled email, settings unreadable, or API error).
  */
 export async function sendEmail(input: SendEmailInput): Promise<boolean> {
-  const gate = await loadEmailGate(input.channel);
+  const gate = await loadEmailGate(input.channel, input.dataClient);
   if (!gate.allowed) {
     console.warn(`Email skipped — ${gate.reason}`);
     return false;
@@ -117,31 +131,65 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
   return true;
 }
 
-async function loadEmailGate(
-  channel: EmailChannel,
-): Promise<{ allowed: boolean; reason: string }> {
+async function resolveDataClient(
+  provided?: EmailDataClient,
+): Promise<EmailDataClient | null> {
+  if (provided?.models?.CatalogSettings) return provided;
   try {
     const { generateClient } = await import("aws-amplify/data");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = generateClient() as any;
-    const model = client.models?.CatalogSettings;
-    if (!model?.get) return { allowed: true, reason: "" };
+    return generateClient() as EmailDataClient;
+  } catch (err) {
+    console.warn("Email settings: could not create data client", err);
+    return null;
+  }
+}
 
-    const { data, errors } = await model.get({ settingsKey: "store" });
+async function loadEmailGate(
+  channel: EmailChannel,
+  providedClient?: EmailDataClient,
+): Promise<{ allowed: boolean; reason: string }> {
+  const client = await resolveDataClient(providedClient);
+  const model = client?.models?.CatalogSettings;
+  if (!model?.get) {
+    return {
+      allowed: false,
+      reason:
+        "CatalogSettings unavailable — refusing to send until Settings can be read",
+    };
+  }
+
+  try {
+    const { data, errors } = await model.get({
+      settingsKey: CATALOG_SETTINGS_KEY,
+    });
     if (errors?.length) {
-      console.warn("Email settings read failed; sending anyway", errors);
-      return { allowed: true, reason: "" };
+      console.warn("Email settings read failed", errors);
+      return {
+        allowed: false,
+        reason:
+          "CatalogSettings read failed — refusing to send until Settings can be read",
+      };
     }
 
-    if (data?.emailNotificationsEnabled === false) {
+    const field = CHANNEL_FIELD[channel];
+    const channelValue = data?.[field];
+    const masterValue = data?.emailNotificationsEnabled;
+
+    console.info("Email gate check", {
+      channel,
+      field,
+      master: masterValue,
+      channelValue,
+    });
+
+    if (isExplicitlyOff(masterValue)) {
       return {
         allowed: false,
         reason: "master emailNotificationsEnabled is off in Settings",
       };
     }
 
-    const field = CHANNEL_FIELD[channel];
-    if (data?.[field] === false) {
+    if (isExplicitlyOff(channelValue)) {
       return {
         allowed: false,
         reason: `${field} is off in Settings`,
@@ -150,7 +198,11 @@ async function loadEmailGate(
 
     return { allowed: true, reason: "" };
   } catch (err) {
-    console.warn("Email settings check failed; sending anyway", err);
-    return { allowed: true, reason: "" };
+    console.warn("Email settings check failed", err);
+    return {
+      allowed: false,
+      reason:
+        "CatalogSettings check threw — refusing to send until Settings can be read",
+    };
   }
 }

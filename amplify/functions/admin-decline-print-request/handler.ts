@@ -88,11 +88,15 @@ export const handler: Schema["adminDeclinePrintRequest"]["functionHandler"] =
     const email = await resolveContactEmail(request);
     if (email) {
       try {
+        // Touch CatalogSettings in this handler so Amplify grants read access for
+        // the email channel gate (fail-closed when Print Declined is off).
+        await dataClient.models.CatalogSettings.get({ settingsKey: "store" });
         const emailed = await sendPrintRequestDeclinedEmail({
           email,
           printRequestId,
           originalFileName: request.originalFileName,
           adminNotes,
+          dataClient,
         });
         if (emailed) notificationSent = true;
         else {

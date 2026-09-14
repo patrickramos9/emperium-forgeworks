@@ -127,12 +127,14 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
     const email = await resolveContactEmail(request);
     if (email) {
       try {
+        await dataClient.models.CatalogSettings.get({ settingsKey: "store" });
         const emailed = await sendPrintQuoteReadyEmail({
           email,
           printRequestId,
           originalFileName: request.originalFileName,
           summary,
           quoteCents,
+          dataClient,
         });
         if (emailed) notificationSent = true;
         else {

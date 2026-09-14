@@ -1,4 +1,4 @@
-import { sendEmail } from "./emailProvider.js";
+import { sendEmail, type EmailDataClient } from "./emailProvider.js";
 
 function siteBaseUrl(): string {
   return (process.env.SITE_URL ?? "https://emperiumforgeworks.com").replace(
@@ -12,6 +12,7 @@ async function sendPrintRequestEmail(input: {
   subject: string;
   text: string;
   channel: "print_quote" | "print_declined";
+  dataClient?: EmailDataClient;
 }): Promise<boolean> {
   const to = input.to.trim();
   if (!to) {
@@ -25,6 +26,7 @@ async function sendPrintRequestEmail(input: {
     text: input.text,
     kind: "general",
     channel: input.channel,
+    dataClient: input.dataClient,
   });
 }
 
@@ -35,6 +37,7 @@ export async function sendPrintQuoteReadyEmail(input: {
   originalFileName: string;
   summary: string;
   quoteCents: number;
+  dataClient?: EmailDataClient;
 }): Promise<boolean> {
   const detailUrl = `${siteBaseUrl()}/account/print-requests/${input.printRequestId}`;
   const total = `$${(input.quoteCents / 100).toFixed(2)}`;
@@ -55,6 +58,7 @@ export async function sendPrintQuoteReadyEmail(input: {
     subject: "Your print quote is ready — Emperium Forgeworks",
     text,
     channel: "print_quote",
+    dataClient: input.dataClient,
   });
 }
 
@@ -64,6 +68,7 @@ export async function sendPrintRequestDeclinedEmail(input: {
   printRequestId: string;
   originalFileName: string;
   adminNotes?: string;
+  dataClient?: EmailDataClient;
 }): Promise<boolean> {
   const detailUrl = `${siteBaseUrl()}/account/print-requests/${input.printRequestId}`;
   const notePart = input.adminNotes?.trim()
@@ -82,5 +87,6 @@ export async function sendPrintRequestDeclinedEmail(input: {
     subject: "Print request update — Emperium Forgeworks",
     text,
     channel: "print_declined",
+    dataClient: input.dataClient,
   });
 }
