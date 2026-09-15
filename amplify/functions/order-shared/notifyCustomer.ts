@@ -1,4 +1,4 @@
-import { sendEmail } from "./emailProvider.js";
+import { sendEmail, type EmailDataClient } from "./emailProvider.js";
 import { resolveContactEmail } from "./resolveContactEmail.js";
 import type { OrderEmailPayload } from "./notifySupport.js";
 
@@ -103,6 +103,7 @@ export async function sendCustomerFulfillmentEmail(
     trackingUrl?: string | null;
   },
   status: FulfillmentStatus,
+  dataClient?: EmailDataClient,
 ): Promise<boolean> {
   const to = await resolveContactEmail({
     email: order.email,
@@ -130,5 +131,6 @@ export async function sendCustomerFulfillmentEmail(
     html: message.html,
     kind: "order",
     channel: status === "shipped" ? "order_shipped" : "order_paid",
+    dataClient,
   });
 }

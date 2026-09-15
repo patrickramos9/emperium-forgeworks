@@ -384,11 +384,14 @@ async function handleNotifyGuestMessageEmail(event: AppSyncEvent) {
     "The shop replied to your conversation.";
 
   try {
+    // Ensure CatalogSettings is readable with this Lambda's IAM client (fail-closed gate).
+    await dataClient.models.CatalogSettings.get({ settingsKey: "store" });
     const sent = await sendNewMessageEmailAlert({
       to,
       subject: data.subject,
       conversationId: data.id,
       previewBody: preview,
+      dataClient,
     });
     if (!sent) {
       console.warn(

@@ -29,7 +29,7 @@ export const handler: Schema["notifyOrderPlaced"]["functionHandler"] = async (
   }
 
   if (!order.supportNotifiedAt) {
-    const sent = await sendSupportOrderEmail(order);
+    const sent = await sendSupportOrderEmail(order, dataClient);
     if (sent) {
       await dataClient.models.Order.update({
         id: orderId,

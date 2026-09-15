@@ -1,4 +1,4 @@
-import { sendEmail } from "./emailProvider.js";
+import { sendEmail, type EmailDataClient } from "./emailProvider.js";
 import { resolveContactEmail } from "./resolveContactEmail.js";
 
 /** Email a signed-in customer when a promo grant is issued to their account. */
@@ -6,6 +6,7 @@ export async function sendPromoGrantEmailAlert(input: {
   userId: string;
   title: string;
   body: string;
+  dataClient?: EmailDataClient;
 }): Promise<boolean> {
   const to = await resolveContactEmail({ userId: input.userId });
   if (!to) {
@@ -37,5 +38,6 @@ export async function sendPromoGrantEmailAlert(input: {
     text,
     kind: "general",
     channel: "promo_grant",
+    dataClient: input.dataClient,
   });
 }

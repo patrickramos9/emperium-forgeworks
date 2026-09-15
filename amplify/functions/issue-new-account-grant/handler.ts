@@ -49,7 +49,12 @@ async function handleNotifyPromoGrantEmail(event: AppSyncEvent) {
   if (!title || !body) throw new Error("title and body are required.");
 
   try {
-    const sent = await sendPromoGrantEmailAlert({ userId, title, body });
+    const sent = await sendPromoGrantEmailAlert({
+      userId,
+      title,
+      body,
+      dataClient,
+    });
     return { sent };
   } catch (err) {
     console.error("notifyPromoGrantEmail failed", err);

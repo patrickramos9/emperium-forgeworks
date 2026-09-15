@@ -4,6 +4,7 @@ import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { MessageImagePicker } from "@/components/MessageImagePicker";
 import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { conversationParticipantLabel } from "@/lib/conversationParticipant";
+import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
 import { hasConversationModel } from "@/lib/dataModels";
 import { uploadMessageAttachments } from "@/lib/messageAttachmentUpload";
 import {
@@ -30,6 +31,7 @@ export function AdminMessagesPage() {
 
   const [showCompose, setShowCompose] = useState(composeRequested);
   const [composeOrder, setComposeOrder] = useState<OrderRecord | null>(null);
+  const [composeEmail, setComposeEmail] = useState<string | null>(null);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -70,7 +72,15 @@ export function AdminMessagesPage() {
             );
             setShowCompose(false);
           } else {
+            let email = order.email?.trim() || null;
+            if (!email && order.userId) {
+              const labels = await resolveCustomerLabelsForUserIds(client, [
+                order.userId,
+              ]);
+              email = labels.get(order.userId)?.email?.trim() || null;
+            }
             setComposeOrder(order);
+            setComposeEmail(email);
             setShowCompose(true);
             setSubject(`Regarding your order ${filterOrderId.slice(0, 8)}…`);
           }
@@ -105,7 +115,9 @@ export function AdminMessagesPage() {
   async function handleStart(e: FormEvent) {
     e.preventDefault();
     if (!composeOrder) {
-      setError("Pick an order from Order detail → Message Buyer to start a thread.");
+      setError(
+        "Pick an order from Order detail → Message Buyer to start a thread.",
+      );
       return;
     }
     setSending(true);
@@ -132,18 +144,20 @@ export function AdminMessagesPage() {
         orderId: composeOrder.id,
         userId: composeOrder.userId,
         guestId: composeOrder.guestId,
-        customerEmail: composeOrder.email,
+        customerEmail: composeEmail ?? composeOrder.email,
         ...(imagePaths ? { imagePaths } : {}),
       });
 
-      if (result.emailNote) setStatusMessage(result.emailNote);
+      const note = result.emailSent
+        ? "Message sent. Customer email notification delivered."
+        : (result.emailNote ??
+          "Message saved, but customer email notification was not sent.");
+
       navigate(`/admin/messages/${result.conversation.id}`, {
-        state: result.emailNote ? { statusMessage: result.emailNote } : undefined,
+        state: { statusMessage: note },
       });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not send message.",
-      );
+      setError(err instanceof Error ? err.message : "Could not send message.");
     } finally {
       setSending(false);
     }
@@ -193,9 +207,15 @@ export function AdminMessagesPage() {
           </h2>
           <p className="text-body-sm text-on-surface-variant">
             Order {composeOrder.id.slice(0, 8)}…
-            {composeOrder.email ? ` · ${composeOrder.email}` : ""}
+            {composeEmail ? ` · ${composeEmail}` : " · No email on file yet"}
             {composeOrder.guestId ? " · Guest checkout" : ""}
           </p>
+          {!composeEmail && (
+            <p className="text-body-sm text-error">
+              No email on this order — the message will save in-app, but an email
+              alert may not send unless Cognito lookup finds an address.
+            </p>
+          )}
           <label className="block">
             <span className="font-label-sm uppercase text-on-surface-variant">
               Subject

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ConfirmDeleteActions } from "@/components/admin/ConfirmDeleteActions";
 import { MessageAttachmentGallery } from "@/components/MessageAttachmentGallery";
 import { MessageImagePicker } from "@/components/MessageImagePicker";
@@ -21,6 +21,7 @@ import {
 export function AdminMessageThreadPage() {
   const { conversationId } = useParams<{ conversationId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [conversation, setConversation] = useState<ConversationRecord | null>(
     null,
   );
@@ -32,7 +33,11 @@ export function AdminMessageThreadPage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(() => {
+    const fromNav = (location.state as { statusMessage?: string } | null)
+      ?.statusMessage;
+    return typeof fromNav === "string" && fromNav.trim() ? fromNav : null;
+  });
 
   useEffect(() => {
     async function load() {

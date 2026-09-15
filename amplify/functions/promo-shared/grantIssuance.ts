@@ -161,6 +161,7 @@ export async function createPromoGrantWithNotification(
       userId: input.userId,
       title: notificationTitle,
       body: notificationBody,
+      dataClient: client,
     });
   } catch (err) {
     console.error("Promo grant email failed", err);

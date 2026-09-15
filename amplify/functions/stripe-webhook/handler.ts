@@ -127,7 +127,7 @@ async function handleCheckoutCompleted(
   if (order) {
     if (!order.supportNotifiedAt) {
       try {
-        const sent = await sendSupportOrderEmail(order);
+        const sent = await sendSupportOrderEmail(order, dataClient);
         if (sent) {
           await dataClient.models.Order.update({
             id: order.id,

@@ -1,4 +1,4 @@
-import { sendEmail } from "./emailProvider.js";
+import { sendEmail, type EmailDataClient } from "./emailProvider.js";
 
 /** Email guest (or any thread with customerEmail) when the shop posts a new message. */
 export async function sendNewMessageEmailAlert(input: {
@@ -6,6 +6,7 @@ export async function sendNewMessageEmailAlert(input: {
   subject: string;
   conversationId: string;
   previewBody?: string;
+  dataClient?: EmailDataClient;
 }): Promise<boolean> {
   const to = input.to.trim();
   if (!to) return false;
@@ -37,5 +38,6 @@ export async function sendNewMessageEmailAlert(input: {
     text,
     kind: "general",
     channel: "shop_message",
+    dataClient: input.dataClient,
   });
 }

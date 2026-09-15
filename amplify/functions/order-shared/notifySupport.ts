@@ -1,4 +1,4 @@
-import { sendEmail } from "./emailProvider.js";
+import { sendEmail, type EmailDataClient } from "./emailProvider.js";
 import { resolveContactEmail } from "./resolveContactEmail.js";
 
 export type OrderEmailPayload = {
@@ -104,6 +104,7 @@ export function buildOrderNotificationBody(
 
 export async function sendSupportOrderEmail(
   order: OrderEmailPayload,
+  dataClient?: EmailDataClient,
 ): Promise<boolean> {
   const to = process.env.SUPPORT_INBOX_EMAIL?.trim();
   const siteUrl = (process.env.SITE_URL ?? "https://emperiumforgeworks.com").replace(
@@ -137,5 +138,6 @@ export async function sendSupportOrderEmail(
     html,
     kind: "order",
     channel: "new_order_support",
+    dataClient,
   });
 }

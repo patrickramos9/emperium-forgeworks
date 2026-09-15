@@ -351,7 +351,11 @@ export async function applyFulfillmentStatus(
   let emailSent = false;
   if (targetStatus === "paid" || targetStatus === "shipped") {
     try {
-      emailSent = await sendCustomerFulfillmentEmail(orderForNotify, targetStatus);
+      emailSent = await sendCustomerFulfillmentEmail(
+        orderForNotify,
+        targetStatus,
+        client,
+      );
     } catch (err) {
       console.error("Customer fulfillment email failed", err);
     }
