@@ -121,13 +121,17 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
       quoteAttachments.length > 0
         ? ` ${quoteAttachments.length} attachment${quoteAttachments.length === 1 ? "" : "s"} included.`
         : "";
+    const shopNote = adminNotes
+      ? ` Shop note: ${adminNotes.length > 160 ? `${adminNotes.slice(0, 157)}…` : adminNotes}`
+      : "";
+    const notificationBody = `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}.${attachmentNote}${shopNote} Please use the following link to review your quote and to proceed with your transaction: ${detailUrl}`;
 
     const userId = request.userId?.trim();
     if (userId) {
       try {
         const result = await dataClient.models.Notification.create({
           title: "Your print quote is ready",
-          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}.${attachmentNote} Review and pay: ${detailUrl}`,
+          body: notificationBody,
           kind: "order",
           userId,
           active: true,
@@ -145,7 +149,7 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
         const created = await createGuestPrintNotification(dataClient, {
           guestId,
           title: "Your print quote is ready",
-          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}.${attachmentNote} Review and pay: ${detailUrl}`,
+          body: notificationBody,
         });
         if (created) notificationSent = true;
       } catch (err) {
@@ -163,6 +167,7 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
           originalFileName: request.originalFileName,
           summary,
           quoteCents,
+          adminNotes,
           attachmentNames: quoteAttachments.map((file) => file.fileName),
           dataClient,
         });

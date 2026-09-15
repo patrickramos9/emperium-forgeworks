@@ -37,18 +37,23 @@ export async function sendPrintQuoteReadyEmail(input: {
   originalFileName: string;
   summary: string;
   quoteCents: number;
+  adminNotes?: string;
   attachmentNames?: string[];
   dataClient?: EmailDataClient;
 }): Promise<boolean> {
   const detailUrl = `${siteBaseUrl()}/account/print-requests/${input.printRequestId}`;
   const total = `$${(input.quoteCents / 100).toFixed(2)}`;
+  const shopNotes = input.adminNotes?.trim();
+  const noteLines = shopNotes
+    ? ["", "Message from the shop:", shopNotes]
+    : [];
   const attachmentLines =
     input.attachmentNames && input.attachmentNames.length > 0
       ? [
           "",
           "Attachments from the shop:",
           ...input.attachmentNames.map((name) => `• ${name}`),
-          "(Open the link below to download them.)",
+          "(Download them from your quote page using the link below.)",
         ]
       : [];
   const text = [
@@ -57,11 +62,13 @@ export async function sendPrintQuoteReadyEmail(input: {
     `File: ${input.originalFileName}`,
     `Breakdown: ${input.summary}`,
     `Total before shipping & tax: ${total}`,
+    ...noteLines,
     ...attachmentLines,
     "",
-    `Review and pay: ${detailUrl}`,
+    "Please use the following link to review your quote and to proceed with your transaction:",
+    detailUrl,
     "",
-    "Open that link in the same browser you used to submit (guest requests are tied to this device until you create an account).",
+    "If you submitted as a guest, use the same browser you used to submit — guest requests stay on that device until you create an account.",
   ].join("\n");
 
   return sendPrintRequestEmail({
