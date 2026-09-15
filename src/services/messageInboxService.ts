@@ -212,6 +212,152 @@ export async function startCustomerConversation(
   return conversation;
 }
 
+/** Existing shop ↔ buyer thread for an order, if any. */
+export async function findConversationForOrder(
+  client: AmplifyDataClient,
+  orderId: string,
+): Promise<ConversationRecord | null> {
+  const id = orderId.trim();
+  if (!id) return null;
+  const rows = await listAllConversations(client);
+  return rows.find((row) => row.orderId === id) ?? null;
+}
+
+export type AdminReplyResult = {
+  emailSent: boolean;
+  /** Set when we attempted (or skipped) email and it did not send. */
+  emailNote?: string;
+};
+
+/**
+ * Admin starts a message thread about an order (signed-in or guest buyer).
+ * Requires Conversation.create for the admin group (backend deploy).
+ */
+export async function startAdminConversation(
+  client: AmplifyDataClient,
+  input: {
+    subject: string;
+    body: string;
+    orderId: string;
+    userId?: string | null;
+    guestId?: string | null;
+    customerEmail?: string | null;
+    imagePaths?: string[];
+  },
+): Promise<AdminReplyResult & { conversation: ConversationRecord }> {
+  const orderId = input.orderId.trim();
+  if (!orderId) throw new Error("Missing order id.");
+
+  const userId = input.userId?.trim() || undefined;
+  const guestId = input.guestId?.trim() || undefined;
+  if (!userId && !guestId) {
+    throw new Error(
+      "This order has no buyer identity on file, so a message thread cannot be started.",
+    );
+  }
+  if (userId && guestId) {
+    throw new Error("Order has both account and guest identity — cannot message.");
+  }
+
+  const existing = await findConversationForOrder(client, orderId);
+  if (existing?.id) {
+    throw new Error(
+      "A conversation for this order already exists. Open that thread instead.",
+    );
+  }
+
+  const imagePaths = normalizeImagePaths(input.imagePaths);
+  const subject = normalizeSubject(input.subject);
+  const body = normalizeBody(input.body, {
+    allowEmpty: Boolean(imagePaths?.length),
+  });
+  if (!body && !imagePaths?.length) {
+    throw new Error("Enter a message or attach a photo.");
+  }
+
+  const now = new Date().toISOString();
+  const ownerKey = userId ?? guestId!;
+  const customerEmail = input.customerEmail?.trim() || undefined;
+
+  const Conversation = requireConversationModel(client);
+  const Message = requireMessageModel(client);
+
+  const { data: conversation, errors } = await Conversation.create({
+    subject,
+    lastMessageAt: now,
+    unreadForCustomer: true,
+    unreadForAdmin: false,
+    orderId,
+    ...(userId ? { userId } : {}),
+    ...(guestId ? { guestId } : {}),
+    ...(customerEmail ? { customerEmail } : {}),
+  });
+  if (errors?.length) {
+    throw new Error(errors.map((e) => e.message).join("; "));
+  }
+  if (!conversation?.id) {
+    throw new Error("Could not start conversation.");
+  }
+
+  const { errors: messageErrors } = await Message.create({
+    conversationId: conversation.id,
+    conversationUserId: ownerKey,
+    senderRole: "admin",
+    body: body || "(Photo attached)",
+    ...(imagePaths ? { imagePaths } : {}),
+  });
+  if (messageErrors?.length) {
+    throw new Error(messageErrors.map((e) => e.message).join("; "));
+  }
+
+  const canNotify =
+    Boolean(customerEmail || userId) &&
+    Boolean(client.mutations.notifyGuestMessageEmail);
+
+  if (!canNotify) {
+    return {
+      conversation,
+      emailSent: false,
+      emailNote: guestId
+        ? "Message saved. No email sent — this guest order has no email on file."
+        : "Message saved. No email sent — no customer email on this order.",
+    };
+  }
+
+  try {
+    const { data, errors: notifyErrors } =
+      await client.mutations.notifyGuestMessageEmail({
+        conversationId: conversation.id,
+        previewBody: body || "(Photo attached)",
+      });
+    if (notifyErrors?.length) {
+      return {
+        conversation,
+        emailSent: false,
+        emailNote: `Message saved, but email failed: ${notifyErrors.map((e) => e.message).join("; ")}`,
+      };
+    }
+    if (!data?.sent) {
+      return {
+        conversation,
+        emailSent: false,
+        emailNote:
+          "Message saved, but email was not sent (no address found, Resend key missing, or Messages email toggle is off in Settings).",
+      };
+    }
+    return { conversation, emailSent: true };
+  } catch (err) {
+    return {
+      conversation,
+      emailSent: false,
+      emailNote:
+        err instanceof Error
+          ? `Message saved, but email failed: ${err.message}`
+          : "Message saved, but email failed.",
+    };
+  }
+}
+
 export async function replyAsCustomer(
   client: AmplifyDataClient,
   conversationId: string,
@@ -258,12 +404,6 @@ export async function replyAsCustomer(
     throw new Error(updateErrors.map((e) => e.message).join("; "));
   }
 }
-
-export type AdminReplyResult = {
-  emailSent: boolean;
-  /** Set when we attempted (or skipped) email and it did not send. */
-  emailNote?: string;
-};
 
 export async function replyAsAdmin(
   client: AmplifyDataClient,

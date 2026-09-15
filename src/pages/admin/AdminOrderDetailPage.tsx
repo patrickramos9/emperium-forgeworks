@@ -15,6 +15,7 @@ import {
 } from "@/lib/adminOrderCustomer";
 import { resolveCustomerLabelsForUserIds, type CustomerLabel } from "@/lib/customerAdmin";
 import { isUnacknowledgedPaidOrder } from "@/lib/adminOrderStats";
+import { hasConversationModel } from "@/lib/dataModels";
 import {
   CARRIER_OPTIONS,
   canAdvanceFulfillment,
@@ -26,6 +27,7 @@ import {
   type FulfillmentStatus,
 } from "@/lib/orderFulfillment";
 import { paymentStatusDetail } from "@/lib/orderRefunds";
+import { findConversationForOrder } from "@/services/messageInboxService";
 import {
   acknowledgeOrder,
   formatOrderDate,
@@ -58,6 +60,7 @@ export function AdminOrderDetailPage() {
   const [savingShipping, setSavingShipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [messagingBuyer, setMessagingBuyer] = useState(false);
   const { products: catalogProducts, loading: catalogLoading } = useProducts("all");
 
   const nextStage = useMemo(
@@ -257,6 +260,40 @@ export function AdminOrderDetailPage() {
     }
   }
 
+  async function handleMessageBuyer() {
+    if (!order) return;
+    setMessagingBuyer(true);
+    setError(null);
+    try {
+      const client = dataClient ?? (await requireAdminSession(navigate));
+      if (!client) return;
+      if (!hasConversationModel(client)) {
+        throw new Error(
+          "Messages are not available yet. Redeploy the Amplify backend.",
+        );
+      }
+      if (!order.userId?.trim() && !order.guestId?.trim()) {
+        throw new Error(
+          "This order has no buyer identity on file, so a message thread cannot be started.",
+        );
+      }
+      const existing = await findConversationForOrder(client, order.id);
+      if (existing?.id) {
+        navigate(`/admin/messages/${existing.id}`);
+        return;
+      }
+      navigate(
+        `/admin/messages?compose=1&orderId=${encodeURIComponent(order.id)}`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not open messaging.",
+      );
+    } finally {
+      setMessagingBuyer(false);
+    }
+  }
+
   if (loading) {
     return <p className="text-on-surface-variant">Loading order...</p>;
   }
@@ -294,12 +331,14 @@ export function AdminOrderDetailPage() {
       </h1>
 
       <p className="mt-3">
-        <Link
-          to={`/admin/messages?orderId=${encodeURIComponent(order.id)}`}
-          className="font-label-sm uppercase text-primary hover:underline"
+        <button
+          type="button"
+          disabled={messagingBuyer}
+          onClick={() => void handleMessageBuyer()}
+          className="border border-outline-variant/40 bg-surface-container px-4 py-2 font-label-sm uppercase text-on-surface hover:border-primary disabled:opacity-50"
         >
-          Message customer about this order
-        </Link>
+          {messagingBuyer ? "Opening…" : "Message Buyer"}
+        </button>
       </p>
 
       <dl className="mt-stack-lg space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">

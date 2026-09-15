@@ -1414,7 +1414,7 @@ const schema = a.schema({
         .ownerDefinedIn("userId")
         .identityClaim("sub")
         .to(["create", "read", "update", "delete"]),
-      allow.group("admin").to(["read", "update", "delete"]),
+      allow.group("admin").to(["create", "read", "update", "delete"]),
     ]),
 
   /** M10 — message within a Conversation. */
