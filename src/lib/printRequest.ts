@@ -226,21 +226,21 @@ export function parsePrintQuoteAttachments(
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((row) => {
-        const storagePath = String(row?.storagePath ?? "").trim();
-        const fileName = String(row?.fileName ?? "").trim();
-        const contentType = String(row?.contentType ?? "").trim();
-        if (!storagePath.startsWith("print-quote-attachments/") || !fileName) {
-          return null;
-        }
-        return {
-          storagePath,
-          fileName,
-          ...(contentType ? { contentType } : {}),
-        } satisfies PrintQuoteAttachment;
-      })
-      .filter((row): row is PrintQuoteAttachment => row != null);
+    const out: PrintQuoteAttachment[] = [];
+    for (const row of parsed) {
+      const storagePath = String(row?.storagePath ?? "").trim();
+      const fileName = String(row?.fileName ?? "").trim();
+      const contentType = String(row?.contentType ?? "").trim();
+      if (!storagePath.startsWith("print-quote-attachments/") || !fileName) {
+        continue;
+      }
+      out.push({
+        storagePath,
+        fileName,
+        ...(contentType ? { contentType } : {}),
+      });
+    }
+    return out;
   } catch {
     return [];
   }

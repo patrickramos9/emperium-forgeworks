@@ -2,6 +2,7 @@ import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import {
   parsePrintFigureLines,
   parsePrintQuoteAttachments,
+  type PrintFigureLine,
   type PrintFigureLineInput,
   type PrintQuoteAttachment,
   type PrintRequestRecord,
