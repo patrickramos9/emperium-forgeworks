@@ -12,16 +12,38 @@ const ALLOWED_TYPES = new Set([
   "application/pdf",
   "application/zip",
   "application/x-zip-compressed",
+  "application/octet-stream",
   "text/plain",
+]);
+
+const ALLOWED_EXTENSIONS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".pdf",
+  ".zip",
+  ".txt",
 ]);
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 120);
 }
 
+function fileExtension(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i).toLowerCase() : "";
+}
+
 export function assertQuoteAttachmentFile(file: File): void {
-  const type = file.type || "application/octet-stream";
-  if (!ALLOWED_TYPES.has(type) && !type.startsWith("image/")) {
+  const type = (file.type || "").toLowerCase();
+  const ext = fileExtension(file.name);
+  const typeOk =
+    ALLOWED_TYPES.has(type) ||
+    type.startsWith("image/") ||
+    ALLOWED_EXTENSIONS.has(ext);
+  if (!typeOk) {
     throw new Error(
       "Use images, PDF, ZIP, or plain text files for quote attachments.",
     );
@@ -30,6 +52,7 @@ export function assertQuoteAttachmentFile(file: File): void {
     throw new Error("Each attachment must be 15 MB or smaller.");
   }
 }
+
 
 /** Upload an admin quote attachment under print-quote-attachments/{printRequestId}/. */
 export async function uploadPrintQuoteAttachment(

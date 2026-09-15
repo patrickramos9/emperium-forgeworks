@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { getUrl } from "aws-amplify/storage";
 import { formatPrice } from "@/data/seedProducts";
@@ -22,6 +22,7 @@ import {
 import {
   QUOTE_ATTACHMENT_MAX_COUNT,
   QUOTE_ATTACHMENT_MAX_BYTES,
+  assertQuoteAttachmentFile,
   resolvePrintQuoteAttachmentUrl,
   uploadPrintQuoteAttachments,
 } from "@/lib/printQuoteAttachmentUpload";
@@ -66,6 +67,7 @@ function defaultUnitPriceDollars(
 export function AdminPrintRequestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const quoteFileInputId = useId();
   const [client, setClient] = useState<AmplifyDataClient | null>(null);
   const [row, setRow] = useState<PrintRequestRecord | null>(null);
   const [customerLabel, setCustomerLabel] = useState<CustomerLabel | null>(
@@ -86,19 +88,21 @@ export function AdminPrintRequestDetailPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       if (!id) {
         navigate("/admin/print-requests");
         return;
       }
       const session = await requireAdminSession(navigate);
-      if (!session) return;
+      if (!session || cancelled) return;
       setClient(session);
       try {
         const [request, cfg] = await Promise.all([
           getPrintRequestById(session, id),
           fetchPrintServiceConfig(),
         ]);
+        if (cancelled) return;
         if (!request) {
           navigate("/admin/print-requests");
           return;
@@ -112,6 +116,7 @@ export function AdminPrintRequestDetailPage() {
           const labels = await resolveCustomerLabelsForUserIds(session, [
             request.userId,
           ]);
+          if (cancelled) return;
           setCustomerLabel(labels.get(request.userId) ?? null);
         } else {
           setCustomerLabel(null);
@@ -139,11 +144,16 @@ export function AdminPrintRequestDetailPage() {
           ]);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not load request.");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not load request.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [id, navigate]);
 
   const preview = useMemo(() => {
@@ -564,39 +574,87 @@ export function AdminPrintRequestDetailPage() {
               </ul>
             )}
             {pendingFiles.length > 0 && (
-              <ul className="mt-2 space-y-1 text-body-sm text-on-surface-variant">
-                {pendingFiles.map((file) => (
-                  <li key={`${file.name}-${file.size}-${file.lastModified}`}>
-                    Pending upload: {file.name}
+              <ul className="mt-2 space-y-1">
+                {pendingFiles.map((file, index) => (
+                  <li
+                    key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
+                    className="flex flex-wrap items-center gap-3 text-body-sm text-on-surface"
+                  >
+                    <span>
+                      Ready to upload: <strong>{file.name}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPendingFiles((prev) =>
+                          prev.filter((_, i) => i !== index),
+                        )
+                      }
+                      className="font-label-sm uppercase text-error"
+                    >
+                      Remove
+                    </button>
                   </li>
                 ))}
               </ul>
             )}
-            <input
-              type="file"
-              multiple
-              accept="image/*,.pdf,.zip,.txt,application/pdf,application/zip,text/plain"
-              className="mt-2 block w-full text-body-sm text-on-surface"
-              onChange={(e) => {
-                const files = [...(e.target.files ?? [])];
-                e.target.value = "";
-                if (!files.length) return;
-                setPendingFiles((prev) => {
-                  const next = [...prev, ...files];
-                  if (
-                    quoteAttachments.length + next.length >
-                    QUOTE_ATTACHMENT_MAX_COUNT
-                  ) {
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <label
+                htmlFor={quoteFileInputId}
+                className={`inline-flex cursor-pointer border border-outline-variant/30 bg-surface-container px-3 py-2 font-label-sm uppercase text-on-surface hover:border-primary ${
+                  quoteAttachments.length + pendingFiles.length >=
+                  QUOTE_ATTACHMENT_MAX_COUNT
+                    ? "pointer-events-none opacity-50"
+                    : ""
+                }`}
+              >
+                Choose files
+              </label>
+              <input
+                id={quoteFileInputId}
+                type="file"
+                multiple
+                accept="image/*,.pdf,.zip,.txt,application/pdf,application/zip,text/plain"
+                className="sr-only"
+                disabled={
+                  quoteAttachments.length + pendingFiles.length >=
+                  QUOTE_ATTACHMENT_MAX_COUNT
+                }
+                onChange={(e) => {
+                  const files = [...(e.target.files ?? [])];
+                  e.target.value = "";
+                  if (!files.length) return;
+                  try {
+                    for (const file of files) {
+                      assertQuoteAttachmentFile(file);
+                    }
+                    if (
+                      quoteAttachments.length +
+                        pendingFiles.length +
+                        files.length >
+                      QUOTE_ATTACHMENT_MAX_COUNT
+                    ) {
+                      throw new Error(
+                        `Attach up to ${QUOTE_ATTACHMENT_MAX_COUNT} files per quote.`,
+                      );
+                    }
+                    setPendingFiles((prev) => [...prev, ...files]);
+                    setError(null);
+                  } catch (err) {
                     setError(
-                      `Attach up to ${QUOTE_ATTACHMENT_MAX_COUNT} files per quote.`,
+                      err instanceof Error
+                        ? err.message
+                        : "Could not add attachment.",
                     );
-                    return prev;
                   }
-                  setError(null);
-                  return next;
-                });
-              }}
-            />
+                }}
+              />
+              {pendingFiles.length === 0 && quoteAttachments.length === 0 ? (
+                <span className="text-body-sm text-on-surface-variant">
+                  No files selected
+                </span>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
