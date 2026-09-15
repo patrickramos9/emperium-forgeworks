@@ -13,6 +13,7 @@ import {
   printRequestStatusLabel,
   type PrintRequestRecord,
 } from "@/lib/printRequest";
+import { resolvePrintQuoteAttachmentUrl } from "@/lib/printQuoteAttachmentUpload";
 import {
   createPrintQuoteCheckout,
   getPrintRequestById,
@@ -207,6 +208,45 @@ export function AccountPrintRequestDetailPage() {
             <dd className="text-on-surface">{row.adminNotes}</dd>
           </div>
         )}
+        {(row.quoteAttachments?.length ?? 0) > 0 ? (
+          <div>
+            <dt className="font-label-sm uppercase text-on-surface-variant">
+              Quote attachments
+            </dt>
+            <dd className="mt-1 space-y-1">
+              {(row.quoteAttachments ?? []).map((file) => (
+                <div key={file.storagePath}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void (async () => {
+                        setError(null);
+                        try {
+                          const url = await resolvePrintQuoteAttachmentUrl(
+                            file.storagePath,
+                          );
+                          if (!url) {
+                            throw new Error("Could not open attachment.");
+                          }
+                          window.open(url, "_blank", "noopener,noreferrer");
+                        } catch (err) {
+                          setError(
+                            err instanceof Error
+                              ? err.message
+                              : "Download failed.",
+                          );
+                        }
+                      })();
+                    }}
+                    className="text-primary hover:underline"
+                  >
+                    {file.fileName}
+                  </button>
+                </div>
+              ))}
+            </dd>
+          </div>
+        ) : null}
         {row.orderId && signedIn && (
           <div>
             <dt className="font-label-sm uppercase text-on-surface-variant">Order</dt>

@@ -1,8 +1,9 @@
 import type { AmplifyDataClient } from "@/lib/amplifyDataClient";
 import {
   parsePrintFigureLines,
-  type PrintFigureLine,
+  parsePrintQuoteAttachments,
   type PrintFigureLineInput,
+  type PrintQuoteAttachment,
   type PrintRequestRecord,
   type PrintRequestStatus,
 } from "@/lib/printRequest";
@@ -28,6 +29,7 @@ function mapPrintRequest(
     customerNotes?: string | null;
     adminNotes?: string | null;
     figureLines?: unknown;
+    quoteAttachments?: unknown;
     quoteCents?: number | null;
     quotedAt?: string | null;
     orderId?: string | null;
@@ -82,6 +84,7 @@ function mapPrintRequest(
     customerNotes: row.customerNotes,
     adminNotes: row.adminNotes,
     figureLines: parsePrintFigureLines(row.figureLines),
+    quoteAttachments: parsePrintQuoteAttachments(row.quoteAttachments),
     quoteCents: row.quoteCents,
     quotedAt: row.quotedAt,
     orderId: row.orderId,
@@ -250,6 +253,7 @@ export async function adminQuotePrintRequest(
     printRequestId: string;
     figureLines: PrintFigureLineInput[];
     adminNotes?: string;
+    quoteAttachments?: PrintQuoteAttachment[];
   },
 ): Promise<{ quoteCents: number; notificationSent: boolean }> {
   if (!client.mutations.adminQuotePrintRequest) {
@@ -270,6 +274,17 @@ export async function adminQuotePrintRequest(
     ...(input.adminNotes?.trim()
       ? { adminNotes: input.adminNotes.trim() }
       : {}),
+    ...(input.quoteAttachments?.length
+      ? {
+          quoteAttachments: input.quoteAttachments.map((file) => ({
+            storagePath: file.storagePath,
+            fileName: file.fileName,
+            ...(file.contentType
+              ? { contentType: file.contentType }
+              : {}),
+          })),
+        }
+      : { quoteAttachments: [] }),
   });
 
   if (errors?.length) {

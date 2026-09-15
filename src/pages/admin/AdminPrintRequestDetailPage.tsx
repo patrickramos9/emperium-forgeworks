@@ -16,8 +16,15 @@ import {
   printRequestSubmitterKind,
   printRequestSubmitterLabel,
   type PrintFigureLineInput,
+  type PrintQuoteAttachment,
   type PrintRequestRecord,
 } from "@/lib/printRequest";
+import {
+  QUOTE_ATTACHMENT_MAX_COUNT,
+  QUOTE_ATTACHMENT_MAX_BYTES,
+  resolvePrintQuoteAttachmentUrl,
+  uploadPrintQuoteAttachments,
+} from "@/lib/printQuoteAttachmentUpload";
 import type { PrintServiceConfigData } from "@/lib/printService";
 import { resolvePrintServicePriceCents } from "@/lib/printService";
 import {
@@ -69,6 +76,10 @@ export function AdminPrintRequestDetailPage() {
     { sizeTierId: "", quantity: "1", unitPriceDollars: "" },
   ]);
   const [adminNotes, setAdminNotes] = useState("");
+  const [quoteAttachments, setQuoteAttachments] = useState<
+    PrintQuoteAttachment[]
+  >([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +106,8 @@ export function AdminPrintRequestDetailPage() {
         setRow(request);
         setConfig(cfg);
         setAdminNotes(request.adminNotes ?? "");
+        setQuoteAttachments(request.quoteAttachments ?? []);
+        setPendingFiles([]);
         if (request.userId) {
           const labels = await resolveCustomerLabelsForUserIds(session, [
             request.userId,
@@ -168,6 +181,17 @@ export function AdminPrintRequestDetailPage() {
     }
   }
 
+  async function handleDownloadAttachment(path: string) {
+    setError(null);
+    try {
+      const url = await resolvePrintQuoteAttachmentUrl(path);
+      if (!url) throw new Error("Could not open attachment.");
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Download failed.");
+    }
+  }
+
   async function handleQuote(event: FormEvent) {
     event.preventDefault();
     if (!client || !id || !row) return;
@@ -187,13 +211,30 @@ export function AdminPrintRequestDetailPage() {
           unitPriceCents,
         });
       }
+
+      const totalAttachments = quoteAttachments.length + pendingFiles.length;
+      if (totalAttachments > QUOTE_ATTACHMENT_MAX_COUNT) {
+        throw new Error(
+          `Attach up to ${QUOTE_ATTACHMENT_MAX_COUNT} files per quote.`,
+        );
+      }
+      const uploaded = pendingFiles.length
+        ? await uploadPrintQuoteAttachments(id, pendingFiles)
+        : [];
+      const attachments = [...quoteAttachments, ...uploaded];
+
       const result = await adminQuotePrintRequest(client, {
         printRequestId: id,
         figureLines,
         adminNotes: adminNotes.trim() || undefined,
+        quoteAttachments: attachments,
       });
       const refreshed = await getPrintRequestById(client, id);
-      if (refreshed) setRow(refreshed);
+      if (refreshed) {
+        setRow(refreshed);
+        setQuoteAttachments(refreshed.quoteAttachments ?? []);
+      }
+      setPendingFiles([]);
       setMessage(
         `Quote saved (${formatPrice(result.quoteCents)})${
           result.notificationSent
@@ -480,6 +521,84 @@ export function AdminPrintRequestDetailPage() {
             />
           </label>
 
+          <div className="mt-4">
+            <span className="font-label-sm uppercase text-on-surface-variant">
+              Quote attachments (optional)
+            </span>
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              Images, PDF, ZIP, or text — up to {QUOTE_ATTACHMENT_MAX_COUNT}{" "}
+              files, {(QUOTE_ATTACHMENT_MAX_BYTES / (1024 * 1024)).toFixed(0)}{" "}
+              MB each. Customer can download from their print request page.
+            </p>
+            {quoteAttachments.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {quoteAttachments.map((file) => (
+                  <li
+                    key={file.storagePath}
+                    className="flex flex-wrap items-center gap-3 text-body-sm text-on-surface"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void handleDownloadAttachment(file.storagePath)
+                      }
+                      className="text-primary hover:underline"
+                    >
+                      {file.fileName}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQuoteAttachments((prev) =>
+                          prev.filter(
+                            (row) => row.storagePath !== file.storagePath,
+                          ),
+                        )
+                      }
+                      className="font-label-sm uppercase text-error"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {pendingFiles.length > 0 && (
+              <ul className="mt-2 space-y-1 text-body-sm text-on-surface-variant">
+                {pendingFiles.map((file) => (
+                  <li key={`${file.name}-${file.size}-${file.lastModified}`}>
+                    Pending upload: {file.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <input
+              type="file"
+              multiple
+              accept="image/*,.pdf,.zip,.txt,application/pdf,application/zip,text/plain"
+              className="mt-2 block w-full text-body-sm text-on-surface"
+              onChange={(e) => {
+                const files = [...(e.target.files ?? [])];
+                e.target.value = "";
+                if (!files.length) return;
+                setPendingFiles((prev) => {
+                  const next = [...prev, ...files];
+                  if (
+                    quoteAttachments.length + next.length >
+                    QUOTE_ATTACHMENT_MAX_COUNT
+                  ) {
+                    setError(
+                      `Attach up to ${QUOTE_ATTACHMENT_MAX_COUNT} files per quote.`,
+                    );
+                    return prev;
+                  }
+                  setError(null);
+                  return next;
+                });
+              }}
+            />
+          </div>
+
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="submit"
@@ -499,6 +618,27 @@ export function AdminPrintRequestDetailPage() {
           </div>
         </form>
       )}
+
+      {!canEditQuote && (row.quoteAttachments?.length ?? 0) > 0 ? (
+        <div className="mt-stack-lg border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">
+          <h2 className="font-label-sm uppercase text-on-surface-variant">
+            Quote attachments
+          </h2>
+          <ul className="mt-2 space-y-1">
+            {(row.quoteAttachments ?? []).map((file) => (
+              <li key={file.storagePath}>
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadAttachment(file.storagePath)}
+                  className="text-primary hover:underline"
+                >
+                  {file.fileName}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {message && <p className="mt-4 text-secondary">{message}</p>}
       {error && <p className="mt-4 text-error">{error}</p>}

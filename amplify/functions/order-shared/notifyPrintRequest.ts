@@ -37,16 +37,27 @@ export async function sendPrintQuoteReadyEmail(input: {
   originalFileName: string;
   summary: string;
   quoteCents: number;
+  attachmentNames?: string[];
   dataClient?: EmailDataClient;
 }): Promise<boolean> {
   const detailUrl = `${siteBaseUrl()}/account/print-requests/${input.printRequestId}`;
   const total = `$${(input.quoteCents / 100).toFixed(2)}`;
+  const attachmentLines =
+    input.attachmentNames && input.attachmentNames.length > 0
+      ? [
+          "",
+          "Attachments from the shop:",
+          ...input.attachmentNames.map((name) => `• ${name}`),
+          "(Open the link below to download them.)",
+        ]
+      : [];
   const text = [
     "Your Emperium Forgeworks print quote is ready.",
     "",
     `File: ${input.originalFileName}`,
     `Breakdown: ${input.summary}`,
     `Total before shipping & tax: ${total}`,
+    ...attachmentLines,
     "",
     `Review and pay: ${detailUrl}`,
     "",

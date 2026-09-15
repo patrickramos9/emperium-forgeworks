@@ -32,6 +32,12 @@ export type PrintFigureLine = {
   unitPriceCents: number;
 };
 
+export type PrintQuoteAttachment = {
+  storagePath: string;
+  fileName: string;
+  contentType?: string | null;
+};
+
 export type PrintRequestSizingMode = "absolute" | "scale";
 
 export type PrintRequestRecord = {
@@ -55,6 +61,7 @@ export type PrintRequestRecord = {
   customerNotes?: string | null;
   adminNotes?: string | null;
   figureLines?: PrintFigureLine[] | null;
+  quoteAttachments?: PrintQuoteAttachment[] | null;
   quoteCents?: number | null;
   quotedAt?: string | null;
   orderId?: string | null;
@@ -207,6 +214,33 @@ export function parsePrintFigureLines(raw: unknown): PrintFigureLine[] {
         } satisfies PrintFigureLine;
       })
       .filter((row): row is PrintFigureLine => row != null);
+  } catch {
+    return [];
+  }
+}
+
+export function parsePrintQuoteAttachments(
+  raw: unknown,
+): PrintQuoteAttachment[] {
+  if (!raw) return [];
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((row) => {
+        const storagePath = String(row?.storagePath ?? "").trim();
+        const fileName = String(row?.fileName ?? "").trim();
+        const contentType = String(row?.contentType ?? "").trim();
+        if (!storagePath.startsWith("print-quote-attachments/") || !fileName) {
+          return null;
+        }
+        return {
+          storagePath,
+          fileName,
+          ...(contentType ? { contentType } : {}),
+        } satisfies PrintQuoteAttachment;
+      })
+      .filter((row): row is PrintQuoteAttachment => row != null);
   } catch {
     return [];
   }

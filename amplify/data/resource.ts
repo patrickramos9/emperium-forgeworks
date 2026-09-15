@@ -375,6 +375,13 @@ const schema = a.schema({
     unitPriceCents: a.integer(),
   }),
 
+  /** Admin file attached when sending a print quote. */
+  PrintQuoteAttachmentInput: a.customType({
+    storagePath: a.string().required(),
+    fileName: a.string().required(),
+    contentType: a.string(),
+  }),
+
   ReturnRequestLineItem: a.customType({
     productId: a.string().required(),
     slug: a.string().required(),
@@ -750,6 +757,8 @@ const schema = a.schema({
       printRequestId: a.id().required(),
       figureLines: a.ref("PrintFigureLineInput").array().required(),
       adminNotes: a.string(),
+      /** Optional files already uploaded under print-quote-attachments/{id}/. */
+      quoteAttachments: a.ref("PrintQuoteAttachmentInput").array(),
     })
     .returns(a.ref("AdminQuotePrintRequestResult"))
     .authorization((allow) => [allow.group("admin")])
@@ -1341,6 +1350,11 @@ const schema = a.schema({
       adminNotes: a.string(),
       /** JSON PrintFigureLine[] */
       figureLines: a.json(),
+      /**
+       * JSON PrintQuoteAttachment[] — admin files included with the quote
+       * (S3 paths under print-quote-attachments/{printRequestId}/).
+       */
+      quoteAttachments: a.json(),
       quoteCents: a.integer(),
       quotedAt: a.datetime(),
       orderId: a.id(),

@@ -36,6 +36,29 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
           : {}),
       }));
 
+    const quoteAttachments = (event.arguments.quoteAttachments ?? [])
+      .filter((row): row is NonNullable<typeof row> => Boolean(row))
+      .map((row) => {
+        const storagePath = String(row.storagePath ?? "").trim();
+        const fileName = String(row.fileName ?? "").trim();
+        const contentType = String(row.contentType ?? "").trim();
+        if (
+          !storagePath.startsWith(
+            `print-quote-attachments/${printRequestId}/`,
+          ) ||
+          !fileName
+        ) {
+          throw new Error(
+            "Invalid quote attachment path. Upload files for this request first.",
+          );
+        }
+        return {
+          storagePath,
+          fileName,
+          ...(contentType ? { contentType } : {}),
+        };
+      });
+
     const { data: request, errors } = await dataClient.models.PrintRequest.get({
       id: printRequestId,
     });
@@ -78,6 +101,7 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
       id: printRequestId,
       status: "quoted",
       figureLines: JSON.stringify(figureLines),
+      quoteAttachments: JSON.stringify(quoteAttachments),
       quoteCents,
       quotedAt,
       ...(adminNotes !== undefined ? { adminNotes } : {}),
@@ -93,12 +117,17 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
     const summary = formatPrintFigureLinesSummary(figureLines);
     const detailUrl = `${siteUrl}/account/print-requests/${printRequestId}`;
 
+    const attachmentNote =
+      quoteAttachments.length > 0
+        ? ` ${quoteAttachments.length} attachment${quoteAttachments.length === 1 ? "" : "s"} included.`
+        : "";
+
     const userId = request.userId?.trim();
     if (userId) {
       try {
         const result = await dataClient.models.Notification.create({
           title: "Your print quote is ready",
-          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}. Review and pay: ${detailUrl}`,
+          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}.${attachmentNote} Review and pay: ${detailUrl}`,
           kind: "order",
           userId,
           active: true,
@@ -116,7 +145,7 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
         const created = await createGuestPrintNotification(dataClient, {
           guestId,
           title: "Your print quote is ready",
-          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}. Review and pay: ${detailUrl}`,
+          body: `Your print quote is ready (${summary}). Total before shipping & tax: $${(quoteCents / 100).toFixed(2)}.${attachmentNote} Review and pay: ${detailUrl}`,
         });
         if (created) notificationSent = true;
       } catch (err) {
@@ -134,6 +163,7 @@ export const handler: Schema["adminQuotePrintRequest"]["functionHandler"] =
           originalFileName: request.originalFileName,
           summary,
           quoteCents,
+          attachmentNames: quoteAttachments.map((file) => file.fileName),
           dataClient,
         });
         if (emailed) notificationSent = true;
