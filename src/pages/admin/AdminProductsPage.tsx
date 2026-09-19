@@ -12,7 +12,7 @@ import { configureAmplify } from "@/lib/amplify";
 import { hasShippingProfileModel } from "@/lib/dataModels";
 import { listAllProducts } from "@/lib/listAllProducts";
 import { PRODUCT_DRAG_TYPE } from "@/lib/productSortOrder";
-import { reorderList } from "@/lib/reorderList";
+import { reorderVisibleInList } from "@/lib/reorderList";
 import { resolveImageUrl } from "@/lib/productImageUrls";
 import { productShippingAdminLabels } from "@/lib/shippingProfiles";
 import { saveProductSortOrders } from "@/services/productSortService";
@@ -59,8 +59,6 @@ export function AdminProductsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const canReorder = categoryFilter === ALL_CATEGORY_FILTER;
-
   const filteredProducts = useMemo(
     () =>
       products.filter((p) =>
@@ -72,6 +70,8 @@ export function AdminProductsPage() {
       ),
     [products, categoryFilter, categoryFilters],
   );
+
+  const canReorder = filteredProducts.length > 1;
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -177,7 +177,9 @@ export function AdminProductsPage() {
       return;
     }
 
-    const fromIndex = products.findIndex((product) => product.id === draggedId);
+    const fromIndex = filteredProducts.findIndex(
+      (product) => product.id === draggedId,
+    );
     if (fromIndex < 0 || fromIndex === toIndex) {
       clearDragState();
       return;
@@ -188,7 +190,7 @@ export function AdminProductsPage() {
       sortOrder: product.sortOrder,
     }));
     const reordered = applySortOrders(
-      reorderList(products, fromIndex, toIndex),
+      reorderVisibleInList(products, filteredProducts, fromIndex, toIndex),
     );
 
     setProducts(reordered);
@@ -294,13 +296,10 @@ export function AdminProductsPage() {
 
       {!loading && !error && products.length > 0 && canReorder && (
         <p className="mb-stack-md text-body-sm text-on-surface-variant">
-          Drag products to set shop order. {reordering ? "Saving order…" : ""}
-        </p>
-      )}
-
-      {!loading && !error && products.length > 0 && !canReorder && (
-        <p className="mb-stack-md text-body-sm text-on-surface-variant">
-          Switch to {ALL_CATEGORY_FILTER} to drag and reorder the catalog.
+          {categoryFilter === ALL_CATEGORY_FILTER
+            ? "Drag products to set shop order."
+            : `Drag to reorder within “${categoryFilter}” (shop filter order updates to match).`}{" "}
+          {reordering ? "Saving order…" : ""}
         </p>
       )}
 
