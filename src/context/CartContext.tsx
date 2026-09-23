@@ -192,7 +192,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const key = lineKey(product.id, variant?.id);
       const priceCents = product.priceCents + (variant?.priceDeltaCents ?? 0);
 
-      let added = false;
       setItems((prev) => {
         const existing = prev.find((i) => i.key === key);
         let next: CartLine[];
@@ -226,14 +225,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           ];
         }
         persistItems(next);
-        added = true;
         return next;
       });
       setCartBadgeBumpToken((token) => token + 1);
-      if (added) {
-        trackMetaAddToCart(product, quantity, variant);
-      }
-      return added;
+      // Fire outside the setState updater — updater side-effects are unreliable
+      // and can skip Meta AddToCart entirely.
+      trackMetaAddToCart(product, quantity, variant);
+      return true;
     },
     [],
   );
