@@ -69,20 +69,23 @@ import { ScrollToTopOnNavigate } from "@/components/ScrollToTopOnNavigate";
 import { ToastProvider } from "@/context/ToastContext";
 import { NotificationBadgeProvider } from "@/context/NotificationBadgeContext";
 import { ToastRegion } from "@/components/ToastRegion";
+import { trackGooglePageView, GA4_MEASUREMENT_ID } from "@/lib/googleTags";
 import { isPublicProductPath } from "@/lib/productJsonLd";
 
 function AnalyticsTracker() {
   const location = useLocation();
   const skipInitialMetaPageView = useRef(true);
+  const skipInitialGoogleAdsPageView = useRef(true);
 
   useEffect(() => {
     const path = `${location.pathname}${location.search}${location.hash}`;
-    const gtag = (window as Window & { gtag?: (...args: unknown[]) => void }).gtag;
-    if (gtag) {
-      gtag("event", "page_view", {
-        page_path: path,
-        page_title: document.title,
-      });
+    // First load: Google's AW config already sends the Ads page view.
+    // Still send GA4 here (GA4 auto page_view is off for the SPA).
+    if (skipInitialGoogleAdsPageView.current) {
+      skipInitialGoogleAdsPageView.current = false;
+      trackGooglePageView(path, undefined, { sendTo: GA4_MEASUREMENT_ID });
+    } else {
+      trackGooglePageView(path);
     }
 
     const fbq = (window as Window & { fbq?: (...args: unknown[]) => void }).fbq;

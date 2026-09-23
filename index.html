@@ -14,15 +14,16 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
       rel="stylesheet"
     />
-    <!-- Google tag (gtag.js) — GA4 + Google Ads -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XYMGBE2RSK"></script>
+    <!-- Google tag (gtag.js) — Google Ads base tag (+ GA4) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18186091334"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       window.gtag = gtag;
       gtag('js', new Date());
-      gtag('config', 'G-XYMGBE2RSK');
       gtag('config', 'AW-18186091334');
+      // GA4: disable auto page_view; SPA navigations are sent from AnalyticsTracker.
+      gtag('config', 'G-XYMGBE2RSK', { send_page_view: false });
     </script>
     <!-- Meta Pixel Code -->
     <script>
