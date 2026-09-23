@@ -10,6 +10,7 @@ import {
 import {
   buildQuotedFigureLines,
   formatPrintFigureLinesSummary,
+  formatPrintRequestDateTime,
   formatPrintRequestSizing,
   printRequestSizingKindLabel,
   printRequestStatusLabel,
@@ -316,6 +317,9 @@ export function AdminPrintRequestDetailPage() {
       </h1>
       <p className="mt-2 text-on-surface-variant">
         {printRequestStatusLabel(row.status)}
+        {row.createdAt
+          ? ` · Submitted ${formatPrintRequestDateTime(row.createdAt)}`
+          : ""}
       </p>
 
       <dl className="mt-stack-lg space-y-3 border border-outline-variant/20 bg-surface-container-low p-4 iron-bevel">

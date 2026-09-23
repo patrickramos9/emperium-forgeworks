@@ -7,6 +7,7 @@ import {
 import { hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintFigureLinesSummary,
+  formatPrintRequestDateTime,
   formatPrintRequestSizing,
   printRequestStatusLabel,
   type PrintRequestRecord,
@@ -108,8 +109,13 @@ export function AccountPrintRequestsPage() {
                 <span className="font-label-md uppercase text-on-surface">
                   {row.originalFileName}
                 </span>
-                <span className="text-label-sm uppercase text-on-surface-variant">
-                  {printRequestStatusLabel(row.status)}
+                <span className="text-right">
+                  <span className="block text-label-sm uppercase text-on-surface-variant">
+                    {printRequestStatusLabel(row.status)}
+                  </span>
+                  <span className="mt-1 block text-label-sm normal-case text-on-surface-variant">
+                    {formatPrintRequestDateTime(row.createdAt)}
+                  </span>
                 </span>
               </div>
               <p className="mt-1 text-body-sm text-on-surface-variant">

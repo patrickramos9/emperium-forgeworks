@@ -8,6 +8,7 @@ import {
 import { getCustomerUserId, hasCustomerSession } from "@/lib/customerAuth";
 import {
   formatPrintFigureLinesSummary,
+  formatPrintRequestDateTime,
   formatPrintRequestSizing,
   printRequestSizingKindLabel,
   printRequestStatusLabel,
@@ -131,6 +132,9 @@ export function AccountPrintRequestDetailPage() {
       </h1>
       <p className="mt-2 text-on-surface-variant">
         {printRequestStatusLabel(row.status)}
+        {row.createdAt
+          ? ` · Submitted ${formatPrintRequestDateTime(row.createdAt)}`
+          : ""}
       </p>
 
       {!signedIn && (

@@ -148,6 +148,20 @@ export function printRequestStatusLabel(status: PrintRequestStatus): string {
   }
 }
 
+/** Submitted / created timestamp for print request lists and detail. */
+export function formatPrintRequestDateTime(
+  value: string | null | undefined,
+): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 /** Admin-facing submitter contact (guest email or resolved account label). */
 export function printRequestSubmitterLabel(
   row: Pick<PrintRequestRecord, "userId" | "guestId" | "email">,

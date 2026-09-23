@@ -4,6 +4,7 @@ import { requireAdminSession } from "@/lib/amplifyDataClient";
 import { resolveCustomerLabelsForUserIds } from "@/lib/customerAdmin";
 import {
   formatPrintFigureLinesSummary,
+  formatPrintRequestDateTime,
   formatPrintRequestSizing,
   printRequestStatusLabel,
   printRequestSubmitterKind,
@@ -110,8 +111,13 @@ export function AdminPrintRequestsPage() {
                       : ""}
                   </span>
                 </span>
-                <span className="font-label-sm uppercase text-primary">
-                  {printRequestStatusLabel(row.status)}
+                <span className="text-right">
+                  <span className="block font-label-sm uppercase text-primary">
+                    {printRequestStatusLabel(row.status)}
+                  </span>
+                  <span className="mt-1 block text-label-sm normal-case text-on-surface-variant">
+                    {formatPrintRequestDateTime(row.createdAt)}
+                  </span>
                 </span>
               </Link>
             </li>
