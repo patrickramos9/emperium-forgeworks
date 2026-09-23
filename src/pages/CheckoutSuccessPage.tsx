@@ -6,6 +6,7 @@ import {
   getCustomerDataClient,
   getGuestDataClient,
 } from "@/lib/amplifyDataClient";
+import { trackGoogleAdsPurchaseOnce } from "@/lib/googleTags";
 import { trackMetaPurchaseOnce } from "@/lib/metaPixel";
 import {
   listCustomerOrders,
@@ -67,7 +68,10 @@ export function CheckoutSuccessPage() {
     if (!sessionRef) return;
     void findPaidOrder(sessionRef)
       .then((order) => {
-        if (order) trackMetaPurchaseOnce(order);
+        if (order) {
+          trackMetaPurchaseOnce(order);
+          trackGoogleAdsPurchaseOnce(order);
+        }
       })
       .catch(() => {
         /* Purchase tracking is best-effort and must not block the thank-you page. */
