@@ -40,15 +40,22 @@ type ShippingAddressSnapshot = {
   country?: string;
 };
 
-function shippingFromSession(
-  session: Stripe.Checkout.Session,
+type LegacyCheckoutSession = Stripe.Checkout.Session & {
+  /** Pre-basil webhook payloads still send this at the top level. */
+  shipping_details?: {
+    name?: string | null;
+    address?: Stripe.Address | null;
+  } | null;
+};
+
+function addressSnapshot(
+  name: string | null | undefined,
+  address: Stripe.Address | null | undefined,
 ): ShippingAddressSnapshot | undefined {
-  const shipping = session.collected_information?.shipping_details;
-  const address = shipping?.address;
   if (!address?.line1) return undefined;
 
   return {
-    name: shipping?.name ?? undefined,
+    name: name ?? undefined,
     line1: address.line1 ?? undefined,
     line2: address.line2 ?? undefined,
     city: address.city ?? undefined,
@@ -58,12 +65,63 @@ function shippingFromSession(
   };
 }
 
+function shippingFromSession(
+  session: Stripe.Checkout.Session,
+): ShippingAddressSnapshot | undefined {
+  const legacy = session as LegacyCheckoutSession;
+  const shipping =
+    session.collected_information?.shipping_details ??
+    legacy.shipping_details ??
+    null;
+  const shipTo = addressSnapshot(shipping?.name, shipping?.address);
+  if (shipTo) return shipTo;
+
+  const billing = session.customer_details;
+  const billedTo = addressSnapshot(billing?.name, billing?.address);
+  if (billedTo) {
+    console.warn(
+      "Checkout session has no shipping_details; using billing address",
+      session.id,
+    );
+  }
+  return billedTo;
+}
+
+/**
+ * Webhook events use the endpoint's API version, which may still be the
+ * pre-basil shape (`shipping_details` at the top, no `collected_information`).
+ * Retrieve with the current SDK so email and ship-to are actually present.
+ */
+async function sessionForFulfillment(
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+): Promise<Stripe.Checkout.Session> {
+  try {
+    return await stripe.checkout.sessions.retrieve(session.id);
+  } catch (err) {
+    console.error(
+      "Checkout session retrieve failed; using webhook payload",
+      session.id,
+      err,
+    );
+    return session;
+  }
+}
+
 async function fulfillmentFromSession(
   session: Stripe.Checkout.Session,
   stripe: Stripe,
 ) {
   const shippingAddress = shippingFromSession(session);
   const customer = session.customer_details;
+  const email =
+    customer?.email?.trim() || session.customer_email?.trim() || undefined;
+  if (!email) {
+    console.error("Paid checkout is missing a customer email", session.id);
+  }
+  if (!shippingAddress) {
+    console.error("Paid checkout is missing a shipping address", session.id);
+  }
   const shippingCents =
     session.total_details?.amount_shipping ??
     session.shipping_cost?.amount_total ??
@@ -88,7 +146,7 @@ async function fulfillmentFromSession(
     status: "paid" as const,
     paymentProvider: "stripe" as const,
     externalSessionId: session.id,
-    email: customer?.email ?? undefined,
+    ...(email ? { email } : {}),
     customerName: customer?.name ?? shippingAddress?.name ?? undefined,
     customerPhone: customer?.phone ?? undefined,
     subtotalCents: session.amount_subtotal ?? undefined,
@@ -113,9 +171,12 @@ async function handleCheckoutCompleted(
     return response(400, "Missing orderId metadata");
   }
 
+  const fullSession = await sessionForFulfillment(stripe, session);
+  const fulfillment = await fulfillmentFromSession(fullSession, stripe);
+
   const updateResult = await dataClient.models.Order.update({
     id: orderId,
-    ...(await fulfillmentFromSession(session, stripe)),
+    ...fulfillment,
   });
 
   if (updateResult.errors?.length) {
@@ -127,7 +188,10 @@ async function handleCheckoutCompleted(
   if (order) {
     if (!order.supportNotifiedAt) {
       try {
-        const sent = await sendSupportOrderEmail(order, dataClient);
+        const sent = await sendSupportOrderEmail(
+          { ...order, ...fulfillment },
+          dataClient,
+        );
         if (sent) {
           await dataClient.models.Order.update({
             id: order.id,

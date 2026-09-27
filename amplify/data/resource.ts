@@ -993,7 +993,7 @@ const schema = a.schema({
       email: a.string(),
       customerName: a.string(),
       customerPhone: a.string(),
-      /** Ship-to address from Stripe Checkout (`shipping_details`). */
+      /** Ship-to address from Stripe Checkout. */
       shippingAddress: a.json(),
       subtotalCents: a.integer(),
       shippingCents: a.integer(),

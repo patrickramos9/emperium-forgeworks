@@ -15,8 +15,41 @@ export type OrderEmailPayload = {
   shippingLabel?: string | null;
   taxCents?: number | null;
   lineItems?: unknown;
+  shippingAddress?: unknown;
   createdAt?: string | null;
 };
+
+type ShippingAddressSnapshot = {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+};
+
+function formatShipTo(raw: unknown): string {
+  if (!raw) return "—";
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!parsed || typeof parsed !== "object") return "—";
+    const address = parsed as ShippingAddressSnapshot;
+    const cityLine = [address.city, address.state, address.postalCode]
+      .filter(Boolean)
+      .join(", ");
+    const lines = [
+      address.name,
+      address.line1,
+      address.line2,
+      cityLine,
+      address.country,
+    ].filter(Boolean);
+    return lines.length ? lines.join("\n") : "—";
+  } catch {
+    return "—";
+  }
+}
 
 type LineItem = {
   title?: string;
@@ -74,6 +107,8 @@ export function buildOrderNotificationBody(
     `Customer: ${order.customerName?.trim() || "—"}`,
     `Email: ${order.email?.trim() || "—"}`,
     `Phone: ${order.customerPhone?.trim() || "—"}`,
+    "Ship to:",
+    formatShipTo(order.shippingAddress),
     `Subtotal: ${order.subtotalCents != null ? formatMoney(order.subtotalCents) : "—"}`,
     `Shipping: ${
       order.shippingCents != null
