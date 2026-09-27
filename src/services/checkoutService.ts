@@ -15,6 +15,7 @@ import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { getCustomerUserId } from "@/lib/customerAuth";
 import { toOrderLineItemSnapshots } from "@/lib/orderLineItems";
 import { serializePrintServicePayload } from "@/lib/printService";
+import { trackGoogleBeginCheckout } from "@/lib/googleTags";
 import { trackMetaInitiateCheckout } from "@/lib/metaPixel";
 import {
   ensureGuestSession,
@@ -146,6 +147,7 @@ async function startStripeCheckout(
   }
 
   trackMetaInitiateCheckout(items);
+  trackGoogleBeginCheckout(items);
   window.location.href = data.redirectUrl;
   return data;
 }
@@ -198,6 +200,7 @@ export async function startCheckout(
   }
 
   trackMetaInitiateCheckout(items);
+  trackGoogleBeginCheckout(items);
   window.location.href = session.redirectUrl;
   return session;
 }

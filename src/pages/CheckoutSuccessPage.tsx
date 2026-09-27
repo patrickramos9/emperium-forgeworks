@@ -6,7 +6,7 @@ import {
   getCustomerDataClient,
   getGuestDataClient,
 } from "@/lib/amplifyDataClient";
-import { trackGoogleAdsPurchaseOnce } from "@/lib/googleTags";
+import { trackGooglePurchaseOnce } from "@/lib/googleTags";
 import { trackMetaPurchaseOnce } from "@/lib/metaPixel";
 import {
   listCustomerOrders,
@@ -70,7 +70,7 @@ export function CheckoutSuccessPage() {
       .then((order) => {
         if (order) {
           trackMetaPurchaseOnce(order);
-          trackGoogleAdsPurchaseOnce(order);
+          trackGooglePurchaseOnce(order);
         }
       })
       .catch(() => {

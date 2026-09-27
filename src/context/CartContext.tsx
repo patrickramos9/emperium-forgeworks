@@ -16,6 +16,7 @@ import {
   MAX_LINE_QTY,
 } from "@/lib/cartConstants";
 import { productPrimaryImageRef } from "@/lib/productImageUrls";
+import { trackGoogleAddToCart } from "@/lib/googleTags";
 import { trackMetaAddToCart } from "@/lib/metaPixel";
 import {
   isPrintServiceCartLine,
@@ -231,6 +232,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Fire outside the setState updater — updater side-effects are unreliable
       // and can skip Meta AddToCart entirely.
       trackMetaAddToCart(product, quantity, variant);
+      trackGoogleAddToCart(product, quantity, variant);
       return true;
     },
     [],

@@ -42,6 +42,7 @@ import {
 } from "@/services/reviewService";
 import { isVaultUnlocked } from "@/lib/vaultSession";
 import { isPrintServiceCatalogSlug } from "@/lib/printService";
+import { trackGoogleViewItem } from "@/lib/googleTags";
 import { trackMetaViewContent } from "@/lib/metaPixel";
 
 type ProductDetailPageProps = {
@@ -120,6 +121,11 @@ export function ProductDetailPage({
     if (product.vaultOnly || isPrintServiceCatalogSlug(product.slug)) return;
     trackMetaViewContent(product);
   }, [product, catalogMode]);
+
+  useEffect(() => {
+    if (!product) return;
+    trackGoogleViewItem(product);
+  }, [product]);
 
   useEffect(() => {
     if (product) {
