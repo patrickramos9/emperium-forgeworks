@@ -1,10 +1,18 @@
-import { FormEvent, type MouseEvent, useEffect, useId, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useId, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { useVaultNavAccess } from "@/hooks/useVaultNavAccess";
 import { useCustomerMessageUnread } from "@/hooks/useCustomerMessageUnread";
 import { useAnnouncementContext } from "@/context/AnnouncementContext";
+import { useProducts } from "@/hooks/useProducts";
+import {
+  getLiveShopQuery,
+  setLiveShopQuery,
+} from "@/lib/liveShopQuery";
+import { rankProductsForSearch } from "@/lib/productSearch";
+import type { Product } from "@/data/seedProducts";
 import { AccountMenu } from "./AccountMenu";
+import { ForgeSearchField } from "./ForgeSearchField";
 import { Icon } from "./Icon";
 import { SystemAnnouncementBanner } from "./SystemAnnouncementBanner";
 
@@ -31,13 +39,25 @@ export function Header() {
   const { hasSystemBanner } = useAnnouncementContext();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const { products, loading: catalogLoading } = useProducts();
   const [cartBadgeBump, setCartBadgeBump] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const messageUnread = useCustomerMessageUnread();
   const mobileNavId = useId();
+  const mobileSearchId = useId();
   const chromeRef = useRef<HTMLDivElement>(null);
+  const searchFocused = useRef(false);
+  const focusCount = useRef(0);
+  const suppressCommit = useRef(false);
+  const liveTimer = useRef<number | null>(null);
+
+  const rankedMatches = useMemo(
+    () => (query.trim() ? rankProductsForSearch(products, query) : []),
+    [products, query],
+  );
+  const suggestions = rankedMatches.slice(0, 8);
 
   useEffect(() => {
     const el = chromeRef.current;
@@ -67,7 +87,26 @@ export function Header() {
 
   useEffect(() => {
     setMobileNavOpen(false);
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (location.pathname !== "/shop") setLiveShopQuery(null);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (searchFocused.current) return;
+    const urlQuery = searchParams.get("q") ?? "";
+    setQuery(urlQuery);
+    const live = getLiveShopQuery();
+    if (live != null && live.trim() === urlQuery) setLiveShopQuery(null);
+  }, [searchParams]);
+
+  useEffect(
+    () => () => {
+      if (liveTimer.current != null) window.clearTimeout(liveTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -86,11 +125,86 @@ export function Header() {
     };
   }, [mobileNavOpen]);
 
-  function handleSearch(e: FormEvent) {
-    e.preventDefault();
-    const q = query.trim();
+  function writeShopQuery(value: string) {
+    const trimmed = value.trim();
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        const current = next.get("q") ?? "";
+        if (current === trimmed && !next.get("page")) return prev;
+        if (trimmed) next.set("q", trimmed);
+        else next.delete("q");
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  function flushShopQuery(value: string) {
+    if (liveTimer.current != null) {
+      window.clearTimeout(liveTimer.current);
+      liveTimer.current = null;
+    }
+    if (location.pathname !== "/shop") return;
+    writeShopQuery(value);
+  }
+
+  function scheduleShopQuery(value: string) {
+    if (location.pathname !== "/shop") return;
+    if (liveTimer.current != null) window.clearTimeout(liveTimer.current);
+    liveTimer.current = window.setTimeout(() => {
+      liveTimer.current = null;
+      writeShopQuery(value);
+    }, 250);
+  }
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    if (location.pathname !== "/shop") return;
+    setLiveShopQuery(value);
+    scheduleShopQuery(value);
+  }
+
+  function handleFocusChange(focused: boolean) {
+    focusCount.current += focused ? 1 : -1;
+    if (focusCount.current < 0) focusCount.current = 0;
+    searchFocused.current = focusCount.current > 0;
+    if (searchFocused.current) return;
+    if (suppressCommit.current) {
+      suppressCommit.current = false;
+      return;
+    }
+    flushShopQuery(query);
+  }
+
+  function handleSubmitQuery(value: string) {
+    suppressCommit.current = true;
+    if (liveTimer.current != null) {
+      window.clearTimeout(liveTimer.current);
+      liveTimer.current = null;
+    }
+    const trimmed = value.trim();
+    setQuery(trimmed);
     setMobileNavOpen(false);
-    navigate(q ? `/shop?q=${encodeURIComponent(q)}` : "/shop");
+    if (location.pathname === "/shop") {
+      setLiveShopQuery(trimmed ? trimmed : "");
+      writeShopQuery(trimmed);
+      return;
+    }
+    setLiveShopQuery(null);
+    navigate(trimmed ? `/shop?q=${encodeURIComponent(trimmed)}` : "/shop");
+  }
+
+  function handleSelectProduct(product: Product) {
+    suppressCommit.current = true;
+    if (liveTimer.current != null) {
+      window.clearTimeout(liveTimer.current);
+      liveTimer.current = null;
+    }
+    setLiveShopQuery(null);
+    setMobileNavOpen(false);
+    navigate(`/shop/${product.slug}`);
   }
 
   async function handleMessagesClick(e: MouseEvent<HTMLAnchorElement>) {
@@ -144,22 +258,21 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-stack-md">
-          <form
-            onSubmit={handleSearch}
-            className="relative hidden sm:block"
-          >
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search the forge..."
-              className="w-64 border border-outline-variant/30 bg-surface-container-low/50 px-4 py-2 pr-10 text-label-md text-on-surface backdrop-blur-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary"
+          <div className="hidden sm:block">
+            <ForgeSearchField
+              query={query}
+              suggestions={suggestions}
+              resultCount={rankedMatches.length}
+              loading={catalogLoading}
+              onQueryChange={handleQueryChange}
+              onSubmitQuery={handleSubmitQuery}
+              onSelectProduct={handleSelectProduct}
+              onFocusChange={handleFocusChange}
+              ariaLabel="Search the forge"
+              panelClassName="right-0 w-[min(24rem,calc(100vw-2.5rem))]"
+              inputClassName="w-64 border border-outline-variant/30 bg-surface-container-low/50 px-4 py-2 pr-10 text-label-md text-on-surface backdrop-blur-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary"
             />
-            <Icon
-              name="search"
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant"
-            />
-          </form>
+          </div>
           <a
             href="/account/messages"
             onClick={(e) => void handleMessagesClick(e)}
@@ -229,29 +342,29 @@ export function Header() {
                 Contact
               </NavLink>
             </nav>
-            <form
-              onSubmit={handleSearch}
-              className="border-t border-outline-variant/20 px-margin-mobile py-4"
-            >
-              <label className="block">
-                <span className="font-label-sm uppercase text-on-surface-variant">
-                  Search
-                </span>
-                <div className="relative mt-2">
-                  <input
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search the forge..."
-                    className="w-full border border-outline-variant/30 bg-surface-container-low px-4 py-2 pr-10 text-label-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary"
-                  />
-                  <Icon
-                    name="search"
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant"
-                  />
-                </div>
+            <div className="border-t border-outline-variant/20 px-margin-mobile py-4">
+              <label
+                htmlFor={mobileSearchId}
+                className="font-label-sm uppercase text-on-surface-variant"
+              >
+                Search
               </label>
-            </form>
+              <div className="mt-2">
+                <ForgeSearchField
+                  id={mobileSearchId}
+                  query={query}
+                  suggestions={suggestions}
+                  resultCount={rankedMatches.length}
+                  loading={catalogLoading}
+                  onQueryChange={handleQueryChange}
+                  onSubmitQuery={handleSubmitQuery}
+                  onSelectProduct={handleSelectProduct}
+                  onFocusChange={handleFocusChange}
+                  panelClassName="left-0 w-full"
+                  inputClassName="w-full border border-outline-variant/30 bg-surface-container-low px-4 py-2 pr-10 text-label-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}

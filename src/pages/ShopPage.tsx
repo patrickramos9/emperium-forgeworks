@@ -23,7 +23,9 @@ import {
 } from "@/lib/catalogPagination";
 import { CONTACT_EMAIL } from "@/lib/config";
 import { useSiteLayout } from "@/context/AnnouncementContext";
+import { mergeLiveShopQuery, useLiveShopQuery } from "@/lib/liveShopQuery";
 import { trackMetaSearch } from "@/lib/metaPixel";
+import { rankProductsForSearch } from "@/lib/productSearch";
 import { SHIPPING_DISPATCH_SHOP_BANNER } from "@/lib/shippingPromise";
 
 export function ShopPage() {
@@ -32,34 +34,32 @@ export function ShopPage() {
   const { categoryFilters, shopFilters } = useCategoryFilters();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get("category") ?? ALL_CATEGORY_FILTER;
-  const initialQuery = searchParams.get("q") ?? "";
+  const urlQuery = searchParams.get("q") ?? "";
+  const liveQuery = useLiveShopQuery();
   const [category, setCategory] = useState(initialCategory);
   const [pageSize, setPageSize] = useState<ShopProductsPageSize>(loadShopPageSize);
-  const search = initialQuery;
-  const prevFiltersRef = useRef({ category: initialCategory, search: initialQuery });
+  const search = liveQuery ?? urlQuery;
+  const prevFiltersRef = useRef({ category: initialCategory, search: urlQuery });
 
   useEffect(() => {
     if (isCategoryFilter(category, categoryFilters)) return;
     setCategory(ALL_CATEGORY_FILTER);
-    const next = new URLSearchParams(searchParams);
-    next.delete("category");
-    setSearchParams(next, { replace: true });
+    if (!searchParams.get("category")) return;
+    setSearchParams(
+      (prev) => {
+        const next = mergeLiveShopQuery(prev);
+        next.delete("category");
+        return next;
+      },
+      { replace: true },
+    );
   }, [category, categoryFilters, searchParams, setSearchParams]);
 
   const filtered = useMemo(() => {
-    return products
-      .filter((p) =>
-        productMatchesCategoryFilter(p.category, category, categoryFilters),
-      )
-      .filter((p) => {
-        if (!search.trim()) return true;
-        const q = search.toLowerCase();
-        return (
-          p.title.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const inCategory = products.filter((p) =>
+      productMatchesCategoryFilter(p.category, category, categoryFilters),
+    );
+    return rankProductsForSearch(inCategory, search);
   }, [products, category, categoryFilters, search]);
 
   const totalPages = catalogTotalPages(filtered.length, pageSize);
@@ -75,56 +75,81 @@ export function ShopPage() {
     if (requestedPage == null && currentPage === 1) return;
     if (requestedPage === String(currentPage)) return;
 
-    const next = new URLSearchParams(searchParams);
-    if (currentPage <= 1) next.delete("page");
-    else next.set("page", String(currentPage));
-    setSearchParams(next, { replace: true });
-  }, [requestedPage, currentPage, searchParams, setSearchParams]);
+    setSearchParams(
+      (prev) => {
+        const next = mergeLiveShopQuery(prev);
+        if (currentPage <= 1) next.delete("page");
+        else next.set("page", String(currentPage));
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requestedPage, currentPage, setSearchParams]);
 
   useEffect(() => {
     const prev = prevFiltersRef.current;
     if (prev.category === category && prev.search === search) return;
     prevFiltersRef.current = { category, search };
     if (!searchParams.get("page")) return;
-    const next = new URLSearchParams(searchParams);
-    next.delete("page");
-    setSearchParams(next, { replace: true });
+    setSearchParams(
+      (params) => {
+        const next = mergeLiveShopQuery(params);
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
   }, [category, search, searchParams, setSearchParams]);
 
   useEffect(() => {
     const query = search.trim();
     if (!query || loading) return;
-    trackMetaSearch(
-      query,
-      filtered.map((product) => product.slug),
-    );
+    const timer = window.setTimeout(() => {
+      trackMetaSearch(
+        query,
+        filtered.map((product) => product.slug),
+      );
+    }, 600);
+    return () => window.clearTimeout(timer);
   }, [search, loading, filtered]);
 
   function goToPage(page: number) {
-    const next = new URLSearchParams(searchParams);
-    if (page <= 1) next.delete("page");
-    else next.set("page", String(page));
-    setSearchParams(next);
+    setSearchParams((prev) => {
+      const next = mergeLiveShopQuery(prev);
+      if (page <= 1) next.delete("page");
+      else next.set("page", String(page));
+      return next;
+    });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function selectCategory(cat: string) {
     setCategory(cat);
-    const next = new URLSearchParams(searchParams);
-    if (cat === ALL_CATEGORY_FILTER) next.delete("category");
-    else next.set("category", cat);
-    next.delete("page");
-    setSearchParams(next, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = mergeLiveShopQuery(prev);
+        if (cat === ALL_CATEGORY_FILTER) next.delete("category");
+        else next.set("category", cat);
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   function selectPageSize(nextSize: number) {
     if (!isShopProductsPageSize(nextSize) || nextSize === pageSize) return;
     setPageSize(nextSize);
     saveShopPageSize(nextSize);
-    if (!searchParams.get("page")) return;
-    const next = new URLSearchParams(searchParams);
-    next.delete("page");
-    setSearchParams(next, { replace: true });
+    setSearchParams(
+      (prev) => {
+        if (!prev.get("page")) return prev;
+        const next = mergeLiveShopQuery(prev);
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   return (
@@ -180,17 +205,29 @@ export function ShopPage() {
         </p>
       ) : filtered.length === 0 ? (
         <p className="text-on-surface-variant">
-          No artifacts match your search. Try another category or term.
+          {search.trim()
+            ? `No close matches for “${search.trim()}”. Try another category or term.`
+            : "No close matches. Try another category or term."}
         </p>
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-body-sm text-on-surface-variant">
-              {filtered.length > pageSize
-                ? `Showing ${pageRange.start}–${pageRange.end} of ${filtered.length} ${
-                    filtered.length === 1 ? "product" : "products"
-                  }`
-                : `${filtered.length} ${filtered.length === 1 ? "product" : "products"}`}
+              {search.trim()
+                ? filtered.length > pageSize
+                  ? `Showing ${pageRange.start}–${pageRange.end} of ${filtered.length} close ${
+                      filtered.length === 1 ? "match" : "matches"
+                    }`
+                  : `${filtered.length} close ${
+                      filtered.length === 1 ? "match" : "matches"
+                    }`
+                : filtered.length > pageSize
+                  ? `Showing ${pageRange.start}–${pageRange.end} of ${filtered.length} ${
+                      filtered.length === 1 ? "product" : "products"
+                    }`
+                  : `${filtered.length} ${
+                      filtered.length === 1 ? "product" : "products"
+                    }`}
             </p>
             <label className="flex items-center gap-2 text-body-sm text-on-surface-variant">
               <span className="font-label-sm uppercase tracking-widest">
