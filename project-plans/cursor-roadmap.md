@@ -20,12 +20,12 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-11-08
 
 | Item | State |
 |------|--------|
-| **Phase** | **M23d–f** (FAQ / contact hours / socials / reviews seed) |
-| **Next** | **M23d–f** → **M19** → **M18** → **M8a.3** … |
+| **Phase** | **M23d–f** paused — next build is **M25**, then **M24** |
+| **Next** | **M25** variation price entry → **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** … |
 | **Then** | **M19** → **M18** → **M8a.3** → M12 → **M13b** … |
 | **Blocked** | _(none)_ · Transactional email → **Resend** (M20a); set `RESEND_API_KEY` + verify domain |
 | **Recently verified** | **M21c polish + Meta Purchase** (2026-08-28) · **M10** message inbox (2026-08-13) · **M16e** guest pre-ship cancel (2026-08-12) · **M23c Gallery** (2026-08-11) · **M6e** (2026-08-09) · **M21c** · **M13a** · **M22** · **M16** · **M11** |
@@ -39,7 +39,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M10** message inbox (**production verified** 2026-08-13) → **M23c mobile nav** (**shipped** 2026-08-13) → **M23d–f** → **M19** → **M18** → **M8a.3** → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
+… → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M10** message inbox (**production verified** 2026-08-13) → **M23c mobile nav** (**shipped** 2026-08-13) → **M25** variation price entry → **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20b–d** (cloud portability remainder — §4; **M20a** Resend email shipped).
 
@@ -1571,11 +1571,111 @@ On each fulfillment transition (when `userId` is set):
 
 ---
 
+### M25 — Variation price entry
+
+**Status:** Planned — **next build** (2026-11-08), before **M24**. No code yet.
+
+**Goal:** On the product form, type the price the customer pays for each variation. The form subtracts the current base and stores only the add-on. Shop, cart, and checkout keep charging base + add-on. No catalog migration.
+
+**Catalog today (2026-11-08):** 63 products, 302 variation options. Each stored number is an add-on. The shop charges base + add-on. 120 options add $0.00 (customer pays the base). 182 add a positive amount. None go below the base. 13 products have no variations. 49 variation listings include at least one option priced at the base. **Skeletal Warbands** is the only listing whose base ($6.99) is lower than every option (cheapest option $8.99). The shop card still shows the base. No product has more than one variation group. Print-service resin adjustments are a separate add-on and stay as they are. The admin variation field currently shows the add-on (`AdminProductVariantsEditor`, committed on blur), which is how a typed number gets added on top of the base by mistake.
+
+#### Form behavior
+
+- The product **Price (USD)** field stays the base. Listings with no variations still use that field as their only price.
+- Each variation price field shows **base + stored add-on**, in dollars. A $12.99 base and a $16.00 add-on display as `28.99`.
+- Leaving the variation field stores **typed price − current base**. Typing the base itself stores a $0.00 add-on. A typed price below the base is refused and the field returns to the previous customer total. Add-ons stay 0 or positive, matching `validateVariantGroups`.
+- Changing the base updates every variation total on the form immediately, before save. Add-ons stay the same, so every total moves by the same amount. A field that still has focus is left alone until the admin leaves it; leaving it locks the gap against the base on screen at that moment.
+- While the base field is empty or not a valid price, variation totals keep using the last valid base.
+- Save writes the new base and the same add-ons. The shop changes only after that save.
+
+#### Unchanged
+
+- Stored shape stays `priceDeltaCents` on each option. Do not rewrite stored add-ons into full prices.
+- Product page, cart, checkout, JSON-LD, and the merchant feed keep using base + add-on. Shop cards keep showing the base, including **Skeletal Warbands** at $6.99.
+- Open carts already store the final amount, so they still match.
+- Print-service resin and size-tier fields keep showing the add-on.
+
+#### Touch points
+
+- `src/pages/admin/AdminProductEditPage.tsx` — pass the current parsed base into the variation editor as the price field changes
+- `src/components/admin/AdminProductVariantsEditor.tsx` — show base + add-on; on blur store the difference
+- `src/lib/priceUtils.ts` — format a customer total and parse it back into an add-on against the current base
+
+#### Out of scope
+
+- Removing the base price or giving each option its own stored full price
+- Shop-card or Merchant Center changes
+- Print-service resin pricing
+- An Amplify schema change
+
+#### Acceptance
+
+- Opening a variation product shows each option as the price a customer pays today (base + add-on).
+- Typing a higher price on one option, leaving the field, and saving charges that amount on the product page. Other options stay put.
+- Changing the base moves every variation total on the form before save. After save, the product page matches those totals.
+- A price below the base is refused.
+- A product with no variations still saves from the single price field.
+
+---
+
+### M24 — Variation set bundles
+
+**Status:** Planned — **after M25** (2026-11-08). Then resume **M23d–f**. Not the same as **M19** (storewide sales and multi-product bundles). Piece prices stay base + add-on. **M25** only changes how those prices are typed.
+
+**Goal:** On a listing with many variation options (for example Legacy of Blood: Monsters, 12 pieces), admin can offer optional fixed-price sets. A shopper may buy a set of 3, 4, or 6 at one price, or ignore bundles and pick any figures at the normal per-piece price.
+
+**v1 rule:** Offer bundles only when the product has **one** variation group. Piece count is the number of checked options in that group. Products with Size and Type (or any second group) do not show bundles.
+
+#### Admin (Add / Edit Product)
+
+- Section under Variations.
+- Several bundles per product. Each bundle is a piece count (integer ≥ 2) and a fixed set price. Name is optional and displays as “Set of {n}” when blank.
+- A bundle cannot be larger than the number of labeled options. Two bundles cannot share the same piece count.
+- Store on the existing `Product.variants` JSON (`StoredVariantsV2.bundles`). No new Amplify model.
+
+#### Shopper (product page)
+
+- If the listing has bundles, show a choice above the variation list. **Choose any** is the default and keeps today’s multi-select: any number of figures, each with its own quantity and price.
+- Choosing a set limits checks to that piece count. Quantities stay at 1 so the set cannot be padded. Add to cart stays disabled until the count matches. The price shown is the bundle price, not the sum of the pieces.
+- Switching to a smaller set keeps the earliest picks and drops the rest. Switching back to Choose any removes the limit.
+- A **Sets** stepper buys more than one copy of the same selection.
+
+#### Cart and checkout
+
+- A completed set is **one cart line** at the fixed price. The line label lists the chosen figures (`Set of 3: Ghoul, Wraith, Vampire`). The same selection increases that line’s quantity.
+- Pieces bought without a bundle stay separate lines at their normal prices.
+- Checkout checks a bundle line’s unit price against the bundle saved on the product. Individual (non-bundle) lines keep today’s client price.
+
+#### Touch points
+
+- `src/lib/productVariants.ts` — `ProductBundle`, parse/serialize on `StoredVariantsV2`, selection cap, cart variant id
+- `src/lib/productPayload.ts`, `src/lib/mapAmplifyProduct.ts`, `Product` in `src/data/seedProducts.ts`
+- `src/components/admin/AdminProductBundlesEditor.tsx`, `src/pages/admin/AdminProductEditPage.tsx`
+- `src/components/BundlePicker.tsx`, `src/components/VariantPicker.tsx` (selection limit, hide quantity while a set is active)
+- `src/pages/ProductDetailPage.tsx` (also the vault PDP, which reuses it)
+- `amplify/functions/create-stripe-checkout/handler.ts` plus a small parser beside `order-shared/resolveVariantLabel.ts`
+
+#### Out of scope (v1)
+
+- Bundles on listings with more than one variation group
+- Making a bundle mandatory
+- **M19** compare-at sales, sale windows, or a bundle made of several different products
+- Stacking a set price with a second automatic discount beyond the existing **M6** grant (the set price is the line price; one grant per order still applies after that)
+
+#### Acceptance
+
+- Admin saves sets of 3, 4, and 6 at fixed prices on a one-group listing.
+- Shopper can add any figures with no bundle, at the sum of piece prices.
+- Shopper who picks a set of 3 cannot check a fourth figure, pays the set price once, and sees one cart line naming the three figures.
+- Checkout rejects a bundle line whose price does not match the saved set.
+
+---
+
 ### M19 — Catalog sales & product bundles
 
-**Status:** Planned — **after M23** (trust/conversion), **before M18** (price alerts need stable sale fields from M19).
+**Status:** Planned — **after M24 and M23** (trust/conversion), **before M18** (price alerts need stable sale fields from M19).
 
-**Goal:** Admin-defined **storefront sales** on individual products and **bundles** (multi-SKU single purchase). Distinct from **M6** (per-account promo grants auto-applied at checkout).
+**Goal:** Admin-defined **storefront sales** on individual products and **bundles of separate products** (multi-SKU single purchase). Distinct from **M6** (per-account promo grants) and from **M24** (fixed-price sets of options on one listing).
 
 **Scope (v1):**
 
