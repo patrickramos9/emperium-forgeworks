@@ -81,6 +81,7 @@ export function AdminProductEditPage() {
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
   const [priceDollars, setPriceDollars] = useState("");
+  const [variationBaseCents, setVariationBaseCents] = useState(0);
   const { categoryFilters } = useCategoryFilters();
   const [category, setCategory] = useState<string>(
     DEFAULT_PRODUCT_CATEGORY_FILTERS[0],
@@ -122,6 +123,7 @@ export function AdminProductEditPage() {
     setSubtitle(p.subtitle ?? "");
     setDescription(p.description ?? "");
     setPriceDollars(formatCentsForInput(p.priceCents));
+    setVariationBaseCents(p.priceCents);
     setCategory(p.category);
     setInStock(p.inStock);
     setFeatured(p.featured);
@@ -444,16 +446,29 @@ export function AdminProductEditPage() {
             type="text"
             inputMode="decimal"
             value={priceDollars}
-            onChange={(e) => setPriceDollars(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setPriceDollars(next);
+              try {
+                setVariationBaseCents(parseDollarInputToCents(next));
+              } catch {
+                // Keep the last valid base until this field parses again.
+              }
+            }}
             required
             placeholder="0.00"
             autoComplete="off"
             className="mt-1 w-full border border-outline-variant/30 bg-surface-container-low px-3 py-2"
           />
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            Variation prices include this amount and update on this form when
+            it changes. The shop updates when you save.
+          </p>
         </label>
         <AdminProductVariantsEditor
           groups={variantGroups}
           galleryImages={galleryImages}
+          basePriceCents={variationBaseCents}
           onChange={setVariantGroups}
           disabled={saving || uploading}
         />

@@ -12,13 +12,15 @@ import {
   type VariationKind,
 } from "@/lib/productVariants";
 import {
-  formatAdjustmentForInput,
-  parsePriceAdjustmentToCents,
+  formatCentsForInput,
+  parseCustomerPriceToDeltaCents,
 } from "@/lib/priceUtils";
 
 interface AdminProductVariantsEditorProps {
   groups: ProductOptionGroup[];
   galleryImages: string[];
+  /** Last valid product price. Variation fields show this plus each add-on. */
+  basePriceCents: number;
   onChange: (groups: ProductOptionGroup[]) => void;
   disabled?: boolean;
 }
@@ -68,9 +70,61 @@ function parseVariantDragPayload(raw: string): VariantDragState | null {
   return { groupId, index };
 }
 
+function VariantCustomerPriceInput({
+  basePriceCents,
+  priceDeltaCents,
+  optionLabel,
+  disabled,
+  onCommit,
+}: {
+  basePriceCents: number;
+  priceDeltaCents: number;
+  optionLabel: string;
+  disabled?: boolean;
+  onCommit: (priceDeltaCents: number) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState("");
+  const shown = formatCentsForInput(basePriceCents + priceDeltaCents);
+
+  return (
+    <input
+      value={focused ? draft : shown}
+      disabled={disabled}
+      inputMode="decimal"
+      autoComplete="off"
+      aria-label={
+        optionLabel
+          ? `Price for ${optionLabel} (USD)`
+          : "Option price (USD)"
+      }
+      placeholder={basePriceCents > 0 ? shown : "0.00"}
+      onFocus={(e) => {
+        setDraft(e.currentTarget.value);
+        setFocused(true);
+      }}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={(e) => {
+        setFocused(false);
+        try {
+          const nextDelta = parseCustomerPriceToDeltaCents(
+            e.currentTarget.value,
+            basePriceCents,
+          );
+          if (nextDelta !== priceDeltaCents) onCommit(nextDelta);
+        } catch {
+          // Invalid or below the base: the field returns to the customer total.
+        }
+      }}
+      className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
+    />
+  );
+}
+
 export function AdminProductVariantsEditor({
   groups,
   galleryImages,
+  basePriceCents,
   onChange,
   disabled = false,
 }: AdminProductVariantsEditorProps) {
@@ -157,7 +211,9 @@ export function AdminProductVariantsEditor({
           </p>
           <p className="mt-1 text-body-sm text-on-surface-variant">
             Offer size, type, or custom options — drag to reorder within each
-            variation. Link a gallery photo so shoppers see the matching image.
+            variation. Each option price is what the customer pays. Changing
+            the product price updates these amounts on this form. Link a
+            gallery photo so shoppers see the matching image.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -297,28 +353,18 @@ export function AdminProductVariantsEditor({
                           }
                           className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
                         />
-                        <input
-                          defaultValue={formatAdjustmentForInput(option.priceDeltaCents)}
-                          key={`${option.id}-${option.priceDeltaCents}`}
+                        <VariantCustomerPriceInput
+                          basePriceCents={basePriceCents}
+                          priceDeltaCents={option.priceDeltaCents}
+                          optionLabel={option.label}
                           disabled={disabled}
-                          onBlur={(e) => {
-                            try {
-                              const priceDeltaCents = parsePriceAdjustmentToCents(
-                                e.target.value,
-                              );
-                              onChange(
-                                updateOption(groups, group.id, option.id, {
-                                  priceDeltaCents,
-                                }),
-                              );
-                            } catch {
-                              e.target.value = formatAdjustmentForInput(
-                                option.priceDeltaCents,
-                              );
-                            }
-                          }}
-                          placeholder="0.00"
-                          className="border border-outline-variant/30 bg-surface-container-high px-3 py-2 text-body-sm"
+                          onCommit={(priceDeltaCents) =>
+                            onChange(
+                              updateOption(groups, group.id, option.id, {
+                                priceDeltaCents,
+                              }),
+                            )
+                          }
                         />
                         <button
                           type="button"

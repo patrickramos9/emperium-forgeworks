@@ -43,3 +43,23 @@ export function parsePriceAdjustmentToCents(raw: string): number {
 export function formatAdjustmentForInput(cents: number): string {
   return (cents / 100).toFixed(2);
 }
+
+/**
+ * Turn a customer price into the stored add-on (typed price − base).
+ * A price equal to the base stores 0. A price below the base is refused.
+ */
+export function parseCustomerPriceToDeltaCents(
+  raw: string,
+  basePriceCents: number,
+): number {
+  if (!Number.isInteger(basePriceCents) || basePriceCents <= 0) {
+    throw new Error("Enter the product price first.");
+  }
+
+  const customerCents = parseDollarInputToCents(raw);
+  if (customerCents < basePriceCents) {
+    throw new Error("Price cannot be below the product price.");
+  }
+
+  return customerCents - basePriceCents;
+}

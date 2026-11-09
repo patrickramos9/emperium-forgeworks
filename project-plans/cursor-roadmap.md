@@ -24,8 +24,8 @@ Cursor should treat this file as the **source of truth** for:
 
 | Item | State |
 |------|--------|
-| **Phase** | **M23d–f** paused — next build is **M25**, then **M24** |
-| **Next** | **M25** variation price entry → **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** … |
+| **Phase** | **M25** variation price entry in the repo — next build is **M24** |
+| **Next** | **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** … |
 | **Then** | **M19** → **M18** → **M8a.3** → M12 → **M13b** … |
 | **Blocked** | _(none)_ · Transactional email → **Resend** (M20a); set `RESEND_API_KEY` + verify domain |
 | **Recently verified** | **M21c polish + Meta Purchase** (2026-08-28) · **M10** message inbox (2026-08-13) · **M16e** guest pre-ship cancel (2026-08-12) · **M23c Gallery** (2026-08-11) · **M6e** (2026-08-09) · **M21c** · **M13a** · **M22** · **M16** · **M11** |
@@ -39,7 +39,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M10** message inbox (**production verified** 2026-08-13) → **M23c mobile nav** (**shipped** 2026-08-13) → **M25** variation price entry → **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
+… → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M10** message inbox (**production verified** 2026-08-13) → **M23c mobile nav** (**shipped** 2026-08-13) → **M25** variation price entry (**repo** 2026-11-08) → **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20b–d** (cloud portability remainder — §4; **M20a** Resend email shipped).
 
@@ -1573,7 +1573,7 @@ On each fulfillment transition (when `userId` is set):
 
 ### M25 — Variation price entry
 
-**Status:** Planned — **next build** (2026-11-08), before **M24**. No code yet.
+**Status:** Implemented in the repo (2026-11-08). Admin form only. Shop, cart, and stored add-ons are unchanged. Not production-verified.
 
 **Goal:** On the product form, type the price the customer pays for each variation. The form subtracts the current base and stores only the add-on. Shop, cart, and checkout keep charging base + add-on. No catalog migration.
 
