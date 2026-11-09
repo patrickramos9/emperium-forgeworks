@@ -188,15 +188,20 @@ async function handleCheckoutCompleted(
   if (order) {
     if (!order.supportNotifiedAt) {
       try {
-        const sent = await sendSupportOrderEmail(
-          { ...order, ...fulfillment },
-          dataClient,
-        );
-        if (sent) {
-          await dataClient.models.Order.update({
-            id: order.id,
-            supportNotifiedAt: new Date().toISOString(),
-          });
+        const totalCents = fulfillment.totalCents ?? order.totalCents;
+        if (typeof totalCents !== "number") {
+          console.error("Paid order is missing a total", order.id);
+        } else {
+          const sent = await sendSupportOrderEmail(
+            { ...order, ...fulfillment, totalCents },
+            dataClient,
+          );
+          if (sent) {
+            await dataClient.models.Order.update({
+              id: order.id,
+              supportNotifiedAt: new Date().toISOString(),
+            });
+          }
         }
       } catch (err) {
         console.error("Support order email failed", err);
