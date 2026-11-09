@@ -20,16 +20,16 @@ Cursor should treat this file as the **source of truth** for:
 
 ## Current status (update when milestones ship)
 
-**Last updated:** 2026-11-08
+**Last updated:** 2026-11-09
 
 | Item | State |
 |------|--------|
-| **Phase** | **M25** variation price entry in the repo — next build is **M24** |
+| **Phase** | **M24** variation set bundles |
 | **Next** | **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** … |
 | **Then** | **M19** → **M18** → **M8a.3** → M12 → **M13b** … |
 | **Blocked** | _(none)_ · Transactional email → **Resend** (M20a); set `RESEND_API_KEY` + verify domain |
-| **Recently verified** | **M21c polish + Meta Purchase** (2026-08-28) · **M10** message inbox (2026-08-13) · **M16e** guest pre-ship cancel (2026-08-12) · **M23c Gallery** (2026-08-11) · **M6e** (2026-08-09) · **M21c** · **M13a** · **M22** · **M16** · **M11** |
-| **Recently shipped (repo)** | **M20a** Resend email (`orders@` / `melissa@`) · **M21c polish** · **Meta Pixel** · **M23c mobile nav** · **M10** · **M16e** · **M23a/b trust** · **M21c** |
+| **Recently verified** | **M25** variation price entry (2026-11-09) · **M21c polish + Meta Purchase** (2026-08-28) · **M10** message inbox (2026-08-13) · **M16e** guest pre-ship cancel (2026-08-12) · **M23c Gallery** (2026-08-11) · **M6e** (2026-08-09) · **M21c** · **M13a** · **M22** · **M16** · **M11** |
+| **Recently shipped (repo)** | **M25** variation price entry · **M20a** Resend email (`orders@` / `melissa@`) · **M21c polish** · **Meta Pixel** · **M23c mobile nav** · **M10** · **M16e** · **M23a/b trust** · **M21c** |
 | **In progress** | _(none)_ |
 | **Deferred (feature)** | **Newsletter subscribe** — home form removed; implement under **M13b** (provider or `NewsletterSubscriber`) then restore UI |
 | **In test** | **M6f** — Idle cart TTL cleanup (Admin → Settings; daily job + Run now) |
@@ -39,7 +39,7 @@ Cursor should treat this file as the **source of truth** for:
 | **Test hygiene** | `scripts/reset-promo-data.ts` — grants, templates, marketing notifications, cart snapshots |
 
 **Recommended build order (living):**  
-… → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M10** message inbox (**production verified** 2026-08-13) → **M23c mobile nav** (**shipped** 2026-08-13) → **M25** variation price entry (**repo** 2026-11-08) → **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
+… → **M16e** guest pre-ship cancel (**production verified** 2026-08-12) → **M10** message inbox (**production verified** 2026-08-13) → **M23c mobile nav** (**shipped** 2026-08-13) → **M25** variation price entry (**verified** 2026-11-09) → **M24** variation set bundles → **M23d–f** → **M19** → **M18** → **M8a.3** → M12 → **M13b** (incl. **newsletter**) → **M9** SEO/perf remainder → **M11a** → M11b → M14
 
 **Deferred (ops / hardware):** **M11a** (optional print micro-stages), **M11b** (Pi bridge), **M14** (ForgeLink™). **Post-v1:** **M20b–d** (cloud portability remainder — §4; **M20a** Resend email shipped).
 
@@ -194,6 +194,7 @@ The roadmap is milestone-based. Each milestone should be **independently shippab
 - **M23a + M23b** — PDP/cart trust strip (Stripe / returns / dispatch), always-on shipping-returns link, aligned ship copy — **shipped** (repo 2026-08-09); review assign + PDP list earlier (2026-08-02)
 - **M23c (partial)** — Customer **Gallery** — **production verified** (2026-08-11); hide home Newsletter — **shipped** (repo 2026-08-10); **mobile nav** — **shipped** (repo 2026-08-13); see **§3.10**.
 - **M10** — Customer ↔ shop **message inbox** (Etsy-style threads) — **production verified** (2026-08-13): `Conversation`/`Message`, guest + signed-in threads, photos, delete conversations, `/account/messages`, `/admin/messages`, header mail badge, homepage + Contact CTAs
+- **M25** — Variation price entry — **verified** (2026-11-09): admin variation fields show the customer price; the form stores the add-on (typed price minus the base). Changing the base updates those totals on the form before save. Shop, cart, and stored prices stay base + add-on.
 
 ### 3.10 M23c — Customer Gallery + Newsletter hide (2026-08-10)
 
@@ -1573,11 +1574,11 @@ On each fulfillment transition (when `userId` is set):
 
 ### M25 — Variation price entry
 
-**Status:** Implemented in the repo (2026-11-08). Admin form only. Shop, cart, and stored add-ons are unchanged. Not production-verified.
+**Status:** **Complete** — verified (2026-11-09). Admin form only. Shop, cart, and stored add-ons are unchanged.
 
 **Goal:** On the product form, type the price the customer pays for each variation. The form subtracts the current base and stores only the add-on. Shop, cart, and checkout keep charging base + add-on. No catalog migration.
 
-**Catalog today (2026-11-08):** 63 products, 302 variation options. Each stored number is an add-on. The shop charges base + add-on. 120 options add $0.00 (customer pays the base). 182 add a positive amount. None go below the base. 13 products have no variations. 49 variation listings include at least one option priced at the base. **Skeletal Warbands** is the only listing whose base ($6.99) is lower than every option (cheapest option $8.99). The shop card still shows the base. No product has more than one variation group. Print-service resin adjustments are a separate add-on and stay as they are. The admin variation field currently shows the add-on (`AdminProductVariantsEditor`, committed on blur), which is how a typed number gets added on top of the base by mistake.
+**Catalog today (2026-11-08):** 63 products, 302 variation options. Each stored number is an add-on. The shop charges base + add-on. 120 options add $0.00 (customer pays the base). 182 add a positive amount. None go below the base. 13 products have no variations. 49 variation listings include at least one option priced at the base. **Skeletal Warbands** is the only listing whose base ($6.99) is lower than every option (cheapest option $8.99). The shop card still shows the base. No product has more than one variation group. Print-service resin adjustments are a separate add-on and stay as they are. Before this milestone, the admin variation field showed the add-on (`AdminProductVariantsEditor`, committed on blur), which is how a typed number got added on top of the base by mistake. It now shows the customer price.
 
 #### Form behavior
 
@@ -1620,7 +1621,7 @@ On each fulfillment transition (when `userId` is set):
 
 ### M24 — Variation set bundles
 
-**Status:** Planned — **after M25** (2026-11-08). Then resume **M23d–f**. Not the same as **M19** (storewide sales and multi-product bundles). Piece prices stay base + add-on. **M25** only changes how those prices are typed.
+**Status:** Planned — **next build** (2026-11-09). Then resume **M23d–f**. Not the same as **M19** (storewide sales and multi-product bundles). Piece prices stay base + add-on. **M25** (complete) only changes how those prices are typed.
 
 **Goal:** On a listing with many variation options (for example Legacy of Blood: Monsters, 12 pieces), admin can offer optional fixed-price sets. A shopper may buy a set of 3, 4, or 6 at one price, or ignore bundles and pick any figures at the normal per-piece price.
 
