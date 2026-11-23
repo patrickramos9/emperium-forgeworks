@@ -26,7 +26,7 @@ Technical reference for **Emperium Forgeworks Store** — how the storefront, ad
 
 | Path | Topic |
 |------|--------|
-| [cursor-roadmap.md](../cursor-roadmap.md) | **Authoritative** — what to build, current status, milestone specs |
+| [cursor-roadmap.md](../cursor-roadmap.md) | **Authoritative v2** — open milestones, current status, operating rules |
 | [archive/](../archive/) | Historical plans (not used for development) |
 | [docs/deploy-option-b.md](../../docs/deploy-option-b.md) | Fullstack Amplify deploy |
 | [docs/storage-auth.md](../../docs/storage-auth.md) | S3 / IAM for product images |

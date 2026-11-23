@@ -3,8 +3,9 @@
 This directory contains all planning and architectural documentation for **Emperium Forgeworks**.
 
 ## Authoritative Spec (AI Development)
-- **cursor-roadmap.md**  
+- **cursor-roadmap.md** (**version 2**)  
   This is the *single source of truth* for AI-driven development.  
+  It lists **outstanding** milestones only, plus the operating rules.  
   Cursor should follow this file for:
   - Architecture rules  
   - Milestone definitions  
@@ -14,7 +15,9 @@ This directory contains all planning and architectural documentation for **Emper
 
 All feature work should reference this roadmap first.
 
-**Living status** is in the **Current status** section at the top of `cursor-roadmap.md` — update it when a milestone ships.
+**Living status** is in the **Current status** section at the top of `cursor-roadmap.md` — update it when a milestone ships, and drop shipped specs from v2 so the file stays the open-work plan.
+
+**Version 1** (shipped history through 2026-11-09) is frozen at `archive/cursor-roadmap-v1.md`.
 
 ---
 

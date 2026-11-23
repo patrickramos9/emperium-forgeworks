@@ -49,4 +49,4 @@ npx tsx scripts/append-merchant-feed-product.ts "C:\path\to\feed.csv"
 - Merchant Center **Product API** sync on admin save (no manual CSV)
 - GA4 / pixel hardening, newsletter, UTM on orders
 
-See `project-plans/cursor-roadmap.md` § M13.
+See `project-plans/cursor-roadmap.md` (v2, **M30**, formerly M13b). Shipped **M13a** is in `project-plans/archive/cursor-roadmap-v1.md`.

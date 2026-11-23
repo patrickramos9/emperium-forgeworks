@@ -2,7 +2,7 @@
 
 Feature-by-feature manual QA checklist for production (and optionally local/sandbox). Use this after deploys, before marking a milestone verified, or for periodic regression.
 
-**Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (what’s shipped vs planned) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
+**Related:** [cursor-roadmap.md](../project-plans/cursor-roadmap.md) (v2 — open work) · [cursor-roadmap v1](../project-plans/archive/cursor-roadmap-v1.md) (shipped history) · [stripe-setup.md](./stripe-setup.md) (payments & promo checkout behavior)
 
 **Roadmap last synced:** 2026-08-01
 

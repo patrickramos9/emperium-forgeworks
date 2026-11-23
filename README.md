@@ -71,9 +71,9 @@ Setup details: **[docs/connect-custom-domain.md](docs/connect-custom-domain.md)*
 
 Planning docs live in **[project-plans/](project-plans/)**:
 
-- [cursor-roadmap.md](project-plans/cursor-roadmap.md) — **authoritative** roadmap, current status, AI dev rules
+- [cursor-roadmap.md](project-plans/cursor-roadmap.md) — **authoritative** roadmap (**v2**, open work only), current status, AI dev rules
 - [reference/](project-plans/reference/) — architecture, API, data models, deployment
-- [archive/](project-plans/archive/) — historical plans (not used for active development)
+- [archive/](project-plans/archive/) — historical plans, including **cursor-roadmap v1** (not used for active development)
 
 ## Project layout
 

@@ -47,7 +47,7 @@ export const ETSY_SHOP_URL = "https://www.etsy.com/shop/EmperiumForgeworks";
 /** Public Etsy shop reviews page — default outbound link for imported reviews. */
 export const ETSY_SHOP_REVIEWS_URL = `${ETSY_SHOP_URL}/reviews`;
 
-/** Brand social profiles (footer / contact). Admin Settings editor is M23e. */
+/** Brand social profiles (footer, contact, about). */
 export const SOCIAL_LINKS = [
   {
     network: "instagram",
