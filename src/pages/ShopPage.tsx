@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnnouncementBlock } from "@/components/AnnouncementBlock";
+import { PageMeta } from "@/components/PageMeta";
 import { CatalogPagination } from "@/components/CatalogPagination";
 import { ProductCard } from "@/components/ProductCard";
 import { productMatchesCategoryFilter } from "@/data/seedProducts";
@@ -27,6 +28,7 @@ import { mergeLiveShopQuery, useLiveShopQuery } from "@/lib/liveShopQuery";
 import { trackMetaSearch } from "@/lib/metaPixel";
 import { rankProductsForSearch } from "@/lib/productSearch";
 import { SHIPPING_DISPATCH_SHOP_BANNER } from "@/lib/shippingPromise";
+import { canonicalOrigin } from "@/lib/siteSeo";
 
 export function ShopPage() {
   const { products, loading, source, loadError } = useProducts();
@@ -61,6 +63,24 @@ export function ShopPage() {
     );
     return rankProductsForSearch(inCategory, search);
   }, [products, category, categoryFilters, search]);
+
+  const searching = search.trim().length > 0;
+  const categoryPath =
+    category === ALL_CATEGORY_FILTER
+      ? "/shop"
+      : `/shop?category=${encodeURIComponent(category)}`;
+  const shopJsonLd = useMemo(() => {
+    if (searching) return null;
+    return {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      itemListElement: filtered.map((product, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: `${canonicalOrigin()}/shop/${product.slug}`,
+      })),
+    };
+  }, [filtered, searching]);
 
   const totalPages = catalogTotalPages(filtered.length, pageSize);
   const requestedPage = searchParams.get("page");
@@ -152,8 +172,26 @@ export function ShopPage() {
     );
   }
 
+  const shopTitle = searching
+    ? `Search “${search.trim()}”`
+    : category === ALL_CATEGORY_FILTER
+      ? "The Lair"
+      : `${category} miniatures`;
+  const shopDescription = searching
+    ? `Search results for ${search.trim()} in the Emperium Forgeworks catalog.`
+    : category === ALL_CATEGORY_FILTER
+      ? "Forged in resin, born in shadow. Premium grimdark miniatures and tactical terrain."
+      : `${category} miniatures, printed in resin by Emperium Forgeworks.`;
+
   return (
     <main className={`mx-auto min-h-screen max-w-container-max px-margin-mobile pb-section-gap md:px-margin-desktop ${mainTopPadding}`}>
+      <PageMeta
+        title={shopTitle}
+        description={shopDescription}
+        path={categoryPath}
+        noindex={searching}
+        jsonLd={shopJsonLd}
+      />
       <div className="mb-stack-lg flex flex-col justify-between gap-stack-md md:flex-row md:items-end">
         <div>
           <h1 className="mb-2 font-display-lg text-display-lg uppercase tracking-tighter text-primary">

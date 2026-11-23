@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /vault
+Disallow: /cart
+Disallow: /checkout
+Disallow: /partner
+
+Sitemap: https://emperiumforgeworks.com/sitemap.xml

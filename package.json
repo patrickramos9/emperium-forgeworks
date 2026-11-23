@@ -17,6 +17,7 @@
     "validate:cart-image": "tsx scripts/validate-cart-image-ref.ts",
     "validate:cart-catalog": "tsx scripts/validate-cart-catalog.ts",
     "export:merchant-feed": "tsx scripts/export-merchant-feed.ts",
+    "export:sitemap": "tsx scripts/export-sitemap.ts",
     "seed": "tsx scripts/seed-products.ts",
     "grant:ga4-access": "tsx scripts/grant-ga4-service-account-access.ts",
     "sandbox": "npx ampx sandbox --profile default"

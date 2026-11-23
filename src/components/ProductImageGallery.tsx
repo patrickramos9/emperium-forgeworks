@@ -78,6 +78,8 @@ export function ProductImageGallery({
       <ProductImage
         src={activeImage}
         alt={`${alt} — photo ${activeIndex + 1}`}
+        loading="eager"
+        fetchPriority="high"
         className={`aspect-[4/5] w-full bg-surface-container-low ${
           fitViewport
             ? "max-h-[min(62vh,640px)] lg:max-h-[calc(100vh-12rem)]"
@@ -131,6 +133,8 @@ export function ProductImageGallery({
           <img
             src={src}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-contain"
           />
         </button>

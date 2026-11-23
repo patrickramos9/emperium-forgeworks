@@ -382,7 +382,14 @@ export function ProductDetailPage({
 
   return (
     <main className="pb-section-gap pt-24">
-      <ProductJsonLd product={product} catalogMode={catalogMode} />
+      <ProductJsonLd
+        product={product}
+        catalogMode={catalogMode}
+        reviewRating={
+          starSummary.fromReviews ? starSummary.rating : null
+        }
+        reviewCount={starSummary.fromReviews ? starSummary.reviewCount : 0}
+      />
       <div className="mx-auto max-w-container-max px-margin-mobile md:px-margin-desktop">
         <nav className="mb-stack-lg flex items-center gap-2 font-label-sm uppercase text-on-surface-variant">
           <Link to={listPath} className="hover:text-primary">

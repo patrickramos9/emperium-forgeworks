@@ -7,11 +7,17 @@ import {
   CONTACT_PHONE_TEL,
 } from "@/lib/config";
 import { Icon } from "@/components/Icon";
+import { PageMeta } from "@/components/PageMeta";
 import { SocialLinks } from "@/components/SocialLinks";
 
 export function ContactPage() {
   return (
     <main className="min-h-screen px-margin-mobile pb-section-gap pt-32 md:px-margin-desktop">
+      <PageMeta
+        title="Contact"
+        description="Contact Emperium Forgeworks in Miramar, Florida for order help, print requests, and returns."
+        path="/contact"
+      />
       <div className="mx-auto max-w-container-max">
         <h1 className="font-display-lg text-headline-lg uppercase tracking-tighter text-primary">
           Contact

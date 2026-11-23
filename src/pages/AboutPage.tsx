@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { PageMeta } from "@/components/PageMeta";
 import { SocialLinks } from "@/components/SocialLinks";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { LEGACY_IMAGES } from "@/data/legacyAssets";
@@ -56,6 +57,11 @@ export function AboutPage() {
 
   return (
     <main className={`pb-section-gap ${mainTopPadding}`}>
+      <PageMeta
+        title="About the forge"
+        description="Emperium Forgeworks is a resin miniature studio in Miramar, Florida. Every piece is printed, cleaned, and inspected before it ships."
+        path="/about"
+      />
       <section
         id="forge-story"
         className="relative overflow-hidden border-b border-outline-variant/10"
@@ -86,6 +92,8 @@ export function AboutPage() {
               <img
                 src={LEGACY_IMAGES.process.workshop}
                 alt="Melissa of Emperium Forgeworks with a resin miniature"
+                loading="lazy"
+                decoding="async"
                 className="aspect-[4/5] w-full object-cover object-center shadow-2xl md:aspect-square"
               />
             </div>

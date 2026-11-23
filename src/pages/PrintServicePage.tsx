@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FieldLabel } from "@/components/FieldTooltip";
+import { PageMeta } from "@/components/PageMeta";
 import { PageFeedback } from "@/components/PageFeedback";
 import { ResinColorSwatches } from "@/components/ResinColorSwatches";
 import { formatPrice } from "@/data/seedProducts";
@@ -447,6 +448,11 @@ export function PrintServicePage() {
 
   return (
     <div className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
+      <PageMeta
+        title="Printing as a service"
+        description="Upload an STL and Emperium Forgeworks reviews it, quotes the print, and ships the finished miniature."
+        path="/print"
+      />
       <h1 className="font-display-lg text-headline-lg uppercase text-on-surface">
         Printing as a Service
       </h1>

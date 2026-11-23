@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeaturedProductsCarousel } from "@/components/FeaturedProductsCarousel";
+import { PageMeta } from "@/components/PageMeta";
 import { Icon } from "@/components/Icon";
 import { ReviewCard } from "@/components/ReviewCard";
 import { ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
@@ -22,6 +23,19 @@ import {
   type SculptorRecord,
 } from "@/services/sculptorService";
 import { fetchPrintServiceConfig } from "@/services/printServiceConfigService";
+import { canonicalOrigin, canonicalUrl } from "@/lib/siteSeo";
+
+const HOME_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Emperium Forgeworks",
+  url: `${canonicalOrigin()}/`,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${canonicalOrigin()}/shop?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
 
 const TECH_SPECS = [
   {
@@ -95,6 +109,13 @@ export function HomePage() {
 
   return (
     <main className={`pb-section-gap ${mainTopPadding}`}>
+      <PageMeta
+        title="Premium grimdark miniatures"
+        description="High-fidelity resin miniatures for grimdark wargaming and tabletop RPGs. Printed, cleaned, and inspected by Emperium Forgeworks."
+        path="/"
+        image={canonicalUrl("/images/emperium-forgeworks-hero-banner.png")}
+        jsonLd={HOME_JSONLD}
+      />
       {/* Hero */}
       <section className="border-b border-outline-variant/10 bg-black">
         <img
@@ -103,6 +124,8 @@ export function HomePage() {
           className="mx-auto block h-auto w-full max-w-container-max"
           width={1600}
           height={400}
+          decoding="async"
+          fetchPriority="high"
         />
       </section>
 
@@ -158,6 +181,8 @@ export function HomePage() {
             <img
               src={LEGACY_IMAGES.home.darkFantasy}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="absolute inset-0 h-full w-full object-cover object-top grayscale brightness-75 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />

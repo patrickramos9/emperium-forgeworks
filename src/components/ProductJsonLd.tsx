@@ -1,22 +1,27 @@
-import { useEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { Product } from "@/data/seedProducts";
 import type { CatalogMode } from "@/lib/catalogFilter";
-import { SITE_URL } from "@/lib/config";
 import { trackMetaPageView } from "@/lib/metaPixel";
 import {
   buildProductJsonLd,
   buildProductOpenGraph,
+  productMetaDescription,
   shouldEmitProductJsonLd,
 } from "@/lib/productJsonLd";
+import {
+  applyCanonical,
+  applyDocumentTitle,
+  applyMetaDescription,
+  applyRobots,
+  canonicalOrigin,
+  productDocumentTitle,
+  trimMetaDescription,
+  upsertJsonLd,
+} from "@/lib/siteSeo";
 
 const SCRIPT_ID = "emperium-product-jsonld";
+const BREADCRUMB_ID = "emperium-breadcrumb-jsonld";
 const OG_ATTR = "data-emperium-product-og";
-
-function siteOrigin(): string {
-  return (
-    typeof window !== "undefined" ? window.location.origin : SITE_URL
-  ).replace(/\/$/, "");
-}
 
 function removeProductOpenGraph() {
   document.head
@@ -35,39 +40,93 @@ function applyProductOpenGraph(tags: Record<string, string>) {
   }
 }
 
-/** JSON-LD + Open Graph product tags for Google and Meta pixel catalog ingest. */
+/**
+ * JSON-LD, Open Graph, title, and canonical for a public PDP.
+ * Meta PageView fires once per product, after those tags are in the head.
+ * A second set of product tags is not written.
+ */
 export function ProductJsonLd({
   product,
   catalogMode = "public",
+  reviewRating = null,
+  reviewCount = 0,
 }: {
   product: Product;
   catalogMode?: CatalogMode;
+  /** Average of the approved reviews shown on this page. Omit admin-only display ratings. */
+  reviewRating?: number | null;
+  reviewCount?: number;
 }) {
-  useEffect(() => {
+  const viewedSlug = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
     document.getElementById(SCRIPT_ID)?.remove();
     removeProductOpenGraph();
+    upsertJsonLd(BREADCRUMB_ID, null);
+
     if (!shouldEmitProductJsonLd(product, catalogMode)) {
       return;
     }
 
-    const origin = siteOrigin();
+    const origin = canonicalOrigin();
+    const url = `${origin}/shop/${product.slug}`;
+    const description = trimMetaDescription(productMetaDescription(product));
+
+    applyDocumentTitle(productDocumentTitle(product.title, product.category));
+    applyMetaDescription(description);
+    applyCanonical(`/shop/${product.slug}`);
+    applyRobots("index, follow");
 
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
     script.type = "application/ld+json";
-    script.text = JSON.stringify(buildProductJsonLd(product, origin)).replace(
-      /</g,
-      "\\u003c",
-    );
+    script.text = JSON.stringify(
+      buildProductJsonLd(
+        product,
+        origin,
+        reviewCount > 0 && reviewRating != null
+          ? { ratingValue: reviewRating, reviewCount }
+          : null,
+      ),
+    ).replace(/</g, "\\u003c");
     document.head.appendChild(script);
     applyProductOpenGraph(buildProductOpenGraph(product, origin));
-    trackMetaPageView();
+    upsertJsonLd(BREADCRUMB_ID, {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: `${origin}/`,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Shop",
+          item: `${origin}/shop`,
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: product.title,
+          item: url,
+        },
+      ],
+    });
+
+    if (viewedSlug.current !== product.slug) {
+      viewedSlug.current = product.slug;
+      trackMetaPageView();
+    }
 
     return () => {
       document.getElementById(SCRIPT_ID)?.remove();
       removeProductOpenGraph();
+      upsertJsonLd(BREADCRUMB_ID, null);
     };
-  }, [product, catalogMode]);
+  }, [product, catalogMode, reviewRating, reviewCount]);
 
   return null;
 }

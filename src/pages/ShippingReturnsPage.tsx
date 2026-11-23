@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { CONTACT_EMAIL, CONTACT_PHONE_DISPLAY, CONTACT_PHONE_TEL } from "@/lib/config";
 import { SHIPPING_DISPATCH_POLICY } from "@/lib/shippingPromise";
 import { useSiteLayout } from "@/context/AnnouncementContext";
+import { PageMeta } from "@/components/PageMeta";
 
 const linkClassName =
   "text-on-surface underline-offset-4 transition-colors hover:text-primary hover:underline decoration-primary/50";
@@ -92,6 +93,11 @@ export function ShippingReturnsPage() {
   const { mainTopPadding } = useSiteLayout();
   return (
     <main className={`pb-section-gap ${mainTopPadding}`}>
+      <PageMeta
+        title="Shipping and returns"
+        description="Shipping times, dispatch, and the return policy for Emperium Forgeworks resin miniatures."
+        path="/shipping-returns"
+      />
       <section className="border-b border-outline-variant/10 bg-surface-container-lowest">
         <div className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
           <div className="max-w-2xl space-y-stack-md">

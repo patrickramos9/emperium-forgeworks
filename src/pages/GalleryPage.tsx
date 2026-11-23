@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { PageMeta } from "@/components/PageMeta";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
 import { hasGalleryEntryModel } from "@/lib/dataModels";
@@ -47,6 +48,11 @@ export function GalleryPage() {
     <main
       className={`mx-auto max-w-container-max px-margin-mobile pb-section-gap md:px-margin-desktop ${mainTopPadding}`}
     >
+      <PageMeta
+        title="Customer gallery"
+        description="Customer-painted miniatures from Emperium Forgeworks, linked back to the catalog models they started from."
+        path="/gallery"
+      />
       <div className="mb-stack-lg flex flex-wrap items-end justify-between gap-4 border-b-2 border-primary pb-2">
         <div>
           <h1 className="font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">

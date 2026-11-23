@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ReviewCard } from "@/components/ReviewCard";
+import { PageMeta } from "@/components/PageMeta";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { ETSY_SHOP_REVIEWS_URL } from "@/lib/config";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
@@ -38,6 +39,11 @@ export function ReviewsPage() {
     <main
       className={`mx-auto max-w-container-max px-margin-mobile pb-section-gap md:px-margin-desktop ${mainTopPadding}`}
     >
+      <PageMeta
+        title="Customer reviews"
+        description="Reviews from customers who bought resin miniatures from Emperium Forgeworks."
+        path="/reviews"
+      />
       <div className="mb-stack-lg flex flex-wrap items-end justify-between gap-4 border-b-2 border-primary pb-2">
         <div>
           <h1 className="font-display-lg text-headline-lg uppercase tracking-tighter text-on-surface">

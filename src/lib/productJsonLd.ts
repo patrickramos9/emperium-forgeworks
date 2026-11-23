@@ -179,10 +179,15 @@ export function buildProductOpenGraph(
   return tags;
 }
 
+export function productMetaDescription(product: Product): string {
+  return productDescription(product);
+}
+
 /** Schema.org Product JSON-LD for a public PDP (one Offer per variant). */
 export function buildProductJsonLd(
   product: Product,
   origin: string,
+  aggregateRating?: { ratingValue: number; reviewCount: number } | null,
 ): Record<string, unknown> {
   const site = origin.replace(/\/$/, "");
   const url = `${site}/shop/${product.slug}`;
@@ -208,6 +213,21 @@ export function buildProductJsonLd(
 
   if (images.length === 1) data.image = images[0];
   else if (images.length > 1) data.image = images;
+
+  if (
+    aggregateRating &&
+    aggregateRating.reviewCount > 0 &&
+    aggregateRating.ratingValue >= 1 &&
+    aggregateRating.ratingValue <= 5
+  ) {
+    data.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: aggregateRating.ratingValue.toFixed(1),
+      reviewCount: String(aggregateRating.reviewCount),
+      bestRating: "5",
+      worstRating: "1",
+    };
+  }
 
   if (product.specs?.material) data.material = product.specs.material;
 

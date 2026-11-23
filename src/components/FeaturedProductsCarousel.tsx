@@ -89,6 +89,8 @@ export function FeaturedProductsCarousel({
               <img
                 src={imageSrc}
                 alt=""
+                loading={isActive ? "eager" : "lazy"}
+                decoding="async"
                 className="absolute inset-0 h-full w-full object-cover grayscale brightness-75 transition-all duration-700 group-hover:scale-105 group-hover:grayscale-0"
               />
             ) : (

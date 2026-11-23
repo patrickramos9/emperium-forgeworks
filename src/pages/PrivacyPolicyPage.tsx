@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CONTACT_EMAIL, SITE_DOMAIN } from "@/lib/config";
 import { useSiteLayout } from "@/context/AnnouncementContext";
+import { PageMeta } from "@/components/PageMeta";
 
 const linkClassName =
   "text-on-surface underline-offset-4 transition-colors hover:text-primary hover:underline decoration-primary/50";
@@ -146,6 +147,11 @@ export function PrivacyPolicyPage() {
   const { mainTopPadding } = useSiteLayout();
   return (
     <main className={`pb-section-gap ${mainTopPadding}`}>
+      <PageMeta
+        title="Privacy policy"
+        description="How Emperium Forgeworks collects and uses information when you shop, create an account, or contact the studio."
+        path="/privacy-policy"
+      />
       <section className="border-b border-outline-variant/10 bg-surface-container-lowest">
         <div className="mx-auto max-w-container-max px-margin-mobile py-section-gap md:px-margin-desktop">
           <div className="max-w-2xl space-y-stack-md">

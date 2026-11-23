@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { PageMeta } from "@/components/PageMeta";
 import { ProductImageGallery } from "@/components/ProductImageGallery";
 import { useSiteLayout } from "@/context/AnnouncementContext";
 import { getGuestDataClient } from "@/lib/amplifyDataClient";
@@ -115,6 +116,16 @@ export function SculptorDetailPage() {
     <main
       className={`mx-auto max-w-container-max px-margin-mobile pb-section-gap md:px-margin-desktop ${mainTopPadding}`}
     >
+      {sculptor ? (
+        <PageMeta
+          title={sculptor.name}
+          description={
+            sculptor.description?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) ||
+            `${sculptor.name} sculpts printed by Emperium Forgeworks.`
+          }
+          path={`/sculptors/${sculptor.slug}`}
+        />
+      ) : null}
       <Link
         to="/"
         className="font-label-sm uppercase text-on-surface-variant hover:text-primary"

@@ -71,6 +71,7 @@ import { NotificationBadgeProvider } from "@/context/NotificationBadgeContext";
 import { ToastRegion } from "@/components/ToastRegion";
 import { trackGooglePageView, GA4_MEASUREMENT_ID } from "@/lib/googleTags";
 import { isPublicProductPath } from "@/lib/productJsonLd";
+import { applyDocumentTitle, applyRobots, brandTitle } from "@/lib/siteSeo";
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -104,6 +105,30 @@ function AnalyticsTracker() {
   return null;
 }
 
+function privateSectionTitle(pathname: string): string | null {
+  if (/^\/admin(\/|$)/.test(pathname)) return "Admin";
+  if (/^\/account(\/|$)/.test(pathname)) return "Account";
+  if (/^\/vault(\/|$)/.test(pathname)) return "Vault";
+  if (/^\/cart(\/|$)/.test(pathname)) return "Cart";
+  if (/^\/checkout(\/|$)/.test(pathname)) return "Checkout";
+  if (/^\/partner(\/|$)/.test(pathname)) return "Partner";
+  return null;
+}
+
+/** Keeps account, admin, vault, cart, and checkout out of Google's index. */
+function RouteIndexing() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const label = privateSectionTitle(pathname);
+    if (!label) return;
+    applyDocumentTitle(brandTitle(label));
+    applyRobots("noindex, nofollow");
+  }, [pathname]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <CartProvider>
@@ -113,6 +138,7 @@ export default function App() {
           <BrowserRouter>
             <ScrollToTopOnNavigate />
             <AnalyticsTracker />
+            <RouteIndexing />
             <TrustedSiteScript />
             <ToastRegion />
             <Routes>

@@ -6,6 +6,9 @@ interface ProductImageProps {
   /** Wrapper sizing (aspect ratio, height, etc.) */
   className?: string;
   imageClassName?: string;
+  /** Shop cards lazy-load. The product page hero passes eager. */
+  loading?: "lazy" | "eager";
+  fetchPriority?: "high" | "low" | "auto";
 }
 
 /** Scales product art to fit its frame without cropping. */
@@ -14,6 +17,8 @@ export function ProductImage({
   alt,
   className = "",
   imageClassName = "",
+  loading = "lazy",
+  fetchPriority,
 }: ProductImageProps) {
   return (
     <div
@@ -23,6 +28,9 @@ export function ProductImage({
         <img
           src={src}
           alt={alt}
+          loading={loading}
+          decoding="async"
+          fetchPriority={fetchPriority}
           className={`max-h-full max-w-full object-contain ${imageClassName}`.trim()}
         />
       ) : (

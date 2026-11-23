@@ -517,6 +517,130 @@
             "sortKeyFieldNames": []
           }
         },
+        "GalleryEntry": {
+          "name": "GalleryEntry",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "imagePath": {
+              "name": "imagePath",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "artistName": {
+              "name": "artistName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "artistUrl": {
+              "name": "artistUrl",
+              "isArray": false,
+              "type": "AWSURL",
+              "isRequired": false,
+              "attributes": []
+            },
+            "productSlug": {
+              "name": "productSlug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "receivedAt": {
+              "name": "receivedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "GalleryEntries",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "identityPool",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "groups": [
+                      "admin"
+                    ],
+                    "operations": [
+                      "create",
+                      "update",
+                      "delete",
+                      "read"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
         "ShippingProfile": {
           "name": "ShippingProfile",
           "fields": {
@@ -744,6 +868,13 @@
             },
             "userId": {
               "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
               "isArray": false,
               "type": "String",
               "isRequired": false,
@@ -1543,6 +1674,90 @@
             ]
           }
         },
+        "GuestFavorite": {
+          "name": "GuestFavorite",
+          "fields": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "productSlug": {
+              "name": "productSlug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "GuestFavorites",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "guestId",
+                  "productId"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "guestId",
+            "sortKeyFieldNames": [
+              "productId"
+            ]
+          }
+        },
         "CartSnapshot": {
           "name": "CartSnapshot",
           "fields": {
@@ -1629,6 +1844,196 @@
           "primaryKeyInfo": {
             "isCustomPrimaryKey": true,
             "primaryKeyFieldName": "userId",
+            "sortKeyFieldNames": []
+          }
+        },
+        "GuestCartSnapshot": {
+          "name": "GuestCartSnapshot",
+          "fields": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": true,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "abandonedAt": {
+              "name": "abandonedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "GuestCartSnapshots",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "guestId"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": true,
+            "primaryKeyFieldName": "guestId",
+            "sortKeyFieldNames": []
+          }
+        },
+        "GuestNotification": {
+          "name": "GuestNotification",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "kind": {
+              "name": "kind",
+              "isArray": false,
+              "type": {
+                "enum": "GuestNotificationKind"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "active": {
+              "name": "active",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "readAt": {
+              "name": "readAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "GuestNotifications",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
             "sortKeyFieldNames": []
           }
         },
@@ -1907,10 +2312,24 @@
               "isRequired": false,
               "attributes": []
             },
+            "sourceUrl": {
+              "name": "sourceUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "productSlug": {
               "name": "productSlug",
               "isArray": false,
               "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "reviewedAt": {
+              "name": "reviewedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
               "isRequired": false,
               "attributes": []
             },
@@ -2028,6 +2447,92 @@
               "name": "productDescriptionTemplate",
               "isArray": false,
               "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "cartCleanupEnabled": {
+              "name": "cartCleanupEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "cartCleanupIdleDays": {
+              "name": "cartCleanupIdleDays",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "cartCleanupScope": {
+              "name": "cartCleanupScope",
+              "isArray": false,
+              "type": {
+                "enum": "CatalogSettingsCartCleanupScope"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailNotificationsEnabled": {
+              "name": "emailNotificationsEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailNewOrderSupportEnabled": {
+              "name": "emailNewOrderSupportEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailOrderPaidEnabled": {
+              "name": "emailOrderPaidEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailOrderShippedEnabled": {
+              "name": "emailOrderShippedEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailShopMessageEnabled": {
+              "name": "emailShopMessageEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailPromoGrantEnabled": {
+              "name": "emailPromoGrantEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailPrintQuoteEnabled": {
+              "name": "emailPrintQuoteEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "emailPrintDeclinedEnabled": {
+              "name": "emailPrintDeclinedEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "aboutSuccessfulForgings": {
+              "name": "aboutSuccessfulForgings",
+              "isArray": false,
+              "type": "Int",
               "isRequired": false,
               "attributes": []
             },
@@ -2236,6 +2741,227 @@
             "sortKeyFieldNames": []
           }
         },
+        "PrintRequest": {
+          "name": "PrintRequest",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "PrintRequestStatus"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "uploadId": {
+              "name": "uploadId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "storagePath": {
+              "name": "storagePath",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "originalFileName": {
+              "name": "originalFileName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resinTypeId": {
+              "name": "resinTypeId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resinTypeLabel": {
+              "name": "resinTypeLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resinColorId": {
+              "name": "resinColorId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resinColorLabel": {
+              "name": "resinColorLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "sizingMode": {
+              "name": "sizingMode",
+              "isArray": false,
+              "type": {
+                "enum": "PrintRequestSizingMode"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "desiredSizeMm": {
+              "name": "desiredSizeMm",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "desiredScalePercent": {
+              "name": "desiredScalePercent",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "customerNotes": {
+              "name": "customerNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "adminNotes": {
+              "name": "adminNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "figureLines": {
+              "name": "figureLines",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "quoteAttachments": {
+              "name": "quoteAttachments",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "quoteCents": {
+              "name": "quoteCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "quotedAt": {
+              "name": "quotedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "PrintRequests",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "read"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
         "Sculptor": {
           "name": "Sculptor",
           "fields": {
@@ -2413,9 +3139,258 @@
             "primaryKeyFieldName": "slug",
             "sortKeyFieldNames": []
           }
+        },
+        "Conversation": {
+          "name": "Conversation",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "subject": {
+              "name": "subject",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "customerEmail": {
+              "name": "customerEmail",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lastMessageAt": {
+              "name": "lastMessageAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "unreadForCustomer": {
+              "name": "unreadForCustomer",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "unreadForAdmin": {
+              "name": "unreadForAdmin",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Conversations",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "userId",
+                    "allow": "owner",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Message": {
+          "name": "Message",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "conversationUserId": {
+              "name": "conversationUserId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "senderRole": {
+              "name": "senderRole",
+              "isArray": false,
+              "type": {
+                "enum": "MessageSenderRole"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "imagePaths": {
+              "name": "imagePaths",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "Messages",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "conversationUserId",
+                    "allow": "owner",
+                    "operations": [
+                      "create",
+                      "read",
+                      "delete"
+                    ],
+                    "identityClaim": "sub"
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "groups": [
+                      "admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
         }
       },
       "enums": {
+        "RunIdleCartCleanupScope": {
+          "name": "RunIdleCartCleanupScope",
+          "values": [
+            "guest",
+            "signed_in",
+            "both"
+          ]
+        },
         "UpdateOrderFulfillmentFulfillmentStatus": {
           "name": "UpdateOrderFulfillmentFulfillmentStatus",
           "values": [
@@ -2431,6 +3406,20 @@
             "requested_by_customer",
             "duplicate",
             "fraudulent"
+          ]
+        },
+        "UpdatePrintLineReviewReviewStatus": {
+          "name": "UpdatePrintLineReviewReviewStatus",
+          "values": [
+            "approved",
+            "rejected"
+          ]
+        },
+        "SubmitPrintRequestSizingMode": {
+          "name": "SubmitPrintRequestSizingMode",
+          "values": [
+            "absolute",
+            "scale"
           ]
         },
         "SubmitReturnRequestReason": {
@@ -2542,6 +3531,14 @@
             "new_account"
           ]
         },
+        "GuestNotificationKind": {
+          "name": "GuestNotificationKind",
+          "values": [
+            "system",
+            "order",
+            "marketing"
+          ]
+        },
         "NotificationKind": {
           "name": "NotificationKind",
           "values": [
@@ -2555,6 +3552,46 @@
           "values": [
             "site",
             "etsy"
+          ]
+        },
+        "CatalogSettingsCartCleanupScope": {
+          "name": "CatalogSettingsCartCleanupScope",
+          "values": [
+            "guest",
+            "signed_in",
+            "both"
+          ]
+        },
+        "PrintRequestStatus": {
+          "name": "PrintRequestStatus",
+          "values": [
+            "submitted",
+            "in_review",
+            "quoted",
+            "paid",
+            "declined",
+            "cancelled"
+          ]
+        },
+        "PrintRequestSizingMode": {
+          "name": "PrintRequestSizingMode",
+          "values": [
+            "absolute",
+            "scale"
+          ]
+        },
+        "MessageSenderRole": {
+          "name": "MessageSenderRole",
+          "values": [
+            "customer",
+            "admin"
+          ]
+        },
+        "GuestPrintRequestItemSizingMode": {
+          "name": "GuestPrintRequestItemSizingMode",
+          "values": [
+            "absolute",
+            "scale"
           ]
         }
       },
@@ -2963,11 +4000,433 @@
             }
           }
         },
+        "GuestFavoriteListItem": {
+          "name": "GuestFavoriteListItem",
+          "fields": {
+            "productId": {
+              "name": "productId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "productSlug": {
+              "name": "productSlug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "GuestFavoriteListResult": {
+          "name": "GuestFavoriteListResult",
+          "fields": {
+            "favorites": {
+              "name": "favorites",
+              "isArray": true,
+              "type": {
+                "nonModel": "GuestFavoriteListItem"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            }
+          }
+        },
         "IssueNewAccountGrantResult": {
           "name": "IssueNewAccountGrantResult",
           "fields": {
             "issued": {
               "name": "issued",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "MergeGuestIdentityResult": {
+          "name": "MergeGuestIdentityResult",
+          "fields": {
+            "merged": {
+              "name": "merged",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "cartsMerged": {
+              "name": "cartsMerged",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "favoritesMerged": {
+              "name": "favoritesMerged",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "printRequestsMerged": {
+              "name": "printRequestsMerged",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "notificationsMerged": {
+              "name": "notificationsMerged",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "ordersMerged": {
+              "name": "ordersMerged",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "conversationsMerged": {
+              "name": "conversationsMerged",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "GuestNotificationItem": {
+          "name": "GuestNotificationItem",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "kind": {
+              "name": "kind",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "readAt": {
+              "name": "readAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "GuestNotificationListResult": {
+          "name": "GuestNotificationListResult",
+          "fields": {
+            "notifications": {
+              "name": "notifications",
+              "isArray": true,
+              "type": {
+                "nonModel": "GuestNotificationItem"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            }
+          }
+        },
+        "MarkGuestNotificationReadResult": {
+          "name": "MarkGuestNotificationReadResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "GuestConversationItem": {
+          "name": "GuestConversationItem",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "subject": {
+              "name": "subject",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "customerEmail": {
+              "name": "customerEmail",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lastMessageAt": {
+              "name": "lastMessageAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": true,
+              "attributes": []
+            },
+            "unreadForCustomer": {
+              "name": "unreadForCustomer",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "unreadForAdmin": {
+              "name": "unreadForAdmin",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "GuestConversationListResult": {
+          "name": "GuestConversationListResult",
+          "fields": {
+            "conversations": {
+              "name": "conversations",
+              "isArray": true,
+              "type": {
+                "nonModel": "GuestConversationItem"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            }
+          }
+        },
+        "GuestMessageItem": {
+          "name": "GuestMessageItem",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "senderRole": {
+              "name": "senderRole",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "imagePaths": {
+              "name": "imagePaths",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "GuestMessageListResult": {
+          "name": "GuestMessageListResult",
+          "fields": {
+            "messages": {
+              "name": "messages",
+              "isArray": true,
+              "type": {
+                "nonModel": "GuestMessageItem"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            }
+          }
+        },
+        "StartGuestConversationResult": {
+          "name": "StartGuestConversationResult",
+          "fields": {
+            "conversation": {
+              "name": "conversation",
+              "isArray": false,
+              "type": {
+                "nonModel": "GuestConversationItem"
+              },
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "ReplyGuestConversationResult": {
+          "name": "ReplyGuestConversationResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "MarkGuestConversationReadResult": {
+          "name": "MarkGuestConversationReadResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "DeleteGuestConversationResult": {
+          "name": "DeleteGuestConversationResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "UpdateGuestConversationEmailResult": {
+          "name": "UpdateGuestConversationEmailResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "customerEmail": {
+              "name": "customerEmail",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "NotifyGuestMessageEmailResult": {
+          "name": "NotifyGuestMessageEmailResult",
+          "fields": {
+            "sent": {
+              "name": "sent",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "NotifyPromoGrantEmailResult": {
+          "name": "NotifyPromoGrantEmailResult",
+          "fields": {
+            "sent": {
+              "name": "sent",
               "isArray": false,
               "type": "Boolean",
               "isRequired": true,
@@ -2997,6 +4456,82 @@
               "isArray": false,
               "type": "Boolean",
               "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "IdleCartCleanupResult": {
+          "name": "IdleCartCleanupResult",
+          "fields": {
+            "ran": {
+              "name": "ran",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "skipped": {
+              "name": "skipped",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "guestDeleted": {
+              "name": "guestDeleted",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "signedInDeleted": {
+              "name": "signedInDeleted",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "grantsRevoked": {
+              "name": "grantsRevoked",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "GuestCartSnapshotResult": {
+          "name": "GuestCartSnapshotResult",
+          "fields": {
+            "found": {
+              "name": "found",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": true,
+              "type": {
+                "nonModel": "CartSnapshotLine"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
               "attributes": []
             }
           }
@@ -3143,6 +4678,215 @@
             }
           }
         },
+        "GuestOrderItem": {
+          "name": "GuestOrderItem",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "externalSessionId": {
+              "name": "externalSessionId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "paymentProvider": {
+              "name": "paymentProvider",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "customerName": {
+              "name": "customerName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingAddress": {
+              "name": "shippingAddress",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "subtotalCents": {
+              "name": "subtotalCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingCents": {
+              "name": "shippingCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippingLabel": {
+              "name": "shippingLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "taxCents": {
+              "name": "taxCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "lineItems": {
+              "name": "lineItems",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "totalCents": {
+              "name": "totalCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "discountCents": {
+              "name": "discountCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "promoLabel": {
+              "name": "promoLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "fulfillmentStatus": {
+              "name": "fulfillmentStatus",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "fulfillmentUpdatedAt": {
+              "name": "fulfillmentUpdatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "carrier": {
+              "name": "carrier",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "trackingNumber": {
+              "name": "trackingNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "trackingUrl": {
+              "name": "trackingUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "shippedAt": {
+              "name": "shippedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "deliveredAt": {
+              "name": "deliveredAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "refundedCents": {
+              "name": "refundedCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "refundNotes": {
+              "name": "refundNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "GuestOrderListResult": {
+          "name": "GuestOrderListResult",
+          "fields": {
+            "orders": {
+              "name": "orders",
+              "isArray": true,
+              "type": {
+                "nonModel": "GuestOrderItem"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            }
+          }
+        },
         "SubmitReturnRequestResult": {
           "name": "SubmitReturnRequestResult",
           "fields": {
@@ -3177,6 +4921,338 @@
               "isArray": false,
               "type": "String",
               "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "UpdatePrintLineReviewResult": {
+          "name": "UpdatePrintLineReviewResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "reviewStatus": {
+              "name": "reviewStatus",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "notificationSent": {
+              "name": "notificationSent",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "refundedCents": {
+              "name": "refundedCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "orderStatus": {
+              "name": "orderStatus",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "SubmitPrintRequestResult": {
+          "name": "SubmitPrintRequestResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "printRequestId": {
+              "name": "printRequestId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "GuestPrintRequestItem": {
+          "name": "GuestPrintRequestItem",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "uploadId": {
+              "name": "uploadId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "storagePath": {
+              "name": "storagePath",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "originalFileName": {
+              "name": "originalFileName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resinTypeId": {
+              "name": "resinTypeId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resinTypeLabel": {
+              "name": "resinTypeLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resinColorId": {
+              "name": "resinColorId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "resinColorLabel": {
+              "name": "resinColorLabel",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "sizingMode": {
+              "name": "sizingMode",
+              "isArray": false,
+              "type": {
+                "enum": "GuestPrintRequestItemSizingMode"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "desiredSizeMm": {
+              "name": "desiredSizeMm",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "desiredScalePercent": {
+              "name": "desiredScalePercent",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "customerNotes": {
+              "name": "customerNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "adminNotes": {
+              "name": "adminNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "figureLines": {
+              "name": "figureLines",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "quoteCents": {
+              "name": "quoteCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "quotedAt": {
+              "name": "quotedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "GuestPrintRequestListResult": {
+          "name": "GuestPrintRequestListResult",
+          "fields": {
+            "requests": {
+              "name": "requests",
+              "isArray": true,
+              "type": {
+                "nonModel": "GuestPrintRequestItem"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": false
+            }
+          }
+        },
+        "AdminQuotePrintRequestResult": {
+          "name": "AdminQuotePrintRequestResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "quoteCents": {
+              "name": "quoteCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "notificationSent": {
+              "name": "notificationSent",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "AdminDeclinePrintRequestResult": {
+          "name": "AdminDeclinePrintRequestResult",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            },
+            "notificationSent": {
+              "name": "notificationSent",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": true,
+              "attributes": []
+            }
+          }
+        },
+        "PrintFigureLineInput": {
+          "name": "PrintFigureLineInput",
+          "fields": {
+            "sizeTierId": {
+              "name": "sizeTierId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "unitPriceCents": {
+              "name": "unitPriceCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        },
+        "PrintQuoteAttachmentInput": {
+          "name": "PrintQuoteAttachmentInput",
+          "fields": {
+            "storagePath": {
+              "name": "storagePath",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "fileName": {
+              "name": "fileName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "contentType": {
+              "name": "contentType",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
               "attributes": []
             }
           }
@@ -3289,6 +5365,122 @@
             }
           }
         },
+        "getGuestFavorites": {
+          "name": "getGuestFavorites",
+          "isArray": false,
+          "type": {
+            "nonModel": "GuestFavoriteListResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "getGuestNotifications": {
+          "name": "getGuestNotifications",
+          "isArray": false,
+          "type": {
+            "nonModel": "GuestNotificationListResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "getGuestConversations": {
+          "name": "getGuestConversations",
+          "isArray": false,
+          "type": {
+            "nonModel": "GuestConversationListResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "getGuestConversationMessages": {
+          "name": "getGuestConversationMessages",
+          "isArray": false,
+          "type": {
+            "nonModel": "GuestMessageListResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            }
+          }
+        },
+        "loadGuestCartSnapshot": {
+          "name": "loadGuestCartSnapshot",
+          "isArray": false,
+          "type": {
+            "nonModel": "GuestCartSnapshotResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
         "getStorefrontStats": {
           "name": "getStorefrontStats",
           "isArray": false,
@@ -3296,6 +5488,62 @@
             "nonModel": "StorefrontStatsResult"
           },
           "isRequired": false
+        },
+        "getGuestPrintRequests": {
+          "name": "getGuestPrintRequests",
+          "isArray": false,
+          "type": {
+            "nonModel": "GuestPrintRequestListResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "printRequestId": {
+              "name": "printRequestId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false
+            }
+          }
+        },
+        "getGuestOrders": {
+          "name": "getGuestOrders",
+          "isArray": false,
+          "type": {
+            "nonModel": "GuestOrderListResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false
+            }
+          }
         }
       },
       "mutations": {
@@ -3330,6 +5578,18 @@
             },
             "cancelUrl": {
               "name": "cancelUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestToken": {
+              "name": "guestToken",
               "isArray": false,
               "type": "String",
               "isRequired": false
@@ -3377,6 +5637,252 @@
               "isArray": false,
               "type": "Boolean",
               "isRequired": true
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "markGuestNotificationRead": {
+          "name": "markGuestNotificationRead",
+          "isArray": false,
+          "type": {
+            "nonModel": "MarkGuestNotificationReadResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "notificationId": {
+              "name": "notificationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            }
+          }
+        },
+        "startGuestConversation": {
+          "name": "startGuestConversation",
+          "isArray": false,
+          "type": {
+            "nonModel": "StartGuestConversationResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "subject": {
+              "name": "subject",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": false
+            },
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false
+            },
+            "imagePaths": {
+              "name": "imagePaths",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "isArrayNullable": true
+            }
+          }
+        },
+        "replyGuestConversation": {
+          "name": "replyGuestConversation",
+          "isArray": false,
+          "type": {
+            "nonModel": "ReplyGuestConversationResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "imagePaths": {
+              "name": "imagePaths",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "isArrayNullable": true
+            }
+          }
+        },
+        "markGuestConversationRead": {
+          "name": "markGuestConversationRead",
+          "isArray": false,
+          "type": {
+            "nonModel": "MarkGuestConversationReadResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            }
+          }
+        },
+        "deleteGuestConversation": {
+          "name": "deleteGuestConversation",
+          "isArray": false,
+          "type": {
+            "nonModel": "DeleteGuestConversationResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            }
+          }
+        },
+        "updateGuestConversationEmail": {
+          "name": "updateGuestConversationEmail",
+          "isArray": false,
+          "type": {
+            "nonModel": "UpdateGuestConversationEmailResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": true
+            }
+          }
+        },
+        "notifyGuestMessageEmail": {
+          "name": "notifyGuestMessageEmail",
+          "isArray": false,
+          "type": {
+            "nonModel": "NotifyGuestMessageEmailResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "conversationId": {
+              "name": "conversationId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "previewBody": {
+              "name": "previewBody",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
             }
           }
         },
@@ -3387,6 +5893,56 @@
             "nonModel": "IssueNewAccountGrantResult"
           },
           "isRequired": false
+        },
+        "notifyPromoGrantEmail": {
+          "name": "notifyPromoGrantEmail",
+          "isArray": false,
+          "type": {
+            "nonModel": "NotifyPromoGrantEmailResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "userId": {
+              "name": "userId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "title": {
+              "name": "title",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "body": {
+              "name": "body",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        },
+        "mergeGuestIdentity": {
+          "name": "mergeGuestIdentity",
+          "isArray": false,
+          "type": {
+            "nonModel": "MergeGuestIdentityResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
         },
         "syncCartSnapshot": {
           "name": "syncCartSnapshot",
@@ -3404,6 +5960,42 @@
               },
               "isRequired": false,
               "isArrayNullable": false
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "runIdleCartCleanup": {
+          "name": "runIdleCartCleanup",
+          "isArray": false,
+          "type": {
+            "nonModel": "IdleCartCleanupResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "idleDays": {
+              "name": "idleDays",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false
+            },
+            "scope": {
+              "name": "scope",
+              "isArray": false,
+              "type": {
+                "enum": "RunIdleCartCleanupScope"
+              },
+              "isRequired": false
             }
           }
         },
@@ -3462,6 +6054,12 @@
               "isArray": false,
               "type": "String",
               "isRequired": false
+            },
+            "notifyCustomer": {
+              "name": "notifyCustomer",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false
             }
           }
         },
@@ -3501,6 +6099,228 @@
             }
           }
         },
+        "updatePrintLineReview": {
+          "name": "updatePrintLineReview",
+          "isArray": false,
+          "type": {
+            "nonModel": "UpdatePrintLineReviewResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "orderId": {
+              "name": "orderId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "uploadId": {
+              "name": "uploadId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "reviewStatus": {
+              "name": "reviewStatus",
+              "isArray": false,
+              "type": {
+                "enum": "UpdatePrintLineReviewReviewStatus"
+              },
+              "isRequired": false
+            },
+            "reviewNotes": {
+              "name": "reviewNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "submitPrintRequest": {
+          "name": "submitPrintRequest",
+          "isArray": false,
+          "type": {
+            "nonModel": "SubmitPrintRequestResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "uploadId": {
+              "name": "uploadId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "storagePath": {
+              "name": "storagePath",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "originalFileName": {
+              "name": "originalFileName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "resinTypeId": {
+              "name": "resinTypeId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "resinColorId": {
+              "name": "resinColorId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "sizingMode": {
+              "name": "sizingMode",
+              "isArray": false,
+              "type": {
+                "enum": "SubmitPrintRequestSizingMode"
+              },
+              "isRequired": false
+            },
+            "desiredSizeMm": {
+              "name": "desiredSizeMm",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false
+            },
+            "desiredScalePercent": {
+              "name": "desiredScalePercent",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false
+            },
+            "customerNotes": {
+              "name": "customerNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "AWSEmail",
+              "isRequired": false
+            }
+          }
+        },
+        "adminQuotePrintRequest": {
+          "name": "adminQuotePrintRequest",
+          "isArray": false,
+          "type": {
+            "nonModel": "AdminQuotePrintRequestResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "printRequestId": {
+              "name": "printRequestId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "figureLines": {
+              "name": "figureLines",
+              "isArray": true,
+              "type": {
+                "input": "PrintFigureLineInputInput"
+              },
+              "isRequired": false,
+              "isArrayNullable": false
+            },
+            "adminNotes": {
+              "name": "adminNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "quoteAttachments": {
+              "name": "quoteAttachments",
+              "isArray": true,
+              "type": {
+                "input": "PrintQuoteAttachmentInputInput"
+              },
+              "isRequired": false,
+              "isArrayNullable": true
+            }
+          }
+        },
+        "adminDeclinePrintRequest": {
+          "name": "adminDeclinePrintRequest",
+          "isArray": false,
+          "type": {
+            "nonModel": "AdminDeclinePrintRequestResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "printRequestId": {
+              "name": "printRequestId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "adminNotes": {
+              "name": "adminNotes",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
+        "createPrintQuoteCheckoutSession": {
+          "name": "createPrintQuoteCheckoutSession",
+          "isArray": false,
+          "type": {
+            "nonModel": "CheckoutSessionResult"
+          },
+          "isRequired": false,
+          "arguments": {
+            "printRequestId": {
+              "name": "printRequestId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true
+            },
+            "successUrl": {
+              "name": "successUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "cancelUrl": {
+              "name": "cancelUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
         "cancelCustomerOrder": {
           "name": "cancelCustomerOrder",
           "isArray": false,
@@ -3514,6 +6334,18 @@
               "isArray": false,
               "type": "ID",
               "isRequired": true
+            },
+            "guestId": {
+              "name": "guestId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "guestToken": {
+              "name": "guestToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
             }
           }
         },
@@ -3682,6 +6514,52 @@
             }
           }
         },
+        "PrintFigureLineInputInput": {
+          "name": "PrintFigureLineInputInput",
+          "attributes": {
+            "sizeTierId": {
+              "name": "sizeTierId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "quantity": {
+              "name": "quantity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true
+            },
+            "unitPriceCents": {
+              "name": "unitPriceCents",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false
+            }
+          }
+        },
+        "PrintQuoteAttachmentInputInput": {
+          "name": "PrintQuoteAttachmentInputInput",
+          "attributes": {
+            "storagePath": {
+              "name": "storagePath",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "fileName": {
+              "name": "fileName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "contentType": {
+              "name": "contentType",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        },
         "ReturnRequestLineItemInput": {
           "name": "ReturnRequestLineItemInput",
           "attributes": {
@@ -3793,6 +6671,26 @@
               "delete"
             ]
           },
+          "gallery/*": {
+            "guest": [
+              "get",
+              "list"
+            ],
+            "authenticated": [
+              "get",
+              "list"
+            ],
+            "groupscustomer": [
+              "get",
+              "list"
+            ],
+            "groupsadmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
           "print-jobs/${cognito-identity.amazonaws.com:sub}/*": {
             "entityidentity": [
               "get",
@@ -3802,6 +6700,12 @@
             ]
           },
           "print-jobs/*": {
+            "guest": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ],
             "authenticated": [
               "get",
               "list",
@@ -3819,8 +6723,30 @@
               "list",
               "write",
               "delete"
-            ],
+            ]
+          },
+          "print-quote-attachments/*": {
             "guest": [
+              "get",
+              "list"
+            ],
+            "authenticated": [
+              "get",
+              "list"
+            ],
+            "groupscustomer": [
+              "get",
+              "list"
+            ],
+            "groupsadmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "message-attachments/${cognito-identity.amazonaws.com:sub}/*": {
+            "entityidentity": [
               "get",
               "list",
               "write",
@@ -3852,14 +6778,6 @@
               "write",
               "delete"
             ]
-          },
-          "message-attachments/${cognito-identity.amazonaws.com:sub}/*": {
-            "entityidentity": [
-              "get",
-              "list",
-              "write",
-              "delete"
-            ]
           }
         }
       }
@@ -3867,6 +6785,8 @@
   },
   "version": "1.4",
   "custom": {
-    "stripeWebhookUrl": "https://zspmlrhmwcqt2rpyqdmw7q72da0lszrp.lambda-url.us-east-1.on.aws/"
+    "stripeWebhookUrl": "https://zspmlrhmwcqt2rpyqdmw7q72da0lszrp.lambda-url.us-east-1.on.aws/",
+    "ensureGuestSessionUrl": "https://7ik5dhbh5evzg65olsmqoohwdi0qynlj.lambda-url.us-east-1.on.aws/",
+    "publicProductImageBaseUrl": "https://amplify-d25csy1hf0rl22-ma-productimagesbucketf9909-b84mnfgiccm4.s3.us-east-1.amazonaws.com"
   }
 }

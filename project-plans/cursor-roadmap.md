@@ -32,7 +32,7 @@ Open work is numbered **M26+** in priority order. Shipped milestones keep their 
 
 | New | Was | Milestone |
 |-----|-----|-----------|
-| **M26** | M9 | SEO and performance remainder — **next** |
+| **M26** | M9 | SEO and performance remainder — **in test** (2026-11-23). Verify after deploy, then submit the sitemap in Search Console. |
 | **M27** | M24 | Variation set bundles |
 | **M28** | M23d / M23f | FAQ, contact hours, review seed, payment logos. Social links already live. |
 | **M29** | M18 | Cart price-change notifications |
@@ -53,10 +53,10 @@ Open work is numbered **M26+** in priority order. Shipped milestones keep their 
 
 | Item | State |
 |------|--------|
-| **Phase** | **M26** SEO and performance remainder |
-| **Next** | **M26** → **M27** → **M28** → **M29** → **M30** → **M31** → **M32** → **M33** → **M34** → **M35** → **M36** → then M37–M43 |
+| **Phase** | **M27** variation set bundles |
+| **Next** | **M27** → **M28** → **M29** → **M30** → **M31** → **M32** → **M33** → **M34** → **M35** → **M36** → then M37–M43 |
 | **In progress** | _(none)_ |
-| **In test** | **M39** — Idle cart TTL cleanup (Admin → Settings; daily job + Run now). Repo + Settings UI shipped; verify after backend deploy. |
+| **In test** | **M26** — SEO and performance (titles, canonicals, sitemap, robots, JSON-LD). Verify on the live site after deploy. **M39** — Idle cart TTL cleanup (Admin → Settings; daily job + Run now). Repo + Settings UI shipped; verify after backend deploy. |
 | **Deferred (feature)** | **Newsletter subscribe** — home form removed; implement under **M30**, then restore UI |
 | **Deferred (hardware)** | **M40** → **M41** → **M42** |
 | **Post-v1** | **M43** cloud portability (**M20a** Resend email shipped — see v1) |
@@ -64,7 +64,7 @@ Open work is numbered **M26+** in priority order. Shipped milestones keep their 
 | **Payments today** | **Production:** Stripe live when `VITE_APP_ENV=deployment` (Amplify `main`). Mock only for local `npm run dev`. |
 | **QA** | [docs/qa-test-plan.md](../docs/qa-test-plan.md) |
 
-**M39** can be signed off whenever a backend deploy and a cleanup run are verified. It does not block **M26**.
+**M26** can be signed off after a production deploy: public titles, product pages, `/sitemap.xml`, and `/robots.txt`. Then submit the sitemap in Search Console. **M39** can be signed off whenever a backend deploy and a cleanup run are verified. Neither blocks **M27**.
 
 ---
 
@@ -132,7 +132,7 @@ Current models are described in [`reference/data-models.md`](./reference/data-mo
 
 **Was:** M9.
 
-**Status:** **Next.** Partial. Customer **Gallery** is production verified under **M23c**. **Product JSON-LD** (one `Offer` per variant) shipped 2026-08-16. **Organization** JSON-LD already ships. Newsletter is **M30**. What remains is meta, sitemap, canonicals, and performance.
+**Status:** **In test** (2026-11-23). Repo work is in place; verify on the live site after deploy, then submit `https://emperiumforgeworks.com/sitemap.xml` in Search Console. Not a new build unless verification fails. Customer **Gallery** and **Product JSON-LD** were already shipped. Newsletter stays **M30**. Amplify still serves one `index.html` for every route, so titles and product tags are written as soon as the page loads (before the Meta PageView), not baked into a separate HTML file per product.
 
 **Scope still open:**
 
@@ -719,7 +719,7 @@ Lambdas / services to update: `promo-shared/grantIssuance.ts`, `order-shared/ful
 
 **Was:** M6f.
 
-**Status:** **In test** (2026-08-09) — repo + Settings UI shipped; verify after backend deploy. Not a new build unless verification fails. Does not block **M26**.
+**Status:** **In test** (2026-08-09) — repo + Settings UI shipped; verify after backend deploy. Not a new build unless verification fails. Does not block **M27**.
 
 **Goal:** Keep `GuestCartSnapshot` / `CartSnapshot` (and product `activeCartCount`) from growing forever by deleting idle server carts past an admin-configured threshold.
 
